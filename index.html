@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Cửa Hàng Laptop</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Laptop Store</h2>
+            nav>
+                <ul>
+                    <li><a href="#" class="active"><i class="fas fa-home"></i> Tổng quan</a></li>
+                    <li><a href="#"><i class="fas fa-laptop"></i> Sản phẩm</a></li>
+                    <li><a href="#"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
+                    <li><a href="#"><i class="fas fa-users"></i> Khách hàng</a></li>
+                    <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
+                    <li><a href="#"><i class="fas fa-cog"></i> Cài đặt</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h1>Danh sách sản phẩm</h1>
+                <button class="btn-add"><i class="fas fa-plus"></i> Thêm máy tính mới</button>
+            </header>
+
+            <section class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Hình ảnh</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Cấu hình (CPU/RAM)</th>
+                            <th>Giá bán</th>
+                            <th>Tồn kho</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#001</td>
+                            <td><img src="https://picsum.photos/50" alt="laptop"></td>
+                            <td>Dell XPS 13</td>
+                            <td>Core i7 / 16GB</td>
+                            <td>32,000,000đ</td>
+                            <td>15</td>
+                            <td>
+                                <button class="btn-edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn-delete"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#002</td>
+                            <td><img src="https://picsum.photos/50" alt="laptop"></td>
+                            <td>MacBook Pro M2</td>
+                            <td>M2 / 8GB</td>
+                            <td>35,500,000đ</td>
+                            <td>8</td>
+                            <td>
+                                <button class="btn-edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn-delete"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Thêm Laptop Mới</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <form id="productForm">
+                <div class="form-group">
+                    <label>Tên sản phẩm:</label>
+                    <input type="text" id="name" placeholder="Ví dụ: Asus ROG Strix" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>CPU:</label>
+                        <input type="text" id="cpu" placeholder="i7 13700H" required>
+                    </div>
+                    <div class="form-group">
+                        <label>RAM (GB):</label>
+                        <input type="number" id="ram" placeholder="16" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Giá bán (VNĐ):</label>
+                        <input type="number" id="price" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Số lượng kho:</label>
+                        <input type="number" id="stock" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelBtn">Hủy</button>
+                    <button type="submit" class="btn-primary">Lưu sản phẩm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+<script src="script.js"></script>
+</html>
