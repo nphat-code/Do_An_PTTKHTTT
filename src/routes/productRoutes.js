@@ -1,3 +1,4 @@
+const fs = require('fs');
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
@@ -28,6 +29,7 @@ router.get('/', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 router.post('/', upload.single('image'), async (req, res) => {
     const { name, cpu, ram, price, stock } = req.body;
     const imagePath = req.file ? `uploads/${req.file.filename}` : null;
@@ -43,7 +45,15 @@ router.post('/', upload.single('image'), async (req, res) => {
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {
+        const productResult = await pool.query("SELECT image FROM products WHERE id = $1", [id]);
+        const imagePath = productResult.rows[0]?.image;
         await pool.query("DELETE FROM products WHERE id = $1", [id]);
+        if (imagePath) {
+            const fullPath = path.join(__dirname, '../../public', imagePath);
+            if (fs.existsSync(fullPath)) {
+                fs.unlinkSync(fullPath); // Xóa file
+            }
+        }
         res.json({ message: "Đã xóa sản phẩm thành công" });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -56,14 +66,22 @@ router.put('/:id', upload.single('image'), async (req, res) => {
     try {
         let result;
         if (req.file) {
-            // Nếu có upload ảnh mới
-            const imagePath = `uploads/${req.file.filename}`;
-            const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5, image=$6 WHERE id=$7 RETURNING *";
-            result = await pool.query(sql, [name, cpu, ram, price, stock, imagePath, id]);
+            const oldProduct = await pool.query("SELECT image FROM products WHERE id = $1", [id]);
+            const oldImagePath = oldProduct.rows[0]?.image;
+
+            if (oldImagePath) {
+                const oldFullPath = path.join(__dirname, '../public', oldImagePath);
+                if (fs.existsSync(oldFullPath)) {
+                    fs.unlinkSync(oldFullPath);
+                }
+            }
+
+            const newImagePath = `uploads/${req.file.filename}`;
+            const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5, image=$6 WHERE id=$7";
+            await pool.query(sql, [name, cpu, ram, price, stock, newImagePath, id]);
         } else {
-            // Nếu không thay đổi ảnh
-            const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5 WHERE id=$6 RETURNING *";
-            result = await pool.query(sql, [name, cpu, ram, price, stock, id]);
+            const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5 WHERE id=$6";
+            await pool.query(sql, [name, cpu, ram, price, stock, id]);
         }
         res.json({ message: "Cập nhật thành công", product: result.rows[0] });
     } catch (err) {

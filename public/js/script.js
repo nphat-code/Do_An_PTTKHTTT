@@ -58,7 +58,7 @@ function renderTable(products) {
         tr.innerHTML = `
             <td>#${p.id}</td>
             <td>
-                <img src="${p.image ? p.image : 'https://via.placeholder.com/50'}" 
+                <img src="${p.image ? 'http://localhost:3000/' + p.image : 'https://via.placeholder.com/50'}" 
                     alt="laptop" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
             </td>
             <td><strong>${p.name}</strong></td>
