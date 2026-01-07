@@ -57,7 +57,10 @@ function renderTable(products) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>#${p.id}</td>
-            <td><img src="https://picsum.photos/50?random=${p.id}" alt="laptop" style="border-radius: 4px;"></td>
+            <td>
+                <img src="${p.image ? p.image : 'https://via.placeholder.com/50'}" 
+                    alt="laptop" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+            </td>
             <td><strong>${p.name}</strong></td>
             <td>${p.cpu} / ${p.ram}GB</td>
             <td>${Number(p.price).toLocaleString()}đ</td>
@@ -112,13 +115,19 @@ window.openEditModal = (product) => {
 productForm.onsubmit = async function(e) {
     e.preventDefault();
     const id = document.getElementById("productId").value;
-    const productData = {
-        name: document.getElementById("name").value,
-        cpu: document.getElementById("cpu").value,
-        ram: document.getElementById("ram").value,
-        price: document.getElementById("price").value,
-        stock: document.getElementById("stock").value
-    };
+    
+    // Sử dụng FormData để gửi cả chữ và file
+    const formData = new FormData();
+    formData.append("name", document.getElementById("name").value);
+    formData.append("cpu", document.getElementById("cpu").value);
+    formData.append("ram", document.getElementById("ram").value);
+    formData.append("price", document.getElementById("price").value);
+    formData.append("stock", document.getElementById("stock").value);
+    
+    const imageFile = document.getElementById("productImage").files[0];
+    if (imageFile) {
+        formData.append("image", imageFile);
+    }
 
     const url = isEditMode ? `http://localhost:3000/api/products/${id}` : 'http://localhost:3000/api/products';
     const method = isEditMode ? 'PUT' : 'POST';
@@ -126,8 +135,7 @@ productForm.onsubmit = async function(e) {
     try {
         const response = await fetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productData)
+            body: formData 
         });
 
         if (response.ok) {

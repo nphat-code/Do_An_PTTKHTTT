@@ -1,7 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const multer = require('multer');
+const path = require('path');
 
+const storage = multer.diskStorage({
+    destination: 'public/uploads/', // Ảnh sẽ lưu vào thư mục này
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname)); // Đặt tên file theo thời gian để tránh trùng
+    }
+});
+
+const upload = multer({ storage: storage });
 router.get('/', async (req, res) => {
     const { search } = req.query;
     try {
@@ -18,14 +28,14 @@ router.get('/', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-router.post('/', async (req, res) => {
+router.post('/', upload.single('image'), async (req, res) => {
     const { name, cpu, ram, price, stock } = req.body;
+    const imagePath = req.file ? `uploads/${req.file.filename}` : null;
     try {
-        const sql = "INSERT INTO products (name, cpu, ram, price, stock) VALUES ($1, $2, $3, $4, $5) RETURNING *";
-        const result = await pool.query(sql, [name, cpu, ram, price, stock]);
+        const sql = "INSERT INTO products (name, cpu, ram, price, stock, imagae) VALUES ($1, $2, $3, $4, $5) RETURNING *";
+        const result = await pool.query(sql, [name, cpu, ram, price, stock, imagePath]);
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error(err);
         res.status(500).send("Lỗi Database");
     }
 });
@@ -51,5 +61,6 @@ router.put('/:id', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 module.exports = router;
