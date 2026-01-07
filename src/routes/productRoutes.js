@@ -30,7 +30,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.delete('/', async (req, res) => {
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {
         await pool.query("DELETE FROM products WHERE id = $1", [id]);
@@ -40,7 +40,7 @@ router.delete('/', async (req, res) => {
     }
 });
 
-router.put('/', async (req, res) => {
+router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, cpu, ram, price, stock } = req.body;
     try {
