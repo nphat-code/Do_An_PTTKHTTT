@@ -14,8 +14,8 @@
             <h2>Laptop Store</h2>
             <nav>
                 <ul>
-                    <li><a href="#" class="active"><i class="fas fa-home"></i> Tổng quan</a></li>
-                    <li><a href="#"><i class="fas fa-laptop"></i> Sản phẩm</a></li>
+                    <li><a href="#" class="active" data-tab="overview"><i class="fas fa-home"></i> Tổng quan</a></li>
+                    <li><a href="#" data-tab="products"><i class="fas fa-laptop"></i> Sản phẩm</a></li>
                     <li><a href="#"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
                     <li><a href="#"><i class="fas fa-users"></i> Khách hàng</a></li>
                     <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
@@ -25,27 +25,54 @@
         </aside>
 
         <main class="main-content">
-            <header>
-                <h1>Danh sách sản phẩm</h1>
-                <button class="btn-add"><i class="fas fa-plus"></i> Thêm máy tính mới</button>
-            </header>
+            <section id="overview-content" class="tab-section">
+                <h1>Báo cáo tổng quan</h1>
+                <section class="stats-grid">
+                    <div class="stat-card stat-blue">
+                        <i class="fas fa-laptop"></i>
+                        <div class="stat-info">
+                            <h3>Tổng sản phẩm</h3>
+                            <p id="totalProducts">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-green">
+                        <i class="fas fa-dollar-sign"></i>
+                        <div class="stat-info">
+                            <h3>Giá trị kho</h3>
+                            <p id="totalValue">0đ</p>
+                        </div>
+                    </div>
+                </section>
+            </section>
 
-            <section class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Hình ảnh</th>
-                            <th>Tên sản phẩm</th>
-                            <th>Cấu hình (CPU/RAM)</th>
-                            <th>Giá bán</th>
-                            <th>Tồn kho</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody id="previewContainer">
-                        </tbody>
-                </table>
+            <section id="products-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Danh sách sản phẩm</h1>
+                    <button class="btn-add"><i class="fas fa-plus"></i> Thêm máy tính mới</button>
+                </header>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên máy tính...">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Hình ảnh</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Cấu hình</th>
+                                <th>Giá bán</th>
+                                <th>Số lượng</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewContainer">
+                            </tbody>
+                    </table>
+                </div>
             </section>
         </main>
     </div>

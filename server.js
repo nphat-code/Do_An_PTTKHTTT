@@ -18,8 +18,16 @@ const pool = new Pool({
 
 // API Lấy danh sách sản phẩm (Dùng cho Preview)
 app.get('/api/products', async (req, res) => {
+    const { search } = req.query;
     try {
-        const result = await pool.query("SELECT * FROM products ORDER BY id DESC");
+        let result;
+        if (search) {
+            // Sử dụng ILIKE để tìm kiếm không phân biệt hoa thường trong Postgres
+            const sql = "SELECT * FROM products WHERE name ILIKE $1 ORDER BY id DESC";
+            result = await pool.query(sql, [`%${search}%`]);
+        } else {
+            result = await pool.query("SELECT * FROM products ORDER BY id DESC");
+        }
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
