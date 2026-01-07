@@ -32,7 +32,7 @@ router.post('/', upload.single('image'), async (req, res) => {
     const { name, cpu, ram, price, stock } = req.body;
     const imagePath = req.file ? `uploads/${req.file.filename}` : null;
     try {
-        const sql = "INSERT INTO products (name, cpu, ram, price, stock, imagae) VALUES ($1, $2, $3, $4, $5) RETURNING *";
+        const sql = "INSERT INTO products (name, cpu, ram, price, stock, image) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
         const result = await pool.query(sql, [name, cpu, ram, price, stock, imagePath]);
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -50,13 +50,22 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', upload.single('image'), async (req, res) => {
     const { id } = req.params;
     const { name, cpu, ram, price, stock } = req.body;
     try {
-        const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5 WHERE id=$6";
-        await pool.query(sql, [name, cpu, ram, price, stock, id]);
-        res.json({ message: "Cập nhật thành công" });
+        let result;
+        if (req.file) {
+            // Nếu có upload ảnh mới
+            const imagePath = `uploads/${req.file.filename}`;
+            const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5, image=$6 WHERE id=$7 RETURNING *";
+            result = await pool.query(sql, [name, cpu, ram, price, stock, imagePath, id]);
+        } else {
+            // Nếu không thay đổi ảnh
+            const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5 WHERE id=$6 RETURNING *";
+            result = await pool.query(sql, [name, cpu, ram, price, stock, id]);
+        }
+        res.json({ message: "Cập nhật thành công", product: result.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

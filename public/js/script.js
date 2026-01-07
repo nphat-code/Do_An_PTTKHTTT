@@ -139,8 +139,12 @@ productForm.onsubmit = async function(e) {
         });
 
         if (response.ok) {
+            alert("Thành công!"); // Thêm thông báo
             productModal.style.display = "none";
-            loadProducts();
+            loadProducts(); // Load lại danh sách
+        } else {
+            const errorData = await response.json();
+            alert("Lỗi server: " + errorData.message);
         }
     } catch (error) {
         console.error("Lỗi kết nối:", error);
