@@ -85,34 +85,39 @@
             </div>
             <form id="productForm">
                 <input type="hidden" id="productId">
+                
                 <div class="form-group">
-                    <label>Tên sản phẩm:</label>
+                    <label><i class="fas fa-tag"></i> Tên sản phẩm:</label>
                     <input type="text" id="name" placeholder="Ví dụ: Asus ROG Strix" required>
                 </div>
+            
                 <div class="form-row">
                     <div class="form-group">
-                        <label>CPU:</label>
+                        <label><i class="fas fa-microchip"></i> CPU:</label>
                         <input type="text" id="cpu" placeholder="i7 13700H" required>
                     </div>
                     <div class="form-group">
-                        <label>RAM (GB):</label>
+                        <label><i class="fas fa-memory"></i> RAM (GB):</label>
                         <input type="number" id="ram" placeholder="16" required>
                     </div>
                 </div>
+            
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Giá bán (VNĐ):</label>
-                        <input type="number" id="price" required>
+                        <label><i class="fas fa-money-bill-wave"></i> Giá bán (VNĐ):</label>
+                        <input type="number" id="price" placeholder="0" required>
                     </div>
                     <div class="form-group">
-                        <label>Số lượng kho:</label>
-                        <input type="number" id="stock" required>
+                        <label><i class="fas fa-boxes"></i> Số lượng kho:</label>
+                        <input type="number" id="stock" placeholder="0" required>
                     </div>
                 </div>
+            
                 <div class="form-group">
-                    <label>Hình ảnh sản phẩm:</label>
+                    <label><i class="fas fa-image"></i> Hình ảnh sản phẩm:</label>
                     <input type="file" id="productImage" accept="image/*">
                 </div>
+            
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" id="cancelBtn">Hủy</button>
                     <button type="submit" class="btn-primary">Lưu sản phẩm</button>

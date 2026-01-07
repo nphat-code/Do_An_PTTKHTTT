@@ -305,3 +305,25 @@ table tr:hover {
 
 .btn-primary { background-color: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: 600; }
 .btn-secondary { background-color: #95a5a6; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; margin-right: 10px; }
+
+/* Bố cục hàng cho Modal */
+.form-row {
+    display: flex;
+    gap: 15px; /* Khoảng cách giữa 2 ô nhập liệu */
+}
+
+.form-row .form-group {
+    flex: 1; /* Chia đều chiều rộng cho các ô trong hàng */
+}
+
+/* Tùy chỉnh riêng cho ô chọn ảnh để trông gọn hơn */
+#productImage {
+    padding: 8px;
+    background-color: #f8f9fa;
+    border: 1px dashed #cbd5e0;
+    cursor: pointer;
+}
+
+#productImage:hover {
+    background-color: #edf2f7;
+}
