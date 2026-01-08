@@ -1,7 +1,7 @@
 const fs = require('fs');
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db');
+const pool = require('../config/database');
 const multer = require('multer');
 const path = require('path');
 
@@ -78,10 +78,10 @@ router.put('/:id', upload.single('image'), async (req, res) => {
 
             const newImagePath = `uploads/${req.file.filename}`;
             const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5, image=$6 WHERE id=$7";
-            await pool.query(sql, [name, cpu, ram, price, stock, newImagePath, id]);
+            result = await pool.query(sql, [name, cpu, ram, price, stock, newImagePath, id]);
         } else {
             const sql = "UPDATE products SET name=$1, cpu=$2, ram=$3, price=$4, stock=$5 WHERE id=$6";
-            await pool.query(sql, [name, cpu, ram, price, stock, id]);
+            result = await pool.query(sql, [name, cpu, ram, price, stock, id]);
         }
         res.json({ message: "Cập nhật thành công", product: result.rows[0] });
     } catch (err) {
