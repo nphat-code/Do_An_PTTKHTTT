@@ -1,16 +1,21 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
-const productRoutes = require('./src/routes/productRoutes');
-
 const app = express();
+const productRoutes = require('./routes/product.routes');
+const sequelize = require('./config/database');
+
+sequelize.authenticate()
+    .then(() => console.log('Kết nối Database thành công!'))
+    .catch(err => console.error('Không thể kết nối Database:', err));
+
+app.use('/public', express.static(path.join(__dirname, '../public')));
 app.use(cors());
 app.use(express.json());
-
-// Phục vụ các file tĩnh trong thư mục public (quan trọng!)
-app.use(express.static('public'));
-
-// Sử dụng routes
+app.use(express.urlencoded({ extended: true }));
 app.use('/api/products', productRoutes);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server chạy tại http://localhost:${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});

@@ -1,9 +1,9 @@
 const productModal = document.getElementById("productModal");
-const btnAdd = document.querySelector(".btn-add"); // Nút "Thêm máy tính mới"
+const btnAdd = document.querySelector(".btn-add");
 const closeBtn = document.querySelector(".close-btn");
 const cancelBtn = document.getElementById("cancelBtn");
 const productForm = document.getElementById("productForm");
-const previewContainer = document.getElementById("previewContainer"); // Nơi hiển thị danh sách
+const previewContainer = document.getElementById("previewContainer");
 
 btnAdd.onclick = () => {
     isEditMode = false;
@@ -18,14 +18,13 @@ window.onclick = (event) => {
     if (event.target == productModal) productModal.style.display = "none";
 }
 
-// Chọn tất cả các link ở sidebar và các section nội dung
 const sidebarLinks = document.querySelectorAll('.sidebar ul li a');
 const sections = document.querySelectorAll('.tab-section');
 
 sidebarLinks.forEach(link => {
     link.addEventListener('click', function(e) {
         const tabName = this.getAttribute('data-tab');
-        if (!tabName) return; // Bỏ qua nếu link không có data-tab (Đơn hàng, Khách hàng...)
+        if (!tabName) return;
 
         e.preventDefault();
         sidebarLinks.forEach(item => item.classList.remove('active'));
@@ -41,9 +40,9 @@ let isEditMode = false;
 async function loadProducts() {
     try {
         const response = await fetch('http://localhost:3000/api/products');
-        const products = await response.json();
-        renderTable(products);
-        updateStatistics(products);
+        const result = await response.json();
+        renderTable(result.data);
+        updateStatistics(result.data);
     } catch (error) {
         console.error("Lỗi tải danh sách:", error);
     }
@@ -76,13 +75,17 @@ function renderTable(products) {
 
 // 3. Hàm cập nhật thống kê (Tab Tổng quan)
 function updateStatistics(products) {
+    if (!products || !Array.isArray(products)) {
+        console.warn("Dữ liệu thống kê không hợp lệ");
+        return;
+    }
     const totalProducts = products.length;
     const totalValue = products.reduce((sum, p) => sum + (Number(p.price) * Number(p.stock)), 0);
 
     const totalProductsEl = document.getElementById("totalProducts");
     const totalValueEl = document.getElementById("totalValue");
 
-    if (totalProductsEl) totalProductsEl.innerText = totalProducts;
+    if (totalProductsEl) totalProductsEl.innerText = totalProducts; 
     if (totalValueEl) totalValueEl.innerText = totalValue.toLocaleString() + "đ";
 }
 
@@ -115,8 +118,6 @@ window.openEditModal = (product) => {
 productForm.onsubmit = async function(e) {
     e.preventDefault();
     const id = document.getElementById("productId").value;
-    
-    // Sử dụng FormData để gửi cả chữ và file
     const formData = new FormData();
     formData.append("name", document.getElementById("name").value);
     formData.append("cpu", document.getElementById("cpu").value);
@@ -139,9 +140,9 @@ productForm.onsubmit = async function(e) {
         });
 
         if (response.ok) {
-            alert("Thành công!"); // Thêm thông báo
+            alert("Thành công!");
             productModal.style.display = "none";
-            loadProducts(); // Load lại danh sách
+            loadProducts();
         } else {
             const errorData = await response.json();
             alert("Lỗi server: " + errorData.message);
@@ -157,7 +158,10 @@ searchInput.oninput = async (e) => {
     const keyword = e.target.value;
     try {
         const response = await fetch(`http://localhost:3000/api/products?search=${keyword}`);
-        const products = await response.json();
+        const result = await response.json();
+        if (result.success && result.data) {
+            renderTable(result.data);
+        }
         renderTable(products);
     } catch (error) {
         console.error("Lỗi tìm kiếm:", error);
