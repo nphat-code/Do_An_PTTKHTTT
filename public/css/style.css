@@ -309,14 +309,13 @@ table tr:hover {
 /* Bố cục hàng cho Modal */
 .form-row {
     display: flex;
-    gap: 15px; /* Khoảng cách giữa 2 ô nhập liệu */
+    gap: 15px;
 }
 
 .form-row .form-group {
-    flex: 1; /* Chia đều chiều rộng cho các ô trong hàng */
+    flex: 1;
 }
 
-/* Tùy chỉnh riêng cho ô chọn ảnh để trông gọn hơn */
 #productImage {
     padding: 8px;
     background-color: #f8f9fa;
@@ -326,4 +325,23 @@ table tr:hover {
 
 #productImage:hover {
     background-color: #edf2f7;
+}
+
+#paginationContainer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+.btn-page {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.btn-page.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
 }

@@ -27,28 +27,61 @@ sidebarLinks.forEach(link => {
         if (!tabName) return;
 
         e.preventDefault();
-        sidebarLinks.forEach(item => item.classList.remove('active'));
-        sections.forEach(section => section.style.display = 'none');
-        this.classList.add('active');
-        const targetSection = document.getElementById(`${tabName}-content`);
-        if (targetSection) targetSection.style.display = 'block';
+        saveTabState(tabName); // Lưu trạng thái
+        showTab(tabName);
     });
 });
 
+function showTab(tabName) {
+    sidebarLinks.forEach(item => item.classList.remove('active'));
+    sections.forEach(section => section.style.display = 'none');
+
+    const activeLink = document.querySelector(`[data-tab="${tabName}"]`);
+    if (activeLink) activeLink.classList.add('active');
+
+    const targetSection = document.getElementById(`${tabName}-content`);
+    if (targetSection) targetSection.style.display = 'block';
+}
+
+function saveTabState(tabName) {
+    localStorage.setItem('activeTab', tabName);
+}
+
 let isEditMode = false;
-// 1. Hàm hiển thị sản phẩm lên giao diện (Preview)
-async function loadProducts() {
+let currentPage = 1;
+const limit = 5;
+async function loadProducts(page = 1) {
+    currentPage = page;
+    const keyword = document.getElementById("searchInput").value;
     try {
-        const response = await fetch('http://localhost:3000/api/products');
+        const response = await fetch(`http://localhost:3000/api/products?page=${page}&limit=${limit}&search=${keyword}`);
         const result = await response.json();
-        renderTable(result.data);
-        updateStatistics(result.data);
+        if (result.success) {
+            renderTable(result.data);
+            updateStatistics(result.statistics);
+            renderPagination(result.pagination);
+        }
     } catch (error) {
         console.error("Lỗi tải danh sách:", error);
     }
 }
 
-// 2. Hàm vẽ bảng dữ liệu
+function renderPagination(pagination) {
+    const container = document.getElementById("paginationContainer");
+    if (!container) return;
+    
+    container.innerHTML = "";
+    const { totalPages, currentPage } = pagination;
+
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = i;
+        btn.className = (i === currentPage) ? "btn-page active" : "btn-page";
+        btn.onclick = () => loadProducts(i);
+        container.appendChild(btn);
+    }
+}
+
 function renderTable(products) {
     if (!previewContainer) return;
     previewContainer.innerHTML = ""; 
@@ -65,43 +98,53 @@ function renderTable(products) {
             <td>${Number(p.price).toLocaleString()}đ</td>
             <td>${p.stock}</td>
             <td>
-                <button class="btn-edit" onclick='openEditModal(${JSON.stringify(p)})'><i class="fas fa-edit"></i></button>
-                <button class="btn-delete" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
+                <button type="button" class="btn-edit" onclick='openEditModal(${JSON.stringify(p)}); return false;'>
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn-delete" onclick="deleteProduct(event, ${p.id}); return false;">
+                    <i class="fas fa-trash"></i>
+                </button>
             </td>
         `;
         previewContainer.appendChild(tr);
     });
 }
 
-// 3. Hàm cập nhật thống kê (Tab Tổng quan)
-function updateStatistics(products) {
-    if (!products || !Array.isArray(products)) {
-        console.warn("Dữ liệu thống kê không hợp lệ");
-        return;
-    }
-    const totalProducts = products.length;
-    const totalValue = products.reduce((sum, p) => sum + (Number(p.price) * Number(p.stock)), 0);
+function updateStatistics(stats) {
+    if (!stats) return;
 
     const totalProductsEl = document.getElementById("totalProducts");
     const totalValueEl = document.getElementById("totalValue");
-
-    if (totalProductsEl) totalProductsEl.innerText = totalProducts; 
-    if (totalValueEl) totalValueEl.innerText = totalValue.toLocaleString() + "đ";
+    if (totalProductsEl) totalProductsEl.innerText = stats.totalProducts; 
+    if (totalValueEl) totalValueEl.innerText = stats.totalValue.toLocaleString() + "đ";
 }
 
-// 4. Hàm Xóa sản phẩm
-async function deleteProduct(id) {
-    if (confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+async function deleteProduct(event, id) {
+    if (event) event.preventDefault();
+
+    const result = await Swal.fire({
+        title: 'Bạn có chắc chắn?',
+        text: "Sản phẩm sẽ bị xóa vĩnh viễn!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Xóa ngay',
+        cancelButtonText: 'Hủy'
+    });
+    if (result.isConfirmed) {
         try {
             const response = await fetch(`http://localhost:3000/api/products/${id}`, { method: 'DELETE' });
-            if (response.ok) loadProducts();
+            if (response.ok) {
+                await Swal.fire('Đã xóa!', 'Sản phẩm đã được loại bỏ.', 'success');
+                loadProducts(currentPage);
+            }
         } catch (error) {
-            alert("Lỗi khi xóa!");
+            Swal.fire('Lỗi!', 'Không thể xóa sản phẩm.', 'error');
         }
     }
 }
 
-// 5. Mở modal sửa
 window.openEditModal = (product) => {
     isEditMode = true;
     document.querySelector(".modal-header h2").innerText = "Chỉnh sửa sản phẩm";
@@ -114,7 +157,6 @@ window.openEditModal = (product) => {
     productModal.style.display = "block";
 };
 
-// 6. Lưu sản phẩm (Thêm/Sửa)
 productForm.onsubmit = async function(e) {
     e.preventDefault();
     const id = document.getElementById("productId").value;
@@ -140,9 +182,15 @@ productForm.onsubmit = async function(e) {
         });
 
         if (response.ok) {
-            alert("Thành công!");
+            await Swal.fire({
+                icon: 'success',
+                title: 'Thành công!',
+                text: isEditMode ? 'Đã cập nhật sản phẩm' : 'Đã thêm máy tính mới',
+                timer: 1500, // Tự động đóng sau 1.5 giây
+                showConfirmButton: false
+            });
             productModal.style.display = "none";
-            loadProducts();
+            loadProducts(currentPage);
         } else {
             const errorData = await response.json();
             alert("Lỗi server: " + errorData.message);
@@ -152,20 +200,22 @@ productForm.onsubmit = async function(e) {
     }
 };
 
-// Tìm kiếm
 const searchInput = document.getElementById("searchInput");
 searchInput.oninput = async (e) => {
     const keyword = e.target.value;
     try {
         const response = await fetch(`http://localhost:3000/api/products?search=${keyword}`);
         const result = await response.json();
-        if (result.success && result.data) {
-            renderTable(result.data);
+        if (result.success) {
+            renderTable(result.data); // Truyền mảng data vào hàm vẽ bảng
         }
-        renderTable(products);
     } catch (error) {
         console.error("Lỗi tìm kiếm:", error);
     }
 };
 
-window.onload = loadProducts;
+window.onload = () => {
+    const savedTab = localStorage.getItem('activeTab') || 'dashboard'; // Mặc định là dashboard nếu chưa có
+    showTab(savedTab);
+    loadProducts(1); // Gọi hàm và truyền đúng số trang là 1
+};
