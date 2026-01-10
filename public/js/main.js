@@ -27,7 +27,6 @@ sidebarLinks.forEach(link => {
         if (!tabName) return;
 
         e.preventDefault();
-        saveTabState(tabName); // Lưu trạng thái
         showTab(tabName);
     });
 });
@@ -41,9 +40,7 @@ function showTab(tabName) {
 
     const targetSection = document.getElementById(`${tabName}-content`);
     if (targetSection) targetSection.style.display = 'block';
-}
 
-function saveTabState(tabName) {
     localStorage.setItem('activeTab', tabName);
 }
 
@@ -52,6 +49,7 @@ let currentPage = 1;
 const limit = 5;
 async function loadProducts(page = 1) {
     currentPage = page;
+    localStorage.setItem('currentPage', page);
     const keyword = document.getElementById("searchInput").value;
     try {
         const response = await fetch(`http://localhost:3000/api/products?page=${page}&limit=${limit}&search=${keyword}`);
@@ -98,7 +96,7 @@ function renderTable(products) {
             <td>${Number(p.price).toLocaleString()}đ</td>
             <td>${p.stock}</td>
             <td>
-                <button type="button" class="btn-edit" onclick='openEditModal(${JSON.stringify(p)}); return false;'>
+                <button type="button" class="btn-edit" onclick='openEditModal(${JSON.stringify(p).replace(/'/g, "&#39;")}); return false;'>
                     <i class="fas fa-edit"></i>
                 </button>
                 <button type="button" class="btn-delete" onclick="deleteProduct(event, ${p.id}); return false;">
@@ -121,7 +119,6 @@ function updateStatistics(stats) {
 
 async function deleteProduct(event, id) {
     if (event) event.preventDefault();
-
     const result = await Swal.fire({
         title: 'Bạn có chắc chắn?',
         text: "Sản phẩm sẽ bị xóa vĩnh viễn!",
@@ -136,7 +133,13 @@ async function deleteProduct(event, id) {
         try {
             const response = await fetch(`http://localhost:3000/api/products/${id}`, { method: 'DELETE' });
             if (response.ok) {
-                await Swal.fire('Đã xóa!', 'Sản phẩm đã được loại bỏ.', 'success');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã xóa!',
+                    text: 'Sản phẩm đã được loại bỏ.',
+                    timer: 1500,
+                    showConfirmButton: false,
+                });
                 loadProducts(currentPage);
             }
         } catch (error) {
@@ -182,21 +185,22 @@ productForm.onsubmit = async function(e) {
         });
 
         if (response.ok) {
-            await Swal.fire({
+            productModal.style.display = "none";
+            Swal.fire({
                 icon: 'success',
                 title: 'Thành công!',
                 text: isEditMode ? 'Đã cập nhật sản phẩm' : 'Đã thêm máy tính mới',
-                timer: 1500, // Tự động đóng sau 1.5 giây
-                showConfirmButton: false
+                timer: 1500,
+                showConfirmButton: false,               
             });
-            productModal.style.display = "none";
             loadProducts(currentPage);
         } else {
             const errorData = await response.json();
-            alert("Lỗi server: " + errorData.message);
+            Swal.fire('Lỗi!', errorData.message || 'Có lỗi xảy ra', 'error');
         }
     } catch (error) {
         console.error("Lỗi kết nối:", error);
+        Swal.fire('Lỗi!', 'Không thể kết nối đến server', 'error');
     }
 };
 
@@ -207,7 +211,7 @@ searchInput.oninput = async (e) => {
         const response = await fetch(`http://localhost:3000/api/products?search=${keyword}`);
         const result = await response.json();
         if (result.success) {
-            renderTable(result.data); // Truyền mảng data vào hàm vẽ bảng
+            renderTable(result.data);
         }
     } catch (error) {
         console.error("Lỗi tìm kiếm:", error);
@@ -215,7 +219,11 @@ searchInput.oninput = async (e) => {
 };
 
 window.onload = () => {
-    const savedTab = localStorage.getItem('activeTab') || 'dashboard'; // Mặc định là dashboard nếu chưa có
+    const savedTab = localStorage.getItem('activeTab') || 'overview';
+    
+    // Đọc trang cũ, nếu không có thì mặc định là 1
+    const savedPage = parseInt(localStorage.getItem('currentPage')) || 1;
+
     showTab(savedTab);
-    loadProducts(1); // Gọi hàm và truyền đúng số trang là 1
+    loadProducts(savedPage);
 };
