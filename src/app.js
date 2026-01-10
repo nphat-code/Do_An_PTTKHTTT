@@ -2,18 +2,29 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const app = express();
+const { sequelize } = require('./models/index');
 const productRoutes = require('./routes/product.routes');
-const sequelize = require('./config/database');
+const orderRoutes = require('./routes/order.routes');
+const userRoutes = require('./routes/user.routes')
 
 sequelize.authenticate()
-    .then(() => console.log('Kết nối Database thành công!'))
-    .catch(err => console.error('Không thể kết nối Database:', err));
+    .then(() => {
+        console.log('Kết nối Database thành công!');
+        // Đồng bộ các bảng (bao gồm cả bảng trung gian OrderItems)
+        return sequelize.sync({ force: false }); 
+    })
+    .then(() => {
+        console.log('Các bảng đã được đồng bộ hóa!');
+    })
+    .catch(err => console.error('Lỗi Database:', err));
 
 app.use('/public', express.static(path.join(__dirname, '../public')));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/users', userRoutes)
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

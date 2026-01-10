@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
-const Product = require('../models/product.model');
+const { Product, Order, User } = require('../models/index')
 
 const getAllProducts = async (req, res) => {
     try {
