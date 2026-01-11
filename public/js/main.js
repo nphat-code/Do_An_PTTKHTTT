@@ -218,6 +218,162 @@ searchInput.oninput = async (e) => {
     }
 };
 
+// 1. Hàm tải danh sách đơn hàng
+async function loadOrders() {
+    try {
+        const response = await fetch('http://localhost:3000/api/orders');
+        const result = await response.json();
+        if (result.success) {
+            renderOrdersTable(result.data);
+        }
+    } catch (error) {
+        console.error("Lỗi khi tải đơn hàng:", error);
+    }
+}
+
+// 2. Hàm vẽ bảng đơn hàng
+function renderOrdersTable(orders) {
+    const container = document.getElementById("orderTableBody");
+    if (!container) return;
+    container.innerHTML = "";
+
+    orders.forEach(order => {
+        const date = new Date(order.createdAt).toLocaleString('vi-VN');
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>#${order.id}</td>
+            <td>${order.user ? order.user.fullName : 'N/A'}</td>
+            <td>${order.user ? order.user.phone : 'N/A'}</td>
+            <td>${date}</td>
+            <td><strong style="color: #2563eb;">${Number(order.totalAmount).toLocaleString()}đ</strong></td>
+            <td>
+                <span class="status-badge ${order.status}">
+                    ${order.status === 'pending' ? 'Chờ xử lý' : 'Đã hoàn thành'}
+                </span>
+            </td>
+            <td>
+                <button class="btn-edit" onclick="viewOrderDetails(${order.id})">
+                    <i class="fas fa-eye"></i> Xem chi tiết
+                </button>
+            </td>
+        `;
+        container.appendChild(tr);
+    });
+}
+
+// 3. Cập nhật hàm showTab để tự động tải dữ liệu khi nhấn vào tab Đơn hàng
+const originalShowTab = showTab; // Giữ lại hàm cũ
+showTab = function(tabName) {
+    originalShowTab(tabName); // Gọi hàm chuyển tab cũ
+    if (tabName === 'orders') {
+        loadOrders();
+    }
+};
+
+const orderDetailModal = document.getElementById("orderDetailModal");
+
+// Đóng modal đơn hàng
+document.querySelectorAll(".close-order-btn").forEach(btn => {
+    btn.onclick = () => orderDetailModal.style.display = "none";
+});
+
+// Hàm xem chi tiết đơn hàng
+let currentViewingOrderId = null;
+async function viewOrderDetails(orderId) {
+    try {
+        const response = await fetch(`http://localhost:3000/api/orders/${orderId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const order = result.data;
+            currentViewingOrderId = order.id;
+            document.getElementById("updateStatusSelect").value = order.status;
+            // 1. Hiển thị ID đơn hàng
+            document.getElementById("displayOrderId").innerText = `#${order.id}`;
+            
+            // 2. Hiển thị thông tin khách hàng
+            const date = new Date(order.createdAt).toLocaleString('vi-VN');
+            document.getElementById("orderInfo").innerHTML = `
+                <div>
+                    <p><strong>Khách hàng:</strong> ${order.user.fullName}</p>
+                    <p><strong>Số điện thoại:</strong> ${order.user.phone}</p>
+                    <p><strong>Địa chỉ:</strong> ${order.user.address}</p>
+                </div>
+                <div>
+                    <p><strong>Ngày đặt:</strong> ${date}</p>
+                    <p><strong>Trạng thái:</strong> ${order.status === 'pending' ? 'Chờ xử lý' : 'Đã hoàn thành'}</p>
+                    <p><strong>Email:</strong> ${order.user.email || 'N/A'}</p>
+                </div>
+            `;
+            
+            // 3. Hiển thị danh sách sản phẩm
+            const itemsContainer = document.getElementById("orderItemsTableBody");
+            itemsContainer.innerHTML = "";
+            
+            // Sequelize trả về mảng products kèm theo thông tin từ bảng trung gian (order_item)
+            order.products.forEach(p => {
+                const qty = p.order_item.quantity;
+                const priceAtPurchase = Number(p.order_item.price);
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${p.name}</td>
+                    <td>${priceAtPurchase.toLocaleString()}đ</td>
+                    <td>${qty}</td>
+                    <td>${(priceAtPurchase * qty).toLocaleString()}đ</td>
+                `;
+                itemsContainer.appendChild(tr);
+            });
+            
+            // 4. Hiển thị tổng tiền
+            document.getElementById("orderTotalDetail").innerText = Number(order.totalAmount).toLocaleString() + "đ";
+            
+            // Hiện modal
+            orderDetailModal.style.display = "block";
+        }
+    } catch (error) {
+        console.error("Lỗi khi tải chi tiết đơn hàng:", error);
+        Swal.fire("Lỗi", "Không thể lấy thông tin chi tiết đơn hàng", "error");
+    }
+}
+
+async function confirmUpdateStatus() {
+    const newStatus = document.getElementById("updateStatusSelect").value;
+    
+    const confirmText = newStatus === 'cancelled' 
+        ? "Đơn hàng này sẽ bị hủy và sản phẩm sẽ được cộng lại vào kho!" 
+        : "Xác nhận thay đổi trạng thái đơn hàng?";
+
+    const result = await Swal.fire({
+        title: 'Xác nhận?',
+        text: confirmText,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`http://localhost:3000/api/orders/${currentViewingOrderId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire("Thành công", data.message, "success");
+                orderDetailModal.style.display = "none";
+                loadOrders(); // Load lại danh sách đơn hàng ở trang Admin
+            } else {
+                Swal.fire("Lỗi", data.message, "error");
+            }
+        } catch (error) {
+            Swal.fire("Lỗi", "Không thể kết nối đến server", "error");
+        }
+    }
+}
+
 window.onload = () => {
     const savedTab = localStorage.getItem('activeTab') || 'overview';
     

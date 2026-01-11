@@ -12,5 +12,5 @@ router.get('/', orderController.getAllOrders);
 
 // 3. Admin hoặc Khách hàng xem chi tiết một đơn hàng cụ thể
 router.get('/:id', orderController.getOrderById);
-
+router.put('/:id/status', orderController.updateOrderStatus);
 module.exports = router;

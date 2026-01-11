@@ -5,10 +5,23 @@ const cartModal = document.getElementById("cartModal");
 const checkoutForm = document.getElementById("checkoutForm");
 
 // 1. Tải danh sách sản phẩm từ API
-async function loadProducts(keyword = "") {
+async function loadProducts() {
+    const keyword = document.getElementById("searchInput").value;
+    const priceRange = document.getElementById("priceFilter").value;
+    
+    let minPrice = "";
+    let maxPrice = "";
+
+    if (priceRange) {
+        [minPrice, maxPrice] = priceRange.split("-");
+    }
+
     try {
-        const response = await fetch(`http://localhost:3000/api/products?search=${keyword}&limit=100`);
+        // Gửi request kèm theo các tham số lọc
+        const url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&limit=100`;
+        const response = await fetch(url);
         const result = await response.json();
+        
         if (result.success) {
             renderProducts(result.data);
         }
@@ -16,6 +29,16 @@ async function loadProducts(keyword = "") {
         console.error("Lỗi khi tải sản phẩm:", error);
     }
 }
+
+// 2. Lắng nghe sự kiện thay đổi của bộ lọc giá
+document.getElementById("priceFilter").onchange = () => {
+    loadProducts();
+};
+
+// 3. Giữ nguyên sự kiện tìm kiếm cũ nhưng gọi loadProducts không tham số
+document.getElementById("searchInput").oninput = () => {
+    loadProducts();
+};
 
 // 2. Hiển thị sản phẩm lên giao diện dạng Card
 function renderProducts(products) {

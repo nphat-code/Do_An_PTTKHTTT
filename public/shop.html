@@ -13,7 +13,7 @@
             --text-color: #1e293b;
         }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); margin: 0; }
-        header { background: #fff; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); sticky: top; }
+        header { background: #fff; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000}
         .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); }
         .search-bar { flex: 0 1 400px; display: flex; position: relative; }
         .search-bar input { width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; border: 1px solid #ddd; border-radius: 20px; outline: none; }
@@ -47,6 +47,15 @@
         <div class="search-bar">
             <i class="fas fa-search"></i>
             <input type="text" id="searchInput" placeholder="Tìm kiếm laptop của bạn...">
+        </div>
+        <div class="filter-container" style="display: flex; gap: 10px; margin-left: 20px;">
+            <select id="priceFilter" style="padding: 0.6rem; border-radius: 20px; border: 1px solid #ddd; outline: none;">
+                <option value="">Tất cả mức giá</option>
+                <option value="0-10000000">Dưới 10 triệu</option>
+                <option value="10000000-20000000">10 - 20 triệu</option>
+                <option value="20000000-30000000">20 - 30 triệu</option>
+                <option value="30000000-999999999">Trên 30 triệu</option>
+            </select>
         </div>
         <div class="cart-btn" onclick="openCart()">
             <i class="fas fa-shopping-cart"></i>

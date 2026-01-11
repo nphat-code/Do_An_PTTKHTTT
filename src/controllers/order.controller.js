@@ -121,8 +121,62 @@ const getOrderById = async (req, res) => {
     }
 };
 
+const updateOrderStatus = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+        const { status } = req.body; // Trạng thái mới: 'completed', 'cancelled', v.v.
+
+        // 1. Tìm đơn hàng hiện tại cùng các sản phẩm trong đó
+        const order = await Order.findByPk(id, {
+            include: [{ model: Product }],
+            transaction: t
+        });
+
+        if (!order) {
+            throw new Error("Không tìm thấy đơn hàng");
+        }
+
+        // 2. Xử lý logic cộng lại kho nếu trạng thái mới là 'cancelled' 
+        // và trạng thái cũ KHÔNG PHẢI là 'cancelled' (tránh cộng dồn nhiều lần)
+        if (status === 'cancelled' && order.status !== 'cancelled') {
+            for (let product of order.products) {
+                // Lấy số lượng từ bảng trung gian order_item
+                const quantityToReturn = product.order_item.quantity;
+                
+                // Cộng lại vào kho
+                await product.update({
+                    stock: product.stock + quantityToReturn
+                }, { transaction: t });
+            }
+        } 
+        // (Tùy chọn) Nếu chuyển từ 'cancelled' sang trạng thái khác thì phải trừ kho đi
+        else if (order.status === 'cancelled' && status !== 'cancelled') {
+            for (let product of order.products) {
+                const quantityToSubtract = product.order_item.quantity;
+                if (product.stock < quantityToSubtract) {
+                    throw new Error(`Sản phẩm ${product.name} đã hết hàng, không thể khôi phục đơn hàng này.`);
+                }
+                await product.update({
+                    stock: product.stock - quantityToSubtract
+                }, { transaction: t });
+            }
+        }
+
+        // 3. Cập nhật trạng thái đơn hàng
+        await order.update({ status }, { transaction: t });
+
+        await t.commit();
+        res.status(200).json({ success: true, message: "Cập nhật trạng thái thành công" });
+    } catch (error) {
+        await t.rollback();
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
-    getOrderById
+    getOrderById,
+    updateOrderStatus
 };

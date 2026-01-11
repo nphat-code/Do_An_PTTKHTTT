@@ -12,16 +12,18 @@ const getAllProducts = async (req, res) => {
         }
         const limit = parseInt(req.query.limit) || 5; // Mặc định 5 sản phẩm/trang
         const offset = (page - 1) * limit;  
-        const { search } = req.query;
+        const { search, minPrice, maxPrice } = req.query;
         let whereClause = {};
         if (search) {
-            whereClause = {
-                name: {
-                    [Op.iLike]: `%${search}%`
-                }
-            };
+            whereClause.name = { [Op.iLike]: `%${search}%` };
         }
 
+        if (minPrice || maxPrice) {
+            whereClause.price = {};
+            if (minPrice) whereClause.price[Op.gte] = parseFloat(minPrice); // Lớn hơn hoặc bằng
+            if (maxPrice) whereClause.price[Op.lte] = parseFloat(maxPrice); // Nhỏ hơn hoặc bằng
+        }
+        
         const result = await Product.findAndCountAll({
             where: whereClause,
             limit: limit,

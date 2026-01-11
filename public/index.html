@@ -17,7 +17,7 @@
                 <ul>
                     <li><a href="#" class="active" data-tab="overview"><i class="fas fa-home"></i> Tổng quan</a></li>
                     <li><a href="#" data-tab="products"><i class="fas fa-laptop"></i> Sản phẩm</a></li>
-                    <li><a href="#"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
+                    <li><a href="#" data-tab="orders"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
                     <li><a href="#"><i class="fas fa-users"></i> Khách hàng</a></li>
                     <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
                     <li><a href="#"><i class="fas fa-cog"></i> Cài đặt</a></li>
@@ -76,6 +76,29 @@
                 </div>
                 <div id="paginationContainer"></div>
             </section>
+            <section id="orders-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý đơn hàng</h1>
+                </header>
+            
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã ĐH</th>
+                                <th>Khách hàng</th>
+                                <th>Số điện thoại</th>
+                                <th>Ngày đặt</th>
+                                <th>Tổng tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -125,6 +148,45 @@
                     <button type="submit" class="btn-primary">Lưu sản phẩm</button>
                 </div>
             </form>
+        </div>
+    </div>
+    <div id="orderDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Chi tiết đơn hàng <span id="displayOrderId"></span></h2>
+                <span class="close-order-btn" style="cursor:pointer; font-size: 24px;">&times;</span>
+            </div>
+            <div id="orderInfo" style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                </div>
+                <div class="status-update-box" style="margin-top: 10px; padding: 15px; background: #f1f5f9; border-radius: 8px;">
+                    <label><strong>Cập nhật trạng thái: </strong></label>
+                    <select id="updateStatusSelect" style="padding: 5px; border-radius: 4px;">
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="completed">Đã hoàn thành</option>
+                        <option value="cancelled">Đã hủy (Hoàn kho)</option>
+                    </select>
+                    <button onclick="confirmUpdateStatus()" class="btn-primary" style="padding: 6px 15px; margin-left: 10px;">Cập nhật</button>
+                </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Đơn giá</th>
+                            <th>Số lượng</th>
+                            <th>Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderItemsTableBody">
+                        </tbody>
+                </table>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <h3>Tổng cộng: <span id="orderTotalDetail" style="color: #2563eb;">0đ</span></h3>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary close-order-btn">Đóng</button>
+            </div>
         </div>
     </div>
     <script src="js/main.js"></script>
