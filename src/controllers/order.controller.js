@@ -16,18 +16,40 @@ const createOrder = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(customerInfo.phone, salt);
 
-        // 1. Tìm hoặc Tạo khách hàng dựa trên số điện thoại
-        const [user] = await User.findOrCreate({
-            where: { phone: customerInfo.phone },
-            defaults: {
-                fullName: customerInfo.fullName,
-                email: customerInfo.email,
-                address: customerInfo.address,
-                password: hashedPassword, // Thêm mật khẩu mặc định
-                role: 'customer'
+        const { Op } = require('sequelize');
+
+        // ...
+
+        // 1. Tìm xem user đã tồn tại chưa (theo Phone hặc Email)
+        let user = await User.findOne({
+            where: {
+                [Op.or]: [
+                    { phone: customerInfo.phone },
+                    { email: customerInfo.email }
+                ]
             },
             transaction: t
         });
+
+        if (user) {
+            // Update thông tin mới nhất
+            await user.update({
+                fullName: customerInfo.fullName,
+                address: customerInfo.address,
+                phone: customerInfo.phone, // Update phone nếu tìm thấy theo email
+                email: customerInfo.email  // Update email nếu tìm thấy theo phone
+            }, { transaction: t });
+        } else {
+            // Nếu chưa có thì tạo mới
+            user = await User.create({
+                fullName: customerInfo.fullName,
+                email: customerInfo.email,
+                phone: customerInfo.phone,
+                address: customerInfo.address,
+                password: hashedPassword,
+                role: 'customer'
+            }, { transaction: t });
+        }
 
         let totalAmount = 0;
         const itemsToCreate = [];

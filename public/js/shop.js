@@ -163,57 +163,14 @@ function saveCart() {
 }
 
 // 5. Xử lý đóng/mở Modal
-window.openCart = () => cartModal.style.display = "block";
+// 5. Xử lý đóng/mở Modal
+window.openCart = () => {
+    cartModal.style.display = "block";
+};
 window.closeCart = () => cartModal.style.display = "none";
 window.onclick = (e) => { if (e.target == cartModal) closeCart(); };
 
-// 6. Xử lý Đặt hàng (Checkout)
-checkoutForm.onsubmit = async (e) => {
-    e.preventDefault();
-    if (cart.length === 0) {
-        Swal.fire("Giỏ hàng trống", "Vui lòng chọn sản phẩm trước khi thanh toán", "info");
-        return;
-    }
-
-    const orderData = {
-        customerInfo: {
-            fullName: document.getElementById("cusName").value,
-            email: document.getElementById("cusEmail").value,
-            phone: document.getElementById("cusPhone").value,
-            address: document.getElementById("cusAddress").value
-        },
-        cartItems: cart.map(item => ({ id: item.id, quantity: item.quantity }))
-    };
-
-    try {
-        const response = await fetch('http://localhost:3000/api/orders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderData)
-        });
-
-        const result = await response.json();
-        if (result.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Đặt hàng thành công!',
-                text: 'Mã đơn hàng của bạn là: #' + result.orderId,
-                confirmButtonText: 'Tuyệt vời'
-            }).then(() => {
-                cart = [];
-                saveCart();
-                updateCartUI();
-                closeCart();
-                checkoutForm.reset();
-                loadProducts(); // Load lại để cập nhật stock mới
-            });
-        } else {
-            Swal.fire("Lỗi đặt hàng", result.message, "error");
-        }
-    } catch (error) {
-        Swal.fire("Lỗi kết nối", "Không thể gửi đơn hàng đến server", "error");
-    }
-};
+// checkout logic moved to checkout.js
 
 // 7. Tìm kiếm sản phẩm
 document.getElementById("searchInput").oninput = (e) => {
@@ -227,7 +184,7 @@ function checkAuth() {
 
     if (user) {
         authContainer.innerHTML = `
-            <span>Xin chào, ${user.fullName}</span> | 
+            <span>Xin chào, <a href="/profile.html" style="color: inherit; text-decoration: underline;">${user.fullName}</a></span> | 
             <a href="#" onclick="logout()">Đăng xuất</a>
             ${user.role === 'admin' ? ' | <a href="/admin/">Admin</a>' : ''}
         `;

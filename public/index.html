@@ -223,17 +223,15 @@
             <hr>
             <h3>Tổng cộng: <span id="cartTotal">0đ</span></h3>
 
-            <form id="checkoutForm" class="checkout-form">
-                <h4>Thông tin giao hàng</h4>
-                <input type="text" id="cusName" placeholder="Họ và tên" required>
-                <input type="email" id="cusEmail" placeholder="Email (không bắt buộc)">
-                <input type="tel" id="cusPhone" placeholder="Số điện thoại" required>
-                <input type="text" id="cusAddress" placeholder="Địa chỉ nhận hàng" required>
-                <button type="submit" class="btn-buy">Xác nhận đặt hàng</button>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <a href="checkout.html" class="btn-buy" style="text-decoration:none; text-align:center; display:block;">
+                    Thanh toán
+                </a>
                 <button type="button" onclick="closeCart()"
-                    style="background:#ccc; border:none; padding:0.8rem; border-radius:8px; cursor:pointer;">Tiếp tục
-                    mua sắm</button>
-            </form>
+                    style="background:#ccc; border:none; padding:0.8rem; border-radius:8px; cursor:pointer; width: 100%;">
+                    Tiếp tục mua sắm
+                </button>
+            </div>
         </div>
     </div>
 

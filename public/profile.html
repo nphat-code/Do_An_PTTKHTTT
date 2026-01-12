@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ Sơ Của Tôi - Mobile Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .profile-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: #64748b;
+            margin-right: 20px;
+        }
+
+        .info-group {
+            margin-bottom: 20px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #1e293b;
+        }
+
+        .order-history {
+            margin-top: 40px;
+        }
+
+        .order-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="background-color: #f8fafc; min-height: 100vh; padding: 20px;">
+        <a href="/" class="back-btn"><i class="fas fa-arrow-left"></i> Quay lại cửa hàng</a>
+
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <h1 id="profileName" style="margin: 0; color: #1e293b; font-size: 24px;">Đang tải...</h1>
+                    <span id="profileRole" style="color: #64748b;">Khách hàng</span>
+                </div>
+            </div>
+
+            <div class="info-group">
+                <label class="info-label"><i class="fas fa-envelope"></i> Email</label>
+                <div class="info-value" id="profileEmail">...</div>
+            </div>
+            <div class="info-group">
+                <label class="info-label"><i class="fas fa-phone"></i> Số điện thoại</label>
+                <div class="info-value" id="profilePhone">...</div>
+            </div>
+            <div class="info-group">
+                <label class="info-label"><i class="fas fa-map-marker-alt"></i> Địa chỉ</label>
+                <div class="info-value" id="profileAddress">...</div>
+            </div>
+
+            <div class="order-history">
+                <h2
+                    style="font-size: 20px; color: #1e293b; margin-bottom: 20px; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px;">
+                    Lịch sử mua hàng</h2>
+                <div id="ordersList">
+                    <!-- Orders will be loaded here -->
+                    <p style="color: #64748b;">Đang tải lịch sử đơn hàng...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadProfile() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                alert("Bạn chưa đăng nhập!");
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            try {
+                // Fetch fresh data from API
+                const response = await fetch(`/api/users/${user.id}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.message);
+                }
+
+                const userData = result.data;
+
+                // Update UI
+                document.getElementById('profileName').textContent = userData.fullName;
+                document.getElementById('profileEmail').textContent = userData.email || 'Chưa cập nhật';
+                document.getElementById('profilePhone').textContent = userData.phone || 'Chưa cập nhật';
+                document.getElementById('profileAddress').textContent = userData.address || 'Chưa cập nhật'; // Fixed from User.address to userData.address
+
+                // Render Orders
+                const ordersContainer = document.getElementById('ordersList');
+                if (!userData.orders || userData.orders.length === 0) {
+                    ordersContainer.innerHTML = '<p>Bạn chưa có đơn hàng nào.</p>';
+                    return;
+                }
+
+                ordersContainer.innerHTML = userData.orders.map(order => {
+                    const date = new Date(order.createdAt).toLocaleDateString('vi-VN');
+                    let statusText = '';
+                    let statusColor = '';
+                    switch (order.status) {
+                        case 'pending': statusText = 'Chờ xử lý'; statusColor = '#eab308'; break;
+                        case 'completed': statusText = 'Hoàn thành'; statusColor = '#22c55e'; break;
+                        case 'cancelled': statusText = 'Đã hủy'; statusColor = '#ef4444'; break;
+                        default: statusText = order.status; statusColor = '#64748b';
+                    }
+
+                    return `
+                        <div class="order-card">
+                            <div class="order-header">
+                                <strong>Đơn hàng #${order.id}</strong>
+                                <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
+                            </div>
+                            <div style="font-size: 14px; color: #64748b; margin-bottom: 10px;">Ngày đặt: ${date}</div>
+                            <div style="font-weight: bold; color: #2563eb;">Tổng tiền: ${Number(order.totalAmount).toLocaleString()}đ</div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error("Error loading profile:", error);
+                // Fallback to localStorage data if API fails
+                document.getElementById('profileName').textContent = user.fullName;
+                document.getElementById('ordersList').innerHTML = '<p style="color:red">Không thể tải lịch sử đơn hàng.</p>';
+            }
+        }
+
+        window.onload = loadProfile;
+    </script>
+</body>
+
+</html>
