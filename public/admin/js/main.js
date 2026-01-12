@@ -1,3 +1,12 @@
+// Check Auth
+const token = localStorage.getItem('token');
+const user = JSON.parse(localStorage.getItem('user'));
+
+if (!token || !user || user.role !== 'admin') {
+    alert("Bạn cần đăng nhập quyền Admin!");
+    window.location.href = '/login.html';
+}
+
 const productModal = document.getElementById("productModal");
 const btnAdd = document.querySelector(".btn-add");
 const closeBtn = document.querySelector(".close-btn");

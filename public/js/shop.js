@@ -8,7 +8,7 @@ const checkoutForm = document.getElementById("checkoutForm");
 async function loadProducts() {
     const keyword = document.getElementById("searchInput").value;
     const priceRange = document.getElementById("priceFilter").value;
-    
+
     let minPrice = "";
     let maxPrice = "";
 
@@ -21,7 +21,7 @@ async function loadProducts() {
         const url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&limit=100`;
         const response = await fetch(url);
         const result = await response.json();
-        
+
         if (result.success) {
             renderProducts(result.data);
         }
@@ -52,7 +52,7 @@ function renderProducts(products) {
         const card = document.createElement("div");
         card.className = "product-card";
         const imageUrl = p.image ? `http://localhost:3000/${p.image}` : 'https://via.placeholder.com/250x200?text=No+Image';
-        
+
         card.innerHTML = `
             <img src="${imageUrl}" class="product-img" alt="${p.name}">
             <div class="product-info">
@@ -75,7 +75,7 @@ function renderProducts(products) {
 // 3. Thêm sản phẩm vào giỏ hàng
 function addToCart(product) {
     const existingItem = cart.find(item => item.id === product.id);
-    
+
     if (existingItem) {
         if (existingItem.quantity >= product.stock) {
             Swal.fire("Thông báo", "Số lượng trong kho không đủ!", "warning");
@@ -94,7 +94,7 @@ function addToCart(product) {
 
     updateCartUI();
     saveCart();
-    
+
     // Thông báo nhanh
     const Toast = Swal.mixin({
         toast: true,
@@ -220,8 +220,31 @@ document.getElementById("searchInput").oninput = (e) => {
     loadProducts(e.target.value);
 };
 
+// Check authentication status
+function checkAuth() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const authContainer = document.getElementById('authLinks');
+
+    if (user) {
+        authContainer.innerHTML = `
+            <span>Xin chào, ${user.fullName}</span> | 
+            <a href="#" onclick="logout()">Đăng xuất</a>
+            ${user.role === 'admin' ? ' | <a href="/admin/">Admin</a>' : ''}
+        `;
+    } else {
+        authContainer.innerHTML = `<a href="login.html" style="text-decoration:none; color: inherit;">Đăng nhập</a>`;
+    }
+}
+
+window.logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.reload();
+};
+
 // Khởi tạo trang
 window.onload = () => {
     loadProducts();
     updateCartUI();
+    checkAuth();
 };

@@ -1,4 +1,5 @@
 const { sequelize, Product, User, Order, OrderItem } = require('../models/index');
+const bcrypt = require('bcryptjs');
 
 const createOrder = async (req, res) => {
     // Khởi tạo Transaction để đảm bảo nếu một bước lỗi thì toàn bộ quá trình sẽ bị hủy (rollback)
@@ -11,13 +12,19 @@ const createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: "Giỏ hàng trống" });
         }
 
+        // Tạo mật khẩu mặc định (số điện thoại)
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(customerInfo.phone, salt);
+
         // 1. Tìm hoặc Tạo khách hàng dựa trên số điện thoại
         const [user] = await User.findOrCreate({
             where: { phone: customerInfo.phone },
             defaults: {
                 fullName: customerInfo.fullName,
                 email: customerInfo.email,
-                address: customerInfo.address
+                address: customerInfo.address,
+                password: hashedPassword, // Thêm mật khẩu mặc định
+                role: 'customer'
             },
             transaction: t
         });
@@ -67,7 +74,7 @@ const createOrder = async (req, res) => {
             ...item,
             orderId: order.id
         }));
-        
+
         await OrderItem.bulkCreate(orderItemsWithId, { transaction: t });
 
         // Hoàn tất giao dịch
@@ -108,9 +115,9 @@ const getOrderById = async (req, res) => {
         const order = await Order.findByPk(req.params.id, {
             include: [
                 { model: User },
-                { 
-                    model: Product, 
-                    through: { attributes: ['quantity', 'price'] } 
+                {
+                    model: Product,
+                    through: { attributes: ['quantity', 'price'] }
                 }
             ]
         });
@@ -143,13 +150,13 @@ const updateOrderStatus = async (req, res) => {
             for (let product of order.products) {
                 // Lấy số lượng từ bảng trung gian order_item
                 const quantityToReturn = product.order_item.quantity;
-                
+
                 // Cộng lại vào kho
                 await product.update({
                     stock: product.stock + quantityToReturn
                 }, { transaction: t });
             }
-        } 
+        }
         // (Tùy chọn) Nếu chuyển từ 'cancelled' sang trạng thái khác thì phải trừ kho đi
         else if (order.status === 'cancelled' && status !== 'cancelled') {
             for (let product of order.products) {
