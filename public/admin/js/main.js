@@ -22,7 +22,7 @@ const sidebarLinks = document.querySelectorAll('.sidebar ul li a');
 const sections = document.querySelectorAll('.tab-section');
 
 sidebarLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
+    link.addEventListener('click', function (e) {
         const tabName = this.getAttribute('data-tab');
         if (!tabName) return;
 
@@ -67,7 +67,7 @@ async function loadProducts(page = 1) {
 function renderPagination(pagination) {
     const container = document.getElementById("paginationContainer");
     if (!container) return;
-    
+
     container.innerHTML = "";
     const { totalPages, currentPage } = pagination;
 
@@ -82,7 +82,7 @@ function renderPagination(pagination) {
 
 function renderTable(products) {
     if (!previewContainer) return;
-    previewContainer.innerHTML = ""; 
+    previewContainer.innerHTML = "";
     products.forEach(p => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -113,7 +113,7 @@ function updateStatistics(stats) {
 
     const totalProductsEl = document.getElementById("totalProducts");
     const totalValueEl = document.getElementById("totalValue");
-    if (totalProductsEl) totalProductsEl.innerText = stats.totalProducts; 
+    if (totalProductsEl) totalProductsEl.innerText = stats.totalProducts;
     if (totalValueEl) totalValueEl.innerText = stats.totalValue.toLocaleString() + "đ";
 }
 
@@ -160,7 +160,7 @@ window.openEditModal = (product) => {
     productModal.style.display = "block";
 };
 
-productForm.onsubmit = async function(e) {
+productForm.onsubmit = async function (e) {
     e.preventDefault();
     const id = document.getElementById("productId").value;
     const formData = new FormData();
@@ -169,7 +169,7 @@ productForm.onsubmit = async function(e) {
     formData.append("ram", document.getElementById("ram").value);
     formData.append("price", document.getElementById("price").value);
     formData.append("stock", document.getElementById("stock").value);
-    
+
     const imageFile = document.getElementById("productImage").files[0];
     if (imageFile) {
         formData.append("image", imageFile);
@@ -181,7 +181,7 @@ productForm.onsubmit = async function(e) {
     try {
         const response = await fetch(url, {
             method: method,
-            body: formData 
+            body: formData
         });
 
         if (response.ok) {
@@ -191,7 +191,7 @@ productForm.onsubmit = async function(e) {
                 title: 'Thành công!',
                 text: isEditMode ? 'Đã cập nhật sản phẩm' : 'Đã thêm máy tính mới',
                 timer: 1500,
-                showConfirmButton: false,               
+                showConfirmButton: false,
             });
             loadProducts(currentPage);
         } else {
@@ -248,7 +248,7 @@ function renderOrdersTable(orders) {
             <td><strong style="color: #2563eb;">${Number(order.totalAmount).toLocaleString()}đ</strong></td>
             <td>
                 <span class="status-badge ${order.status}">
-                    ${order.status === 'pending' ? 'Chờ xử lý' : 'Đã hoàn thành'}
+                    ${order.status === 'pending' ? 'Chờ xử lý' : (order.status === 'cancelled' ? 'Đã hủy' : 'Đã hoàn thành')}
                 </span>
             </td>
             <td>
@@ -263,10 +263,12 @@ function renderOrdersTable(orders) {
 
 // 3. Cập nhật hàm showTab để tự động tải dữ liệu khi nhấn vào tab Đơn hàng
 const originalShowTab = showTab; // Giữ lại hàm cũ
-showTab = function(tabName) {
+showTab = function (tabName) {
     originalShowTab(tabName); // Gọi hàm chuyển tab cũ
     if (tabName === 'orders') {
         loadOrders();
+    } else if (tabName === 'products') {
+        loadProducts(currentPage);
     }
 };
 
@@ -283,14 +285,14 @@ async function viewOrderDetails(orderId) {
     try {
         const response = await fetch(`http://localhost:3000/api/orders/${orderId}`);
         const result = await response.json();
-        
+
         if (result.success) {
             const order = result.data;
             currentViewingOrderId = order.id;
             document.getElementById("updateStatusSelect").value = order.status;
             // 1. Hiển thị ID đơn hàng
             document.getElementById("displayOrderId").innerText = `#${order.id}`;
-            
+
             // 2. Hiển thị thông tin khách hàng
             const date = new Date(order.createdAt).toLocaleString('vi-VN');
             document.getElementById("orderInfo").innerHTML = `
@@ -301,15 +303,15 @@ async function viewOrderDetails(orderId) {
                 </div>
                 <div>
                     <p><strong>Ngày đặt:</strong> ${date}</p>
-                    <p><strong>Trạng thái:</strong> ${order.status === 'pending' ? 'Chờ xử lý' : 'Đã hoàn thành'}</p>
+                    <p><strong>Trạng thái:</strong> ${order.status === 'pending' ? 'Chờ xử lý' : (order.status === 'cancelled' ? 'Đã hủy' : 'Đã hoàn thành')}</p>
                     <p><strong>Email:</strong> ${order.user.email || 'N/A'}</p>
                 </div>
             `;
-            
+
             // 3. Hiển thị danh sách sản phẩm
             const itemsContainer = document.getElementById("orderItemsTableBody");
             itemsContainer.innerHTML = "";
-            
+
             // Sequelize trả về mảng products kèm theo thông tin từ bảng trung gian (order_item)
             order.products.forEach(p => {
                 const qty = p.order_item.quantity;
@@ -323,10 +325,10 @@ async function viewOrderDetails(orderId) {
                 `;
                 itemsContainer.appendChild(tr);
             });
-            
+
             // 4. Hiển thị tổng tiền
             document.getElementById("orderTotalDetail").innerText = Number(order.totalAmount).toLocaleString() + "đ";
-            
+
             // Hiện modal
             orderDetailModal.style.display = "block";
         }
@@ -338,9 +340,9 @@ async function viewOrderDetails(orderId) {
 
 async function confirmUpdateStatus() {
     const newStatus = document.getElementById("updateStatusSelect").value;
-    
-    const confirmText = newStatus === 'cancelled' 
-        ? "Đơn hàng này sẽ bị hủy và sản phẩm sẽ được cộng lại vào kho!" 
+
+    const confirmText = newStatus === 'cancelled'
+        ? "Đơn hàng này sẽ bị hủy và sản phẩm sẽ được cộng lại vào kho!"
         : "Xác nhận thay đổi trạng thái đơn hàng?";
 
     const result = await Swal.fire({
@@ -365,6 +367,7 @@ async function confirmUpdateStatus() {
                 Swal.fire("Thành công", data.message, "success");
                 orderDetailModal.style.display = "none";
                 loadOrders(); // Load lại danh sách đơn hàng ở trang Admin
+                loadProducts(); // Load lại danh sách sản phẩm
             } else {
                 Swal.fire("Lỗi", data.message, "error");
             }
@@ -376,7 +379,7 @@ async function confirmUpdateStatus() {
 
 window.onload = () => {
     const savedTab = localStorage.getItem('activeTab') || 'overview';
-    
+
     // Đọc trang cũ, nếu không có thì mặc định là 1
     const savedPage = parseInt(localStorage.getItem('currentPage')) || 1;
 
