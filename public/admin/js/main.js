@@ -19,7 +19,7 @@ btnAdd.onclick = () => {
     productForm.reset();
     document.getElementById("productId").value = "";
     document.querySelector(".modal-header h2").innerText = "Thêm Laptop Mới";
-    productModal.style.display = "block";
+    productModal.style.display = "flex";
 };
 closeBtn.onclick = () => productModal.style.display = "none";
 cancelBtn.onclick = () => productModal.style.display = "none";
@@ -166,7 +166,7 @@ window.openEditModal = (product) => {
     document.getElementById("ram").value = product.ram;
     document.getElementById("price").value = product.price;
     document.getElementById("stock").value = product.stock;
-    productModal.style.display = "block";
+    productModal.style.display = "flex";
 };
 
 productForm.onsubmit = async function (e) {
@@ -278,6 +278,10 @@ showTab = function (tabName) {
         loadOrders();
     } else if (tabName === 'products') {
         loadProducts(currentPage);
+    } else if (tabName === 'customers') {
+        loadCustomers();
+    } else if (tabName === 'inventory') {
+        loadImportHistory();
     }
 };
 
@@ -339,7 +343,7 @@ async function viewOrderDetails(orderId) {
             document.getElementById("orderTotalDetail").innerText = Number(order.totalAmount).toLocaleString() + "đ";
 
             // Hiện modal
-            orderDetailModal.style.display = "block";
+            orderDetailModal.style.display = "flex";
         }
     } catch (error) {
         console.error("Lỗi khi tải chi tiết đơn hàng:", error);
@@ -383,6 +387,233 @@ async function confirmUpdateStatus() {
         } catch (error) {
             Swal.fire("Lỗi", "Không thể kết nối đến server", "error");
         }
+    }
+}
+
+// 4. Quản lý khách hàng
+async function loadCustomers() {
+    try {
+        const keyword = document.getElementById("searchCustomerInput") ? document.getElementById("searchCustomerInput").value : '';
+        const url = keyword
+            ? `http://localhost:3000/api/users/search?query=${keyword}`
+            : 'http://localhost:3000/api/users';
+
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.success) {
+            renderCustomersTable(result.data);
+        }
+    } catch (error) {
+        console.error("Lỗi khi tải danh sách khách hàng:", error);
+    }
+}
+
+function renderCustomersTable(users) {
+    const container = document.getElementById("customerTableBody");
+    if (!container) return;
+    container.innerHTML = "";
+
+    users.forEach(user => {
+        // Bỏ qua admin trong danh sách khách hàng nếu muốn (tùy chọn)
+        if (user.role === 'admin') return;
+
+        const date = new Date(user.createdAt).toLocaleDateString('vi-VN');
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>#${user.id}</td>
+            <td><strong>${user.fullName}</strong></td>
+            <td>${user.phone}</td>
+            <td>${user.email || 'N/A'}</td>
+            <td>${user.address || 'N/A'}</td>
+            <td>${date}</td>
+        `;
+        container.appendChild(tr);
+    });
+}
+
+const searchCustomerInput = document.getElementById("searchCustomerInput");
+if (searchCustomerInput) {
+    let timeout = null;
+    searchCustomerInput.oninput = (e) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            loadCustomers();
+        }, 300);
+    };
+}
+
+// 5. Quản lý Kho Hàng (Import)
+const importModal = document.getElementById("importModal");
+let importItems = []; // Danh sách tạm thời các sản phẩm sẽ nhập
+
+// Đóng modal nhập hàng
+document.querySelectorAll(".close-import-btn").forEach(btn => {
+    btn.onclick = () => importModal.style.display = "none";
+});
+
+async function loadImportHistory() {
+    try {
+        const response = await fetch('http://localhost:3000/api/imports');
+        const result = await response.json();
+        if (result.success) {
+            renderImportHistoryTable(result.data);
+        }
+    } catch (error) {
+        console.error("Lỗi tải lịch sử nhập hàng:", error);
+    }
+}
+
+function renderImportHistoryTable(receipts) {
+    const container = document.getElementById("importHistoryTableBody");
+    if (!container) return;
+    container.innerHTML = "";
+
+    receipts.forEach(receipt => {
+        const date = new Date(receipt.createdAt).toLocaleString('vi-VN');
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>#${receipt.id}</td>
+            <td>${date}</td>
+            <td>${receipt.totalBox || 0}</td>
+            <td><strong style="color: #2563eb;">${Number(receipt.totalAmount || 0).toLocaleString()}đ</strong></td>
+            <td>${receipt.note || ''}</td>
+        `;
+        container.appendChild(tr);
+    });
+}
+
+// Mở modal và tải danh sách sản phẩm để chọn
+async function openImportModal() {
+    importItems = [];
+    renderImportItems();
+    document.getElementById("importNote").value = "";
+    document.getElementById("importQuantity").value = 1;
+    document.getElementById("importPrice").value = 0;
+
+    // Tải danh sách sản phẩm cho dropdown
+    const select = document.getElementById("importProductSelect");
+    select.innerHTML = '<option value="">Đang tải...</option>';
+
+    try {
+        // Lấy tất cả sản phẩm (có thể cần API lấy all không phân trang, hoặc dùng limit lớn)
+        const response = await fetch('http://localhost:3000/api/products?limit=100');
+        const result = await response.json();
+        if (result.success) {
+            select.innerHTML = '';
+            result.data.forEach(p => {
+                const option = document.createElement("option");
+                option.value = p.id;
+                option.text = `${p.name} (Kho: ${p.stock})`;
+                // Lưu giá hiện tại vào data attribute để tham khảo nếu cần
+                option.dataset.price = p.price;
+                option.dataset.name = p.name;
+                select.appendChild(option);
+            });
+            // Tự động set giá nhập gợi ý (ví dụ = 70% giá bán)
+            if (result.data.length > 0) {
+                select.value = result.data[0].id;
+                document.getElementById("importPrice").value = result.data[0].price * 0.7;
+            }
+
+            select.onchange = function () {
+                const selectedOption = select.options[select.selectedIndex];
+                const currentPrice = selectedOption.dataset.price;
+                document.getElementById("importPrice").value = currentPrice * 0.7;
+            }
+        }
+    } catch (error) {
+        console.error("Lỗi tải sản phẩm:", error);
+        select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+    }
+
+    importModal.style.display = 'flex';
+}
+
+function addImportItem() {
+    const select = document.getElementById("importProductSelect");
+    const productId = select.value;
+    const productName = select.options[select.selectedIndex].getAttribute('data-name') || select.options[select.selectedIndex].text;
+    const quantity = parseInt(document.getElementById("importQuantity").value);
+    const price = Number(document.getElementById("importPrice").value);
+
+    if (!productId || quantity <= 0 || price < 0) {
+        Swal.fire("Lỗi", "Vui lòng kiểm tra lại thông tin nhập", "error");
+        return;
+    }
+
+    // Kiểm tra xem sản phẩm đã có trong danh sách chưa
+    const existingItem = importItems.find(i => i.productId == productId);
+    if (existingItem) {
+        existingItem.quantity += quantity;
+        existingItem.price = price; // Cập nhật giá mới nhất
+    } else {
+        importItems.push({ productId, productName, quantity, price });
+    }
+
+    renderImportItems();
+}
+
+function removeImportItem(index) {
+    importItems.splice(index, 1);
+    renderImportItems();
+}
+
+function renderImportItems() {
+    const container = document.getElementById("importItemsBody");
+    container.innerHTML = "";
+    let totalAmount = 0;
+
+    importItems.forEach((item, index) => {
+        const subtotal = item.quantity * item.price;
+        totalAmount += subtotal;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${item.productName}</td>
+            <td>${item.quantity}</td>
+            <td>${item.price.toLocaleString()}đ</td>
+            <td>${subtotal.toLocaleString()}đ</td>
+            <td>
+                <button class="btn-delete" onclick="removeImportItem(${index})"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        container.appendChild(tr);
+    });
+
+    document.getElementById("importTotalAmount").innerText = totalAmount.toLocaleString() + "đ";
+}
+
+async function submitImportReceipt() {
+    if (importItems.length === 0) {
+        Swal.fire("Lỗi", "Danh sách nhập hàng đang trống", "error");
+        return;
+    }
+
+    const note = document.getElementById("importNote").value;
+
+    try {
+        const response = await fetch('http://localhost:3000/api/imports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                note,
+                items: importItems
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire("Thành công", "Đã nhập hàng thành công!", "success");
+            importModal.style.display = "none";
+            loadImportHistory();
+            loadProducts(); // Cập nhật lại kho bên tab Sản phẩm
+        } else {
+            Swal.fire("Lỗi", result.message, "error");
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire("Lỗi", "Không thể gửi dữ liệu", "error");
     }
 }
 

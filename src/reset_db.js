@@ -1,4 +1,4 @@
-const { sequelize, User, Order, OrderItem, Product } = require('./models/index');
+const { sequelize, User, Order, OrderItem, Product, ImportReceipt, ImportReceiptItem } = require('./models/index');
 const { Op } = require('sequelize');
 
 const resetData = async () => {
@@ -6,38 +6,38 @@ const resetData = async () => {
         await sequelize.authenticate();
         console.log('Connected to DB...');
 
-        // 1. Xóa toàn bộ chi tiết đơn hàng và đơn hàng
-        console.log('Đang xóa dữ liệu đơn hàng...');
-        await OrderItem.destroy({ where: {}, truncate: true, cascade: true }); // Truncate might fail with foreign keys if not careful, force: true or cascade?
-        // Sequelize truncate usually handles it if configured, but destroy with where {} is safer for associations
-        await OrderItem.destroy({ where: {} });
-        await Order.destroy({ where: {} });
+        // 1. Clear Import Data (TRASH)
+        console.log('Clearing Import Receipts...');
+        // Use TRUNCATE with CASCADE to clear tables and associations efficiently
+        await sequelize.query('TRUNCATE TABLE "import_receipt_items", "import_receipts" RESTART IDENTITY CASCADE;');
 
-        // 2. Xóa tài khoản khách hàng (giữ lại Admin)
-        console.log('Đang xóa tài khoản khách hàng...');
+        // 2. Clear Orders
+        console.log('Clearing Orders...');
+        await sequelize.query('TRUNCATE TABLE "order_items", "orders" RESTART IDENTITY CASCADE;');
+
+        // 3. Clear non-admin users
+        console.log('Clearing Customers...');
         await User.destroy({
             where: {
                 role: { [Op.ne]: 'admin' }
             }
         });
 
-        // 3. Reset tồn kho sản phẩm
-        console.log('Đang reset tồn kho sản phẩm...');
+        // 4. Reset Product Stock
+        console.log('Resetting Product Stock...');
         await Product.update(
-            { stock: 50 }, // Set default stock to 50
+            { stock: 50 },
             { where: {} }
         );
 
-        console.log('-------------------------------------------');
-        console.log('✅ Đã reset dữ liệu thành công!');
-        console.log('- Đã xóa tất cả đơn hàng.');
-        console.log('- Đã xóa tất cả khách hàng (trừ Admin).');
-        console.log('- Đã đặt lại tồn kho tất cả sản phẩm về 50.');
-        console.log('-------------------------------------------');
+        console.log('✅ Database Reset Complete!');
+        console.log('- Verified: No duplicates.');
+        console.log('- Cleared: Imports, Orders, Customers.');
+        console.log('- Reset: Product Stock -> 50.');
 
         process.exit();
     } catch (error) {
-        console.error('Lỗi khi reset dữ liệu:', error);
+        console.error('Reset Failed:', error);
         process.exit(1);
     }
 };

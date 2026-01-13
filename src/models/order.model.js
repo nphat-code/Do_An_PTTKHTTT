@@ -7,7 +7,4 @@ const Order = sequelize.define('order', {
     orderDate: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });
 
-// Bạn cần thiết lập quan hệ trong app.js hoặc một file index models riêng:
-// Order.belongsTo(User);
-// Order.belongsToMany(Product, { through: 'OrderItems' });
 module.exports = Order;

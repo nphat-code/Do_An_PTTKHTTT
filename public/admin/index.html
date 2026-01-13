@@ -20,7 +20,8 @@
                     <li><a href="#" class="active" data-tab="overview"><i class="fas fa-home"></i> Tổng quan</a></li>
                     <li><a href="#" data-tab="products"><i class="fas fa-laptop"></i> Sản phẩm</a></li>
                     <li><a href="#" data-tab="orders"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
-                    <li><a href="#"><i class="fas fa-users"></i> Khách hàng</a></li>
+                    <li><a href="#" data-tab="customers"><i class="fas fa-users"></i> Khách hàng</a></li>
+                    <li><a href="#" data-tab="inventory"><i class="fas fa-warehouse"></i> Kho hàng</a></li>
                     <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
                     <li><a href="#"><i class="fas fa-cog"></i> Cài đặt</a></li>
                 </ul>
@@ -101,7 +102,117 @@
                     </table>
                 </div>
             </section>
+
+            <section id="customers-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý khách hàng</h1>
+                </header>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchCustomerInput" placeholder="Tìm theo tên hoặc số điện thoại...">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Họ tên</th>
+                                <th>Số điện thoại</th>
+                                <th>Email</th>
+                                <th>Địa chỉ</th>
+                                <th>Ngày tham gia</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="inventory-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý kho hàng</h1>
+                    <button class="btn-add" onclick="openImportModal()"><i class="fas fa-plus"></i> Tạo phiếu
+                        nhập</button>
+                </header>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Ngày nhập</th>
+                                <th>Tổng số lượng</th>
+                                <th>Tổng tiền</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="importHistoryTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
+
+        <div id="importModal" class="modal">
+            <div class="modal-content" style="max-width: 900px;">
+                <div class="modal-header">
+                    <h2>Tạo Phiếu Nhập Hàng</h2>
+                    <span class="close-import-btn" style="cursor:pointer; font-size: 24px;">&times;</span>
+                </div>
+                <div style="padding: 20px;">
+                    <div class="form-group">
+                        <label>Ghi chú phiếu nhập:</label>
+                        <input type="text" id="importNote" placeholder="Ví dụ: Nhập hàng đợt 1 tháng 10...">
+                    </div>
+
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4>Thêm sản phẩm vào phiếu:</h4>
+                        <div
+                            style="display: grid; grid-template-columns: 2fr 1fr 1fr 0.5fr; gap: 10px; align-items: end;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Sản phẩm:</label>
+                                <select id="importProductSelect" style="width: 100%; padding: 10px;"></select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Số lượng:</label>
+                                <input type="number" id="importQuantity" min="1" value="1">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Giá nhập (đơn giá):</label>
+                                <input type="number" id="importPrice" min="0" value="0">
+                            </div>
+                            <button class="btn-primary" onclick="addImportItem()" style="height: 42px;">+</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>Số lượng</th>
+                                    <th>Giá nhập</th>
+                                    <th>Thành tiền</th>
+                                    <th>Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="importItemsBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="text-align: right; margin-top: 20px;">
+                        <h3>Tổng tiền nhập: <span id="importTotalAmount" style="color: #2563eb;">0đ</span></h3>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary close-import-btn">Hủy</button>
+                    <button type="button" class="btn-primary" onclick="submitImportReceipt()">Lưu phiếu nhập</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="productModal" class="modal">

@@ -239,7 +239,7 @@ header h1 {
     color: var(--text-muted);
 }
 
-#searchInput {
+.search-container input {
     width: 100%;
     padding: 14px 14px 14px 50px;
     border: 1px solid var(--border-color);
@@ -249,7 +249,7 @@ header h1 {
     transition: all var(--transition-speed);
 }
 
-#searchInput:focus {
+.search-container input:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
@@ -422,6 +422,8 @@ button,
     animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     margin: auto;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 @keyframes modalSlideIn {
