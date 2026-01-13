@@ -4,6 +4,47 @@ const productContainer = document.getElementById("productContainer");
 const cartModal = document.getElementById("cartModal");
 const checkoutForm = document.getElementById("checkoutForm");
 
+// Banner Carousel Logic
+let currentSlide = 0;
+const itemsPerView = 2;
+
+window.moveSlide = function (direction) {
+    const track = document.getElementById('bannerTrack');
+    if (!track) return;
+
+    const slides = track.children;
+    const totalSlides = slides.length;
+    // Calculate max index correctly based on how many "shifts" are possible
+    // If 4 slides and we show 2, we can shift 0, 1, 2. (Showing [0,1], [1,2], [2,3]). 
+    // Wait, if grid is 50%, we can shift freely.
+    // Let's implement simple circular sliding.
+
+    // Actually, simple calculation:
+    // We want to show index i and i+1.
+    // Max index is totalSlides - itemsPerView.
+
+    // But if we want it to be circular and infinite-feeling, that's complex without cloning.
+    // Let's stick to simple bounded sliding for now, or simple loop to beginning.
+
+    const maxIndex = totalSlides - itemsPerView;
+
+    currentSlide += direction;
+
+    if (currentSlide < 0) {
+        currentSlide = maxIndex;
+    } else if (currentSlide > maxIndex) {
+        currentSlide = 0;
+    }
+
+    const translateValue = -(currentSlide * 50); // 50% width per slide
+    track.style.transform = `translateX(${translateValue}%)`;
+};
+
+// Auto slide
+setInterval(() => {
+    moveSlide(1);
+}, 5000);
+
 // 1. Tải danh sách sản phẩm từ API
 async function loadProducts() {
     const keyword = document.getElementById("searchInput").value;
@@ -98,7 +139,7 @@ function addToCart(product) {
     // Thông báo nhanh
     const Toast = Swal.mixin({
         toast: true,
-        position: 'top-end',
+        position: 'bottom-end',
         showConfirmButton: false,
         timer: 1500
     });

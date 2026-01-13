@@ -50,6 +50,31 @@
     </header>
 
     <div class="main-content" style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 40px 20px;">
+        <div class="banner-carousel-container">
+            <button class="carousel-btn prev-btn" onclick="moveSlide(-1)">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="carousel-track-container">
+                <ul class="carousel-track" id="bannerTrack">
+                    <li class="banner-slide">
+                        <img src="img/banner-home.png" alt="Công Nghệ Đỉnh Cao">
+                    </li>
+                    <li class="banner-slide">
+                        <img src="img/banner-gaming-challenge-ultra.png" alt="Văn Phòng">
+                    </li>
+                    <li class="banner-slide">
+                        <img src="img/banner-office-wide.png" alt="Khuyến Mãi">
+                    </li>
+                    <li class="banner-slide">
+                        <img src="img/banner-gaming-ultra.png" alt="Cộng Nghệ">
+                    </li>
+                </ul>
+            </div>
+            <button class="carousel-btn next-btn" onclick="moveSlide(1)">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
         <h2 id="sectionTitle"
             style="font-size: 1.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px;">Sản phẩm nổi bật
         </h2>
