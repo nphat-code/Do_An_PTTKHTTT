@@ -262,7 +262,7 @@ function renderOrdersTable(orders) {
             </td>
             <td>
                 <button class="btn-edit" onclick="viewOrderDetails(${order.id})">
-                    <i class="fas fa-eye"></i> Xem chi tiết
+                    <i class="fas fa-eye"></i>
                 </button>
             </td>
         `;

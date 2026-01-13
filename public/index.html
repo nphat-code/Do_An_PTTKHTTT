@@ -5,232 +5,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laptop Store - Cửa hàng máy tính</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        :root {
-            --primary-color: #2563eb;
-            --bg-color: #f8fafc;
-            --text-color: #1e293b;
-        }
-
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: var(--bg-color);
-            margin: 0;
-        }
-
-        header {
-            background: #fff;
-            padding: 1rem 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .search-bar {
-            flex: 0 1 400px;
-            display: flex;
-            position: relative;
-        }
-
-        .search-bar input {
-            width: 100%;
-            padding: 0.6rem 1rem 0.6rem 2.5rem;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            outline: none;
-        }
-
-        .search-bar i {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-        }
-
-        .cart-btn {
-            position: relative;
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-
-        .cart-count {
-            position: absolute;
-            top: -8px;
-            right: -10px;
-            background: red;
-            color: white;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 0.7rem;
-        }
-
-        .container {
-            padding: 2rem 5%;
-        }
-
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 2rem;
-        }
-
-        .product-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            transition: transform 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .product-img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-
-        .product-info {
-            padding: 1.5rem;
-        }
-
-        .product-name {
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .product-config {
-            font-size: 0.9rem;
-            color: #64748b;
-            margin-bottom: 1rem;
-        }
-
-        .product-price {
-            color: var(--primary-color);
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-
-        .btn-buy {
-            width: 100%;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 0.8rem;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 1rem;
-        }
-
-        /* Modal Giỏ hàng */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background: white;
-            width: 90%;
-            max-width: 600px;
-            margin: 5% auto;
-            border-radius: 12px;
-            padding: 2rem;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            padding: 1rem 0;
-        }
-
-        .checkout-form {
-            margin-top: 2rem;
-            display: grid;
-            gap: 1rem;
-        }
-
-        .checkout-form input {
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-    <header>
-        <div class="logo"><i class="fas fa-laptop"></i> Phát Laptop</div>
-        <div class="search-bar">
+    <header
+        style="background: white; padding: 15px 5%; box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 1000; margin-bottom: 0;">
+        <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">
+            <i class="fas fa-laptop"></i> Phát Laptop
+        </div>
+
+        <div class="search-container" style="flex: 0 1 500px; margin: 0;">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Tìm kiếm laptop của bạn...">
+            <input type="text" id="searchInput" placeholder="Tìm kiếm laptop của bạn..." style="background: #f8fafc;">
         </div>
-        <div class="filter-container" style="display: flex; gap: 10px; margin-left: 20px;">
-            <select id="priceFilter"
-                style="padding: 0.6rem; border-radius: 20px; border: 1px solid #ddd; outline: none;">
-                <option value="">Tất cả mức giá</option>
-                <option value="0-10000000">Dưới 10 triệu</option>
-                <option value="10000000-20000000">10 - 20 triệu</option>
-                <option value="20000000-30000000">20 - 30 triệu</option>
-                <option value="30000000-999999999">Trên 30 triệu</option>
-            </select>
-        </div>
-        <div class="cart-btn" onclick="openCart()">
-            <i class="fas fa-shopping-cart"></i>
-            <span class="cart-count" id="cartCount">0</span>
-        </div>
-        <div id="authLinks" style="margin-left: 20px; font-weight: bold;">
-            <!-- JS will populate this -->
+
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="filter-container">
+                <select id="priceFilter"
+                    style="padding: 10px 15px; border-radius: 50px; border: 1px solid var(--border-color); outline: none; background: #fff; cursor: pointer;">
+                    <option value="">Tất cả mức giá</option>
+                    <option value="0-10000000">Dưới 10 triệu</option>
+                    <option value="10000000-20000000">10 - 20 triệu</option>
+                    <option value="20000000-30000000">20 - 30 triệu</option>
+                    <option value="30000000-999999999">Trên 30 triệu</option>
+                </select>
+            </div>
+
+            <div class="cart-btn" onclick="openCart()"
+                style="position: relative; cursor: pointer; font-size: 1.4rem; color: var(--text-main);">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-count" id="cartCount"
+                    style="position: absolute; top: -8px; right: -10px; background: var(--danger-color); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: bold;">0</span>
+            </div>
+
+            <div id="authLinks" style="margin-left: 10px; font-weight: 600;">
+                <!-- JS will populate this -->
+            </div>
         </div>
     </header>
 
-    <div class="container">
-        <h2 id="sectionTitle">Sản phẩm nổi bật</h2>
+    <div class="main-content" style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 40px 20px;">
+        <h2 id="sectionTitle"
+            style="font-size: 1.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px;">Sản phẩm nổi bật
+        </h2>
         <div class="product-grid" id="productContainer">
+            <!-- Products will be loaded here -->
         </div>
     </div>
 
+    <!-- Cart Modal -->
     <div id="cartModal" class="modal">
-        <div class="modal-content">
-            <h2>Giỏ hàng của bạn</h2>
-            <div id="cartItemsContainer"></div>
-            <hr>
-            <h3>Tổng cộng: <span id="cartTotal">0đ</span></h3>
+        <div class="modal-content" style="width: 600px;">
+            <div class="modal-header">
+                <h2>Giỏ hàng của bạn</h2>
+                <i class="fas fa-times close-btn" onclick="closeCart()"></i>
+            </div>
 
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <a href="checkout.html" class="btn-buy" style="text-decoration:none; text-align:center; display:block;">
-                    Thanh toán
-                </a>
-                <button type="button" onclick="closeCart()"
-                    style="background:#ccc; border:none; padding:0.8rem; border-radius:8px; cursor:pointer; width: 100%;">
-                    Tiếp tục mua sắm
-                </button>
+            <div id="cartItemsContainer" style="padding: 20px; max-height: 400px; overflow-y: auto;">
+                <!-- Cart items -->
+            </div>
+
+            <div class="modal-footer" style="display: block;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold;">
+                    <span>Tổng cộng:</span>
+                    <span id="cartTotal" style="color: var(--primary-color);">0đ</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button type="button" onclick="closeCart()" class="btn-secondary" style="width: 100%; margin: 0;">
+                        Tiếp tục mua sắm
+                    </button>
+                    <a href="checkout.html" class="btn-primary" style="text-decoration:none; text-align:center;">
+                        Thanh toán
+                    </a>
+                </div>
             </div>
         </div>
     </div>
