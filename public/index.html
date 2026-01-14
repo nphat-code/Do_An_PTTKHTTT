@@ -106,9 +106,40 @@
             </button>
         </div>
 
-        <h2 id="sectionTitle"
-            style="font-size: 1.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px;">Sản phẩm nổi bật
-        </h2>
+        <div class="categories-section"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-bottom: 40px;">
+            <div class="category-card" onclick="alert('Tính năng đang phát triển')"
+                style="background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s;">
+                <i class="fas fa-laptop-code" style="font-size: 2rem; color: #4f46e5; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1rem; font-weight: 600;">Laptop Gaming</h3>
+            </div>
+            <div class="category-card" onclick="alert('Tính năng đang phát triển')"
+                style="background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s;">
+                <i class="fas fa-briefcase" style="font-size: 2rem; color: #10b981; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1rem; font-weight: 600;">Văn phòng</h3>
+            </div>
+            <div class="category-card" onclick="alert('Tính năng đang phát triển')"
+                style="background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s;">
+                <i class="fas fa-palette" style="font-size: 2rem; color: #f59e0b; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1rem; font-weight: 600;">Đồ họa</h3>
+            </div>
+            <div class="category-card" onclick="alert('Tính năng đang phát triển')"
+                style="background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s;">
+                <i class="fas fa-star" style="font-size: 2rem; color: #ef4444; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1rem; font-weight: 600;">Cao cấp</h3>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+            <div>
+                <h2 id="sectionTitle" style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin: 0;">Sản
+                    phẩm mới về</h2>
+                <p style="color: var(--text-muted); margin-top: 5px;">Những mẫu laptop công nghệ mới nhất 2024</p>
+            </div>
+            <a href="#" class="view-all-btn"
+                style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Xem tất cả <i
+                    class="fas fa-arrow-right"></i></a>
+        </div>
         <div class="product-grid" id="productContainer">
             <!-- Products will be loaded here -->
         </div>
@@ -144,6 +175,87 @@
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer style="background: #1f2937; color: white; padding: 60px 0 20px; margin-top: 60px;">
+        <div
+            style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px;">
+
+            <!-- Company Info -->
+            <div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: white; margin-bottom: 20px;">
+                    <i class="fas fa-laptop"></i> Phát Laptop
+                </div>
+                <p style="color: #9ca3af; line-height: 1.6;">
+                    Chuyên cung cấp các dòng laptop chính hãng, chất lượng cao với giá cả cạnh tranh nhất thị trường.
+                    Cam kết bảo hành uy tín.
+                </p>
+                <div style="margin-top: 20px; display: flex; gap: 15px;">
+                    <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-facebook"></i></a>
+                    <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-instagram"></i></a>
+                    <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-youtube"></i></a>
+                    <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-tiktok"></i></a>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: white;">Liên kết nhanh</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 10px;"><a href="#"
+                            style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">Trang chủ</a></li>
+                    <li style="margin-bottom: 10px;"><a href="#"
+                            style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">Sản phẩm</a></li>
+                    <li style="margin-bottom: 10px;"><a href="#"
+                            style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">Tin tức công nghệ</a>
+                    </li>
+                    <li style="margin-bottom: 10px;"><a href="#"
+                            style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">Liên hệ</a></li>
+                </ul>
+            </div>
+
+            <!-- Customer Service -->
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: white;">Hỗ trợ khách hàng
+                </h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Chính
+                            sách bảo hành</a></li>
+                    <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Chính
+                            sách đổi trả</a></li>
+                    <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Hướng
+                            dẫn mua hàng</a></li>
+                    <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Tra cứu
+                            đơn hàng</a></li>
+                </ul>
+            </div>
+
+            <!-- Contact -->
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: white;">Liên hệ</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 15px; color: #9ca3af; display: flex; gap: 10px;">
+                        <i class="fas fa-map-marker-alt" style="color: var(--primary-color); margin-top: 5px;"></i>
+                        <span>123 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh</span>
+                    </li>
+                    <li style="margin-bottom: 15px; color: #9ca3af; display: flex; gap: 10px;">
+                        <i class="fas fa-phone" style="color: var(--primary-color); margin-top: 5px;"></i>
+                        <span>Hotline: 1900 1234</span>
+                    </li>
+                    <li style="margin-bottom: 15px; color: #9ca3af; display: flex; gap: 10px;">
+                        <i class="fas fa-envelope" style="color: var(--primary-color); margin-top: 5px;"></i>
+                        <span>support@phatlaptop.vn</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <div
+            style="border-top: 1px solid #374151; margin-top: 40px; padding-top: 20px; text-align: center; color: #6b7280; font-size: 0.9rem;">
+            &copy; 2024 Phát Laptop. All rights reserved. Designed for PTTKHTTT Project.
+        </div>
+    </footer>
 
     <script src="js/shop.js"></script>
 </body>

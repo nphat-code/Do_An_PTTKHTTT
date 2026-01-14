@@ -9,7 +9,7 @@ function initCheckout() {
     }
 
     // Auto-fill user info
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (userStr) {
         const user = JSON.parse(userStr);
         if (document.getElementById("cusName")) document.getElementById("cusName").value = user.fullName || '';

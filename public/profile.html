@@ -14,59 +14,257 @@
 
 <body style="background-color: var(--background-bg); min-height: 100vh; padding: 20px;">
 
-    <div style="max-width: 900px; margin: 0 auto;">
-        <a href="/" class="back-btn"><i class="fas fa-arrow-left"></i> Quay lại cửa hàng</a>
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --card-radius: 16px;
+        }
 
-        <div class="profile-container">
-            <div class="profile-header">
-                <div class="profile-avatar">
-                    <i class="fas fa-user"></i>
+        .profile-layout {
+            display: flex;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 20px;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            flex-shrink: 0;
+            background: white;
+            border-radius: var(--card-radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 30px 20px;
+            height: fit-content;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sidebar-avatar {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .sidebar-name {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--text-main);
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .sidebar-role {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            background: #f3f4f6;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .nav-menu {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: #f8fafc;
+            color: var(--primary-color);
+        }
+
+        .nav-item.active {
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .nav-item i {
+            width: 25px;
+            margin-right: 10px;
+        }
+
+        /* Content Styling */
+        .content-area {
+            flex: 1;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: var(--card-radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+        }
+
+        .info-box {
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 10px;
+            border: 1px solid #eee;
+        }
+
+        .info-box label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .info-box div {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 1.05rem;
+        }
+    </style>
+
+    <div class="profile-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="sidebar-name" id="profileName">Đang tải...</div>
+            <div class="sidebar-role" id="profileRole">Khách hàng</div>
+
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="switchTab('info', this)">
+                    <i class="fas fa-user-circle"></i> Thông tin cá nhân
                 </div>
-                <div style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <h1 id="profileName"
-                                style="margin: 0; color: var(--text-main); font-size: 1.5rem; font-weight: 700;">Đang
-                                tải...
-                            </h1>
-                            <span id="profileRole" style="color: var(--text-muted);">Khách hàng</span>
+                <div class="nav-item" onclick="switchTab('orders', this)">
+                    <i class="fas fa-shopping-bag"></i> Lịch sử đơn hàng
+                </div>
+                <div class="nav-item" onclick="switchTab('security', this)">
+                    <i class="fas fa-shield-alt"></i> Bảo mật
+                </div>
+                <div style="height: 1px; background: #eee; margin: 10px 0;"></div>
+                <a href="/" class="nav-item">
+                    <i class="fas fa-arrow-left"></i> Về trang chủ
+                </a>
+                <div class="nav-item" onclick="logout()" style="color: var(--danger-color);">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content-area">
+
+            <!-- Tab: Thông tin -->
+            <div id="tab-info" class="tab-content">
+                <div class="content-card">
+                    <div class="section-title">
+                        <span>Hồ sơ cá nhân</span>
+                        <button class="btn-primary" onclick="openEditModal()"
+                            style="font-size: 0.9rem; padding: 8px 16px;">
+                            <i class="fas fa-edit"></i> Chỉnh sửa
+                        </button>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <label>Email đăng nhập</label>
+                            <div id="profileEmail">...</div>
                         </div>
-                        <button class="btn-primary" onclick="openEditModal()">
-                            <i class="fas fa-edit" style="margin-right: 8px;"></i> Chỉnh sửa
-                        </button>
-                        <button class="btn-secondary" onclick="openChangePasswordModal()" style="margin-left: 10px;">
-                            <i class="fas fa-key" style="margin-right: 8px;"></i> Đổi mật khẩu
-                        </button>
+                        <div class="info-box">
+                            <label>Số điện thoại</label>
+                            <div id="profilePhone">...</div>
+                        </div>
+                        <div class="info-box" style="grid-column: 1 / -1;">
+                            <label>Địa chỉ nhận hàng mặc định</label>
+                            <div id="profileAddress">...</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                <div class="info-group">
-                    <label class="info-label"><i class="fas fa-envelope"></i> Email</label>
-                    <div class="info-value" id="profileEmail">...</div>
-                </div>
-                <div class="info-group">
-                    <label class="info-label"><i class="fas fa-phone"></i> Số điện thoại</label>
-                    <div class="info-value" id="profilePhone">...</div>
-                </div>
-                <div class="info-group" style="grid-column: 1 / -1;">
-                    <label class="info-label"><i class="fas fa-map-marker-alt"></i> Địa chỉ</label>
-                    <div class="info-value" id="profileAddress">...</div>
+            <!-- Tab: Đơn hàng -->
+            <div id="tab-orders" class="tab-content" style="display: none;">
+                <div class="content-card">
+                    <div class="section-title">Lịch sử đơn hàng</div>
+                    <div id="ordersList">
+                        <!-- Orders Render Here -->
+                    </div>
                 </div>
             </div>
 
-            <div class="order-history">
-                <h2
-                    style="font-size: 1.25rem; color: var(--text-main); margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px;">
-                    <i class="fas fa-history" style="color: var(--primary-color); margin-right: 10px;"></i> Lịch sử mua
-                    hàng
-                </h2>
-                <div id="ordersList">
-                    <!-- Orders will be loaded here -->
-                    <p style="color: var(--text-muted);">Đang tải lịch sử đơn hàng...</p>
+            <!-- Tab: Bảo mật -->
+            <div id="tab-security" class="tab-content" style="display: none;">
+                <div class="content-card">
+                    <div class="section-title">Đổi mật khẩu</div>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Để bảo mật tài khoản, vui lòng không chia
+                        sẻ mật khẩu cho người khác.</p>
+
+                    <div style="max-width: 400px;">
+                        <div class="form-group">
+                            <label>Mật khẩu hiện tại</label>
+                            <input type="password" id="currentPasswordPage" class="form-control" placeholder="........">
+                        </div>
+                        <div class="form-group">
+                            <label>Mật khẩu mới</label>
+                            <input type="password" id="newPasswordPage" class="form-control" placeholder="........">
+                        </div>
+                        <div class="form-group">
+                            <label>Xác nhận mật khẩu mới</label>
+                            <input type="password" id="confirmNewPasswordPage" class="form-control"
+                                placeholder="........">
+                        </div>
+                        <button class="btn-primary" onclick="saveChangePasswordPage()">Cập nhật mật khẩu</button>
+                    </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -133,6 +331,69 @@
 
     <script>
         let currentUserId = null;
+
+        function switchTab(tabId, element) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // Show selected tab
+            document.getElementById('tab-' + tabId).style.display = 'block';
+
+            // Validate nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Activate clicked item
+            if (element) element.classList.add('active');
+        }
+
+        function logout() {
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        async function saveChangePasswordPage() {
+            const currentPassword = document.getElementById('currentPasswordPage').value;
+            const newPassword = document.getElementById('newPasswordPage').value;
+            const confirmNewPassword = document.getElementById('confirmNewPasswordPage').value;
+
+            if (!currentPassword || !newPassword || !confirmNewPassword) {
+                Swal.fire('Lỗi', 'Vui lòng nhập đầy đủ thông tin', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                Swal.fire('Lỗi', 'Mật khẩu xác nhận không khớp', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/users/${currentUserId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire('Thành công', 'Đổi mật khẩu thành công!', 'success');
+                    // Clear inputs
+                    document.getElementById('currentPasswordPage').value = '';
+                    document.getElementById('newPasswordPage').value = '';
+                    document.getElementById('confirmNewPasswordPage').value = '';
+                } else {
+                    Swal.fire('Thất bại', result.message, 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
+            }
+        }
 
         async function loadProfile() {
             const userStr = sessionStorage.getItem('user');
