@@ -239,8 +239,9 @@ window.onclick = (e) => { if (e.target == cartModal) closeCart(); };
 // 7. Tìm kiếm sản phẩm (Đã được xử lý ở trên)
 
 // Check authentication status
+// Check authentication status
 function checkAuth() {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = JSON.parse(sessionStorage.getItem('user'));
     const authContainer = document.getElementById('authLinks');
 
     if (user) {
@@ -255,8 +256,8 @@ function checkAuth() {
 }
 
 window.logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     window.location.reload();
 };
 

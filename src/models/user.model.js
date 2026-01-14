@@ -7,7 +7,9 @@ const User = sequelize.define('user', {
     password: { type: DataTypes.STRING, allowNull: false },
     role: { type: DataTypes.STRING, defaultValue: 'customer' }, // 'admin' | 'customer'
     phone: { type: DataTypes.STRING, allowNull: false },
-    address: { type: DataTypes.TEXT }
+    address: { type: DataTypes.TEXT },
+    resetPasswordToken: { type: DataTypes.STRING },
+    resetPasswordExpires: { type: DataTypes.DATE }
 });
 
 module.exports = User;

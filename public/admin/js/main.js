@@ -1,6 +1,6 @@
-// Check Auth
-const token = localStorage.getItem('token');
-const user = JSON.parse(localStorage.getItem('user'));
+// Check Auth - Sử dụng sessionStorage để tách biệt phiên
+const token = sessionStorage.getItem('token');
+const user = JSON.parse(sessionStorage.getItem('user'));
 
 if (!token || !user || user.role !== 'admin') {
     alert("Bạn cần đăng nhập quyền Admin!");
