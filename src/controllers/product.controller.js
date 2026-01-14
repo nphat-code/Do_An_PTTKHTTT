@@ -11,19 +11,38 @@ const getAllProducts = async (req, res) => {
             page = 1;
         }
         const limit = parseInt(req.query.limit) || 5; // Mặc định 5 sản phẩm/trang
-        const offset = (page - 1) * limit;  
-        const { search, minPrice, maxPrice } = req.query;
+        const offset = (page - 1) * limit;
+        const { search, minPrice, maxPrice, ram, brand } = req.query;
         let whereClause = {};
         if (search) {
             whereClause.name = { [Op.iLike]: `%${search}%` };
         }
 
+        // Filter by Brand (checking if name contains the brand)
+        if (brand) {
+            if (whereClause.name) {
+                // If name filter already exists (from search), combine them
+                whereClause[Op.and] = [
+                    { name: whereClause.name },
+                    { name: { [Op.iLike]: `%${brand}%` } }
+                ];
+                delete whereClause.name; // Remove the single property to avoid conflict
+            } else {
+                whereClause.name = { [Op.iLike]: `%${brand}%` };
+            }
+        }
+
+        // Filter by RAM
+        if (ram) {
+            whereClause.ram = { [Op.iLike]: `%${ram}%` };
+        }
+
         if (minPrice || maxPrice) {
             whereClause.price = {};
-            if (minPrice) whereClause.price[Op.gte] = parseFloat(minPrice); // Lớn hơn hoặc bằng
-            if (maxPrice) whereClause.price[Op.lte] = parseFloat(maxPrice); // Nhỏ hơn hoặc bằng
+            if (minPrice && !isNaN(minPrice)) whereClause.price[Op.gte] = parseFloat(minPrice); // Lớn hơn hoặc bằng
+            if (maxPrice && !isNaN(maxPrice)) whereClause.price[Op.lte] = parseFloat(maxPrice); // Nhỏ hơn hoặc bằng
         }
-        
+
         const result = await Product.findAndCountAll({
             where: whereClause,
             limit: limit,
@@ -71,7 +90,7 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
     try {
-        const { name, price, cpu, ram, stock} = req.body;
+        const { name, price, cpu, ram, stock } = req.body;
         const imagePath = req.file ? `public/uploads/${req.file.filename}` : null;
         const newProduct = await Product.create({
             name,

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/filters.css">
 </head>
 
 <body>
@@ -19,33 +20,63 @@
             <i class="fas fa-laptop"></i> Phát Laptop
         </div>
 
-        <div class="search-container" style="flex: 0 1 500px; margin: 0;">
-            <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Tìm kiếm laptop của bạn..." style="background: #f8fafc;">
+        <div style="flex: 0 1 400px; margin: 0; display: flex; gap: 10px; align-items: center;">
+            <div class="search-container" style="flex: 1; margin: 0;">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Tìm kiếm...">
+            </div>
+            <button class="btn-secondary" onclick="toggleFilters()"
+                style="padding: 0 15px; height: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-filter"></i>
+            </button>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <div class="filter-container">
-                <select id="priceFilter"
-                    style="padding: 10px 15px; border-radius: 50px; border: 1px solid var(--border-color); outline: none; background: #fff; cursor: pointer;">
-                    <option value="">Tất cả mức giá</option>
-                    <option value="0-10000000">Dưới 10 triệu</option>
-                    <option value="10000000-20000000">10 - 20 triệu</option>
-                    <option value="20000000-30000000">20 - 30 triệu</option>
-                    <option value="30000000-999999999">Trên 30 triệu</option>
-                </select>
-            </div>
+        <div id="advancedFilters"
+            style="display: none; position: absolute; top: 80px; left: 0; right: 0; background: white; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 999; justify-content: center; gap: 15px; border-top: 1px solid #eee; align-items: center;">
+            <select id="brandFilter" class="filter-select">
+                <option value="">Thương hiệu</option>
+                <option value="Dell">Dell</option>
+                <option value="HP">HP</option>
+                <option value="Asus">Asus</option>
+                <option value="Acer">Acer</option>
+                <option value="Apple">Apple</option>
+                <option value="MSI">MSI</option>
+                <option value="Lenovo">Lenovo</option>
+            </select>
 
-            <div class="cart-btn" onclick="openCart()"
-                style="position: relative; cursor: pointer; font-size: 1.4rem; color: var(--text-main);">
-                <i class="fas fa-shopping-cart"></i>
-                <span class="cart-count" id="cartCount"
-                    style="position: absolute; top: -8px; right: -10px; background: var(--danger-color); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: bold;">0</span>
-            </div>
+            <select id="ramFilter" class="filter-select">
+                <option value="">RAM</option>
+                <option value="4">4GB</option>
+                <option value="8">8GB</option>
+                <option value="16">16GB</option>
+                <option value="32">32GB</option>
+            </select>
 
-            <div id="authLinks" style="margin-left: 10px; font-weight: 600;">
-                <!-- JS will populate this -->
-            </div>
+            <select id="priceFilter" class="filter-select">
+                <option value="">Mức giá</option>
+                <option value="0-10000000">Dưới 10tr</option>
+                <option value="10000000-20000000">10-20tr</option>
+                <option value="20000000-30000000">20-30tr</option>
+                <option value="30000000-999999999">Trên 30tr</option>
+            </select>
+
+            <button onclick="resetFilters()" class="btn-secondary"
+                style="padding: 10px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"
+                title="Xóa bộ lọc">
+                <i class="fas fa-undo"></i>
+            </button>
+        </div>
+
+        <div class="cart-btn" onclick="openCart()"
+            style="position: relative; cursor: pointer; font-size: 1.4rem; color: var(--text-main);">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="cart-count" id="cartCount"
+                style="position: absolute; top: -8px; right: -10px; background: var(--danger-color); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: bold;">0</span>
+        </div>
+
+        <div id="authLinks" style="margin-left: 10px; font-weight: 600;">
+            <!-- JS will populate this -->
+        </div>
         </div>
     </header>
 

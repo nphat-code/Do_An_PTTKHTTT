@@ -46,9 +46,12 @@ setInterval(() => {
 }, 5000);
 
 // 1. Tải danh sách sản phẩm từ API
-async function loadProducts() {
-    const keyword = document.getElementById("searchInput").value;
+// 1. Tải danh sách sản phẩm từ API
+async function loadProducts(searchValue) {
+    const keyword = searchValue !== undefined ? searchValue : document.getElementById("searchInput").value;
     const priceRange = document.getElementById("priceFilter").value;
+    const brand = document.getElementById("brandFilter").value;
+    const ram = document.getElementById("ramFilter").value;
 
     let minPrice = "";
     let maxPrice = "";
@@ -59,7 +62,8 @@ async function loadProducts() {
 
     try {
         // Gửi request kèm theo các tham số lọc
-        const url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&limit=100`;
+        let url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&brand=${brand}&ram=${ram}&limit=100`;
+
         const response = await fetch(url);
         const result = await response.json();
 
@@ -71,14 +75,32 @@ async function loadProducts() {
     }
 }
 
-// 2. Lắng nghe sự kiện thay đổi của bộ lọc giá
-document.getElementById("priceFilter").onchange = () => {
+// 2. Lắng nghe sự kiện thay đổi của bộ lọc
+document.getElementById("priceFilter").onchange = () => loadProducts();
+document.getElementById("brandFilter").onchange = () => loadProducts();
+document.getElementById("ramFilter").onchange = () => loadProducts();
+
+// 3. Giữ nguyên sự kiện tìm kiếm
+document.getElementById("searchInput").oninput = (e) => {
+    loadProducts(e.target.value);
+};
+
+window.resetFilters = () => {
+    document.getElementById("brandFilter").value = "";
+    document.getElementById("ramFilter").value = "";
+    document.getElementById("priceFilter").value = "";
+    document.getElementById("searchInput").value = "";
     loadProducts();
 };
 
-// 3. Giữ nguyên sự kiện tìm kiếm cũ nhưng gọi loadProducts không tham số
-document.getElementById("searchInput").oninput = () => {
-    loadProducts();
+window.toggleFilters = () => {
+    const filters = document.getElementById("advancedFilters");
+    // Toggle giữa 'flex' và 'none' để giữ layout flex đã set trong HTML
+    if (filters.style.display === "none") {
+        filters.style.display = "flex";
+    } else {
+        filters.style.display = "none";
+    }
 };
 
 // 2. Hiển thị sản phẩm lên giao diện dạng Card
@@ -214,9 +236,7 @@ window.onclick = (e) => { if (e.target == cartModal) closeCart(); };
 // checkout logic moved to checkout.js
 
 // 7. Tìm kiếm sản phẩm
-document.getElementById("searchInput").oninput = (e) => {
-    loadProducts(e.target.value);
-};
+// 7. Tìm kiếm sản phẩm (Đã được xử lý ở trên)
 
 // Check authentication status
 function checkAuth() {

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -42,11 +43,28 @@
                     <div class="stat-card stat-green">
                         <i class="fas fa-dollar-sign"></i>
                         <div class="stat-info">
-                            <h3>Giá trị kho</h3>
+                            <h3>Tổng doanh thu</h3>
                             <p id="totalValue">0đ</p>
                         </div>
                     </div>
                 </section>
+
+                <div class="charts-grid"
+                    style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 30px;">
+                    <div class="section-box" style="padding: 20px;">
+                        <h3 style="margin-bottom: 20px;">Biểu đồ doanh thu</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <div class="section-box" style="padding: 20px;">
+                        <h3 style="margin-bottom: 20px;">Trạng thái đơn hàng</h3>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section-box" style="margin-top: 30px; padding: 20px;">
+                    <h3 style="margin-bottom: 20px;">Top sản phẩm bán chạy</h3>
+                    <div id="topProductsTable"></div>
+                </div>
             </section>
 
             <section id="products-content" class="tab-section" style="display: none;">

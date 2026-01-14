@@ -282,9 +282,145 @@ showTab = function (tabName) {
         loadCustomers();
     } else if (tabName === 'inventory') {
         loadImportHistory();
+    } else if (tabName === 'overview') {
+        loadDashboardStats();
     }
 };
 
+let revenueChartInstance = null;
+let statusChartInstance = null;
+
+async function loadDashboardStats() {
+    try {
+        const response = await fetch('http://localhost:3000/api/orders/stats');
+        const result = await response.json();
+
+        if (result.success) {
+            updateStatistics(result); // Using totalValue from this API if needed, or keep existing logic
+            renderCharts(result);
+            renderTopProducts(result.topProducts);
+        }
+    } catch (error) {
+        console.error("Lỗi tải thống kê Dashboard:", error);
+    }
+}
+
+function renderCharts(data) {
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+
+    // 1. Biểu đồ doanh thu
+    const labels = Object.keys(data.revenueByMonth).reverse(); // Đảo ngược để hiện từ cũ đến mới
+    const revenueData = Object.values(data.revenueByMonth).reverse();
+
+    if (revenueChartInstance) revenueChartInstance.destroy();
+
+    revenueChartInstance = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Doanh thu (VNĐ)',
+                data: revenueData,
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) {
+                            return value.toLocaleString() + 'đ';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Biểu đồ trạng thái
+    if (statusChartInstance) statusChartInstance.destroy();
+
+    const statusLabels = data.statusStats.map(s => {
+        if (s.status === 'pending') return 'Chờ xử lý';
+        if (s.status === 'completed') return 'Hoàn thành';
+        if (s.status === 'cancelled') return 'Đã hủy';
+        return s.status;
+    });
+    const statusValues = data.statusStats.map(s => s.count);
+
+    // Map colors based on status
+    const statusColors = data.statusStats.map(s => {
+        if (s.status === 'pending') return '#f59e0b'; // Cam - Chờ xử lý
+        if (s.status === 'completed') return '#10b981'; // Xanh lá - Hoàn thành
+        if (s.status === 'cancelled') return '#ef4444'; // Đỏ - Đã hủy
+        return '#9ca3af'; // Mặc định
+    });
+
+    statusChartInstance = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                data: statusValues,
+                backgroundColor: statusColors,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+}
+
+function renderTopProducts(products) {
+    const container = document.getElementById('topProductsTable');
+    if (!container) return;
+
+    // Create a simple table HTML
+    let html = `
+        <table style="width:100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #eee;">
+                    <th style="padding: 10px;">Tên sản phẩm</th>
+                    <th style="padding: 10px; text-align: right;">Số lượng bán</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    products.forEach(p => {
+        html += `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px;">${p.name}</td>
+                <td style="padding: 10px; text-align: right; font-weight: bold;">${p.totalSold}</td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+window.onload = () => {
+    const savedTab = localStorage.getItem('activeTab') || 'overview';
+    const savedPage = parseInt(localStorage.getItem('currentPage')) || 1;
+
+    showTab(savedTab);
+    // Nếu active tab là overview thì showTab đã gọi loadDashboardStats rồi
+    // Nếu active tab là products thì loadProducts đã được gọi
+};
+
+// ------------------------------------------------------------------
+// Order Detail Modal Logic (Restored)
 const orderDetailModal = document.getElementById("orderDetailModal");
 
 // Đóng modal đơn hàng
@@ -617,12 +753,3 @@ async function submitImportReceipt() {
     }
 }
 
-window.onload = () => {
-    const savedTab = localStorage.getItem('activeTab') || 'overview';
-
-    // Đọc trang cũ, nếu không có thì mặc định là 1
-    const savedPage = parseInt(localStorage.getItem('currentPage')) || 1;
-
-    showTab(savedTab);
-    loadProducts(savedPage);
-};

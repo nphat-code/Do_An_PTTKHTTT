@@ -203,9 +203,91 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
+const getDashboardStats = async (req, res) => {
+    try {
+        // 1. Thống kê theo trạng thái đơn hàng
+        const statusStats = await Order.findAll({
+            attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+            group: ['status'],
+            raw: true
+        });
+
+        // 2. Thống kê doanh thu theo tháng (12 tháng gần nhất)
+        // Lưu ý: Đây là cú pháp PostgreSQL, nếu dùng MySQL/SQLite sẽ khác một chút hàm date_trunc/to_char
+        // Vì project này chưa rõ DB nào, ta sẽ dùng JS để xử lý group cho an toàn với mọi DB
+        const orders = await Order.findAll({
+            where: {
+                status: 'completed' // Chỉ tính đơn hoàn thành
+            },
+            attributes: ['createdAt', 'totalAmount'],
+            raw: true
+        });
+
+        const revenueByMonth = {};
+        // Init 12 months
+        for (let i = 0; i < 12; i++) {
+            const date = new Date();
+            date.setMonth(date.getMonth() - i);
+            const key = `${date.getMonth() + 1}/${date.getFullYear()}`;
+            revenueByMonth[key] = 0;
+        }
+
+        orders.forEach(order => {
+            const date = new Date(order.createdAt);
+            const key = `${date.getMonth() + 1}/${date.getFullYear()}`;
+            if (revenueByMonth[key] !== undefined) {
+                revenueByMonth[key] += parseFloat(order.totalAmount);
+            }
+        });
+
+        // 3. Top 5 sản phẩm bán chạy
+        const topProducts = await Product.findAll({
+            attributes: [
+                'name',
+                [sequelize.literal('(SELECT COALESCE(SUM("order_items"."quantity"), 0) FROM "order_items" WHERE "order_items"."productId" = "product"."id")'), 'totalSold']
+            ],
+            order: [[sequelize.literal('"totalSold"'), 'DESC']],
+            limit: 5,
+            raw: true
+        });
+
+        // Fix null totalSold to 0
+        const processedTopProducts = topProducts.map(p => ({
+            name: p.name,
+            totalSold: parseInt(p.totalSold) || 0
+        }));
+
+        // 4. Tổng sản phẩm và Tổng doanh thu
+        const totalProductsCount = await Product.count();
+
+        const revenueResult = await Order.findAll({
+            where: { status: 'completed' },
+            attributes: [
+                [sequelize.fn('SUM', sequelize.col('totalAmount')), 'totalRevenue']
+            ],
+            raw: true
+        });
+        const totalRevenue = parseFloat(revenueResult[0].totalRevenue || 0);
+
+        res.status(200).json({
+            success: true,
+            statusStats,
+            revenueByMonth,
+            topProducts: processedTopProducts,
+            totalProducts: totalProductsCount,
+            totalValue: totalRevenue
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
     getOrderById,
-    updateOrderStatus
+    updateOrderStatus,
+    getDashboardStats
 };
