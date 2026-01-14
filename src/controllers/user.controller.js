@@ -115,9 +115,38 @@ const searchUsers = async (req, res) => {
     }
 };
 
+
+
+// 5. Khóa / Mở khóa tài khoản
+const toggleUserLock = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy khách hàng" });
+        }
+
+        // Prevent locking admin
+        if (user.role === 'admin') {
+            return res.status(403).json({ success: false, message: "Không thể khóa tài khoản Admin" });
+        }
+
+        const newStatus = !user.isLocked;
+        await user.update({ isLocked: newStatus });
+
+        return res.status(200).json({
+            success: true,
+            message: newStatus ? "Đã khóa tài khoản thành công" : "Đã mở khóa tài khoản thành công",
+            isLocked: newStatus
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllUsers,
     getUserDetails,
     updateUser,
-    searchUsers
+    searchUsers,
+    toggleUserLock
 };

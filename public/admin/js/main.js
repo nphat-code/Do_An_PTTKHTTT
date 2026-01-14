@@ -555,6 +555,14 @@ function renderCustomersTable(users) {
         if (user.role === 'admin') return;
 
         const date = new Date(user.createdAt).toLocaleDateString('vi-VN');
+        const statusHtml = user.isLocked
+            ? '<span style="color: red; font-weight: bold;">Đã khóa</span>'
+            : '<span style="color: green; font-weight: bold;">Hoạt động</span>';
+
+        const btnHtml = user.isLocked
+            ? `<button class="btn-secondary" onclick="toggleUserLock(${user.id})" style="background-color: #10b981; color: white;">Mở khóa</button>`
+            : `<button class="btn-delete" onclick="toggleUserLock(${user.id})">Khóa</button>`;
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>#${user.id}</td>
@@ -563,9 +571,42 @@ function renderCustomersTable(users) {
             <td>${user.email || 'N/A'}</td>
             <td>${user.address || 'N/A'}</td>
             <td>${date}</td>
+            <td>${statusHtml}</td>
+            <td>${btnHtml}</td>
         `;
         container.appendChild(tr);
     });
+}
+
+// Hàm xử lý khóa/mở khóa
+async function toggleUserLock(userId) {
+    const confirmText = "Bạn có chắc chắn muốn thực hiện thao tác này?";
+    const result = await Swal.fire({
+        title: 'Xác nhận',
+        text: confirmText,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`http://localhost:3000/api/users/${userId}/lock`, {
+                method: 'PUT'
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire("Thành công", data.message, "success");
+                loadCustomers();
+            } else {
+                Swal.fire("Lỗi", data.message, "error");
+            }
+        } catch (error) {
+            Swal.fire("Lỗi", "Không thể kết nối đến server", "error");
+        }
+    }
 }
 
 const searchCustomerInput = document.getElementById("searchCustomerInput");

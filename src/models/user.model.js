@@ -9,7 +9,8 @@ const User = sequelize.define('user', {
     phone: { type: DataTypes.STRING, allowNull: false },
     address: { type: DataTypes.TEXT },
     resetPasswordToken: { type: DataTypes.STRING },
-    resetPasswordExpires: { type: DataTypes.DATE }
+    resetPasswordExpires: { type: DataTypes.DATE },
+    isLocked: { type: DataTypes.BOOLEAN, defaultValue: false }
 });
 
 module.exports = User;

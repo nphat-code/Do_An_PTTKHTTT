@@ -45,6 +45,11 @@ const login = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
         }
 
+        // Check if user is locked
+        if (user.isLocked) {
+            return res.status(403).json({ success: false, message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin." });
+        }
+
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {

@@ -16,4 +16,7 @@ router.get('/:id', userController.getUserDetails);
 // 4. Cập nhật thông tin khách hàng
 router.put('/:id', userController.updateUser);
 
+// 5. Khóa / Mở khóa tài khoản
+router.put('/:id/lock', userController.toggleUserLock);
+
 module.exports = router;
