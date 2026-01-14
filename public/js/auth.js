@@ -2,6 +2,18 @@ const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 
 if (loginForm) {
+    // Tự động điền nếu vừa đăng ký thành công
+    const autoFillEmail = sessionStorage.getItem('autoFillEmail');
+    const autoFillPassword = sessionStorage.getItem('autoFillPassword');
+
+    if (autoFillEmail && autoFillPassword) {
+        document.getElementById('email').value = autoFillEmail;
+        document.getElementById('password').value = autoFillPassword;
+        // Xóa thông tin đã lưu để không tự điền lần sau
+        sessionStorage.removeItem('autoFillEmail');
+        sessionStorage.removeItem('autoFillPassword');
+    }
+
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value;
@@ -65,6 +77,8 @@ if (registerForm) {
                     title: 'Đăng ký thành công',
                     text: 'Vui lòng đăng nhập',
                 }).then(() => {
+                    sessionStorage.setItem('autoFillEmail', email);
+                    sessionStorage.setItem('autoFillPassword', password);
                     window.location.href = 'login.html';
                 });
             } else {

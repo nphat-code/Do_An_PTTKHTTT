@@ -53,11 +53,38 @@ const updateUser = async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy khách hàng" });
         }
 
-        await user.update(req.body);
+        const { currentPassword, newPassword, ...updateData } = req.body;
+
+        // Nếu có yêu cầu đổi mật khẩu
+        if (newPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ success: false, message: "Vui lòng nhập mật khẩu hiện tại" });
+            }
+
+            const bcrypt = require('bcryptjs');
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: "Mật khẩu hiện tại không đúng" });
+            }
+
+            const salt = await bcrypt.genSalt(10);
+            updateData.password = await bcrypt.hash(newPassword, salt);
+        }
+
+        // Loại bỏ các trường không được phép update trực tiếp nếu có (ví dụ role, nhưng ở đây ta cứ trust req.body trừ password xử lý riêng)
+        // updateData đã loại bỏ currentPassword và newPassword rồi.
+
+        await user.update(updateData);
+
+        // Trả về user không có password
+        const userResponse = user.toJSON();
+        delete userResponse.password;
+
         return res.status(200).json({
             success: true,
             message: "Cập nhật thông tin khách hàng thành công",
-            data: user
+            data: userResponse
         });
     } catch (error) {
         return res.status(400).json({ success: false, message: error.message });
@@ -69,7 +96,7 @@ const searchUsers = async (req, res) => {
     try {
         const { query } = req.query;
         const { Op } = require('sequelize');
-        
+
         const users = await User.findAll({
             where: {
                 [Op.or]: [

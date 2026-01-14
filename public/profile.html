@@ -34,6 +34,9 @@
                         <button class="btn-primary" onclick="openEditModal()">
                             <i class="fas fa-edit" style="margin-right: 8px;"></i> Chỉnh sửa
                         </button>
+                        <button class="btn-secondary" onclick="openChangePasswordModal()" style="margin-left: 10px;">
+                            <i class="fas fa-key" style="margin-right: 8px;"></i> Đổi mật khẩu
+                        </button>
                     </div>
                 </div>
             </div>
@@ -88,14 +91,42 @@
                     <textarea id="editAddress" rows="3" class="form-control"
                         style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px;"></textarea>
                 </div>
-                <div class="form-group">
-                    <label>Mật khẩu mới (Để trống nếu không đổi)</label>
-                    <input type="password" id="editPassword" placeholder="Nhập để đổi mật khẩu">
-                </div>
+                <!-- Password field removed -->
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeEditModal()">Hủy</button>
                 <button class="btn-primary" onclick="saveProfile()">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content" style="width: 500px;">
+            <div class="modal-header">
+                <h2>Đổi mật khẩu</h2>
+                <span class="close-btn" onclick="closeChangePasswordModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <div class="form-group">
+                    <label>Mật khẩu hiện tại</label>
+                    <input type="password" id="currentPassword" placeholder="Nhập mật khẩu hiện tại" required
+                        autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu mới</label>
+                    <input type="password" id="newPassword" placeholder="Nhập mật khẩu mới" required
+                        autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label>Xác nhận mật khẩu mới</label>
+                    <input type="password" id="confirmNewPassword" placeholder="Xác nhận mật khẩu mới" required
+                        autocomplete="new-password">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeChangePasswordModal()">Hủy</button>
+                <button class="btn-primary" onclick="saveChangePassword()">Đổi mật khẩu</button>
             </div>
         </div>
     </div>
@@ -185,10 +216,67 @@
             modal.style.display = 'none';
         }
 
+        // Change Password Modal Logic
+        const passwordModal = document.getElementById('changePasswordModal');
+
+        function openChangePasswordModal() {
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+            passwordModal.style.display = 'flex';
+        }
+
+        function closeChangePasswordModal() {
+            passwordModal.style.display = 'none';
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+        }
+
+        async function saveChangePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+            if (!currentPassword || !newPassword || !confirmNewPassword) {
+                Swal.fire('Lỗi', 'Vui lòng nhập đầy đủ thông tin', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                Swal.fire('Lỗi', 'Mật khẩu xác nhận không khớp', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/users/${currentUserId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire('Thành công', 'Đổi mật khẩu thành công!', 'success').then(() => {
+                        closeChangePasswordModal();
+                    });
+                } else {
+                    Swal.fire('Thất bại', result.message, 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
+            }
+        }
+
         // Close when clicking outside
         window.onclick = function (event) {
             if (event.target == modal) {
                 closeEditModal();
+            }
+            if (event.target == passwordModal) {
+                closeChangePasswordModal();
             }
         }
 
@@ -196,7 +284,6 @@
             const fullName = document.getElementById('editFullName').value;
             const phone = document.getElementById('editPhone').value;
             const address = document.getElementById('editAddress').value;
-            const password = document.getElementById('editPassword').value;
 
             if (!fullName || !phone) {
                 Swal.fire('Lỗi', 'Vui lòng nhập tên và số điện thoại', 'error');
@@ -208,10 +295,6 @@
                 phone,
                 address
             };
-
-            if (password && password.trim() !== "") {
-                data.password = password; // Only send if user wants to change
-            }
 
             try {
                 const response = await fetch(`/api/users/${currentUserId}`, {
