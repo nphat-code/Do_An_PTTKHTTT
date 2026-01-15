@@ -23,8 +23,11 @@
                     <li><a href="#" data-tab="orders"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
                     <li><a href="#" data-tab="customers"><i class="fas fa-users"></i> Khách hàng</a></li>
                     <li><a href="#" data-tab="inventory"><i class="fas fa-file-import"></i> Nhập hàng</a></li>
+                    <li><a href="#" data-tab="stock"><i class="fas fa-boxes"></i> Tồn kho</a></li>
                     <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
                     <li><a href="#"><i class="fas fa-cog"></i> Cài đặt</a></li>
+                    <li><a href="#" onclick="logoutAdmin()" style="color: #ef4444;"><i class="fas fa-sign-out-alt"></i>
+                            Đăng xuất</a></li>
                 </ul>
             </nav>
         </aside>
@@ -170,6 +173,57 @@
                             </tr>
                         </thead>
                         <tbody id="importHistoryTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="stock-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý tồn kho</h1>
+                </header>
+
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 30px;">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #6366f1, #818cf8); color: white;">
+                        <i class="fas fa-box"></i>
+                        <div class="stat-info">
+                            <h3 style="color: white;">Tổng sản phẩm</h3>
+                            <p id="stockTotalProducts" style="color: white;">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #ef4444, #f87171); color: white;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div class="stat-info">
+                            <h3 style="color: white;">Sắp hết hàng (< 5)</h3>
+                                    <p id="stockLowCount" style="color: white;">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #34d399); color: white;">
+                        <i class="fas fa-coins"></i>
+                        <div class="stat-info">
+                            <h3 style="color: white;">Giá trị tồn kho</h3>
+                            <p id="stockTotalValue" style="color: white;">0đ</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchStockInput" placeholder="Tìm kiếm sản phẩm...">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Giá bán</th>
+                                <th>Tồn kho</th>
+                                <th>Giá trị</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -320,6 +374,9 @@
                 <h3>Tổng cộng: <span id="orderTotalDetail" style="color: #2563eb;">0đ</span></h3>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="printInvoice()"
+                    style="background-color: #6366f1; color: white; margin-right: 10px;"><i class="fas fa-print"></i>In
+                    Hóa Đơn</button>
                 <button type="button" class="btn-secondary close-order-btn">Đóng</button>
             </div>
         </div>

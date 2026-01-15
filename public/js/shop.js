@@ -47,7 +47,12 @@ setInterval(() => {
 
 // 1. Tải danh sách sản phẩm từ API
 // 1. Tải danh sách sản phẩm từ API
-async function loadProducts(searchValue) {
+// 1. Tải danh sách sản phẩm từ API
+let currentPage = 1;
+const itemsPerPage = 8; // Số sản phẩm mỗi trang
+
+async function loadProducts(searchValue, page = 1) {
+    currentPage = page;
     const keyword = searchValue !== undefined ? searchValue : document.getElementById("searchInput").value;
     const priceRange = document.getElementById("priceFilter").value;
     const brand = document.getElementById("brandFilter").value;
@@ -62,17 +67,64 @@ async function loadProducts(searchValue) {
 
     try {
         // Gửi request kèm theo các tham số lọc
-        let url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&brand=${brand}&ram=${ram}&limit=100`;
+        let url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&brand=${brand}&ram=${ram}&limit=${itemsPerPage}&page=${page}`;
 
         const response = await fetch(url);
         const result = await response.json();
 
         if (result.success) {
             renderProducts(result.data);
+            renderPagination(result.pagination);
         }
     } catch (error) {
         console.error("Lỗi khi tải sản phẩm:", error);
     }
+}
+
+function renderPagination(pagination) {
+    const container = document.getElementById("pagination");
+    if (!container) return;
+    container.innerHTML = "";
+
+    const { totalPages, currentPage } = pagination;
+
+    if (totalPages <= 1) return;
+
+    // Prev Button
+    const prevBtn = document.createElement("button");
+    prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    prevBtn.className = "btn-secondary";
+    prevBtn.style.padding = "10px 15px";
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => loadProducts(undefined, currentPage - 1);
+    container.appendChild(prevBtn);
+
+    // Page Numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = i;
+        btn.className = i === currentPage ? "btn-primary" : "btn-secondary";
+        btn.style.width = "40px";
+        btn.style.height = "40px";
+        btn.style.padding = "0";
+        btn.style.display = "flex";
+        btn.style.alignItems = "center";
+        btn.style.justifyContent = "center";
+
+        if (i !== currentPage) {
+            btn.onclick = () => loadProducts(undefined, i);
+        }
+        container.appendChild(btn);
+    }
+
+    // Next Button
+    const nextBtn = document.createElement("button");
+    nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    nextBtn.className = "btn-secondary";
+    nextBtn.style.padding = "10px 15px";
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => loadProducts(undefined, currentPage + 1);
+    container.appendChild(nextBtn);
 }
 
 // 2. Lắng nghe sự kiện thay đổi của bộ lọc
@@ -250,8 +302,31 @@ function checkAuth() {
             <a href="#" onclick="logout()">Đăng xuất</a>
             ${user.role === 'admin' ? ' | <a href="/admin/">Admin</a>' : ''}
         `;
+        verifySession(); // Verify if token is still valid
     } else {
         authContainer.innerHTML = `<a href="login.html" style="text-decoration:none; color: inherit;">Đăng nhập</a>`;
+    }
+}
+
+async function verifySession() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            // Token invalid or User locked
+            const result = await response.json();
+            if (response.status === 403 && result.message.includes('khóa')) {
+                alert(result.message);
+            }
+            logout();
+        }
+    } catch (error) {
+        console.error("Session verification failed", error);
     }
 }
 

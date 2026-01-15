@@ -51,6 +51,14 @@ function showTab(tabName) {
     if (targetSection) targetSection.style.display = 'block';
 
     localStorage.setItem('activeTab', tabName);
+
+    // Call load functions based on tab
+    if (tabName === 'overview') loadDashboardStats();
+    if (tabName === 'products') loadProducts();
+    if (tabName === 'orders') loadOrders();
+    if (tabName === 'customers') loadCustomers();
+    if (tabName === 'inventory') loadImportHistory();
+    if (tabName === 'stock') loadStockData();
 }
 
 let isEditMode = false;
@@ -214,18 +222,15 @@ productForm.onsubmit = async function (e) {
 };
 
 const searchInput = document.getElementById("searchInput");
-searchInput.oninput = async (e) => {
-    const keyword = e.target.value;
-    try {
-        const response = await fetch(`http://localhost:3000/api/products?search=${keyword}`);
-        const result = await response.json();
-        if (result.success) {
-            renderTable(result.data);
-        }
-    } catch (error) {
-        console.error("Lỗi tìm kiếm:", error);
-    }
-};
+let searchTimeout = null;
+if (searchInput) {
+    searchInput.oninput = (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            loadProducts(1);
+        }, 300);
+    };
+}
 
 // 1. Hàm tải danh sách đơn hàng
 async function loadOrders() {
@@ -429,7 +434,7 @@ document.querySelectorAll(".close-order-btn").forEach(btn => {
 });
 
 // Hàm xem chi tiết đơn hàng
-let currentViewingOrderId = null;
+let currentViewingOrder = null;
 async function viewOrderDetails(orderId) {
     try {
         const response = await fetch(`http://localhost:3000/api/orders/${orderId}`);
@@ -437,7 +442,7 @@ async function viewOrderDetails(orderId) {
 
         if (result.success) {
             const order = result.data;
-            currentViewingOrderId = order.id;
+            currentViewingOrder = order;
             document.getElementById("updateStatusSelect").value = order.status;
             // 1. Hiển thị ID đơn hàng
             document.getElementById("displayOrderId").innerText = `#${order.id}`;
@@ -505,7 +510,7 @@ async function confirmUpdateStatus() {
 
     if (result.isConfirmed) {
         try {
-            const response = await fetch(`http://localhost:3000/api/orders/${currentViewingOrderId}/status`, {
+            const response = await fetch(`http://localhost:3000/api/orders/${currentViewingOrder.id}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
@@ -524,6 +529,115 @@ async function confirmUpdateStatus() {
             Swal.fire("Lỗi", "Không thể kết nối đến server", "error");
         }
     }
+}
+
+
+
+function printInvoice() {
+    if (!currentViewingOrder) return;
+
+    const order = currentViewingOrder;
+    const printWindow = window.open('', '', 'height=600,width=800');
+
+    const date = new Date(order.createdAt).toLocaleString('vi-VN');
+
+    let itemsHtml = '';
+    order.products.forEach(p => {
+        const qty = p.order_item.quantity;
+        const price = Number(p.order_item.price);
+        const total = qty * price;
+        itemsHtml += `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 8px;">${p.name}</td>
+                <td style="padding: 8px; text-align: center;">${qty}</td>
+                <td style="padding: 8px; text-align: right;">${price.toLocaleString()}đ</td>
+                <td style="padding: 8px; text-align: right;">${total.toLocaleString()}đ</td>
+            </tr>
+        `;
+    });
+
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Hóa Đơn #${order.id}</title>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #333; }
+                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+                .store-name { font-size: 24px; font-weight: bold; color: #4f46e5; text-transform: uppercase; }
+                .invoice-title { font-size: 20px; font-weight: bold; margin-top: 15px; }
+                .info-section { margin-bottom: 30px; display: flex; justify-content: space-between; }
+                .info-box { width: 48%; }
+                .info-box h4 { margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th { background-color: #f8f9fa; padding: 10px; border-bottom: 2px solid #ddd; text-align: left; font-weight: 600; }
+                th:last-child, td:last-child { text-align: right; }
+                .total-section { text-align: right; font-size: 18px; font-weight: bold; margin-top: 20px; color: #2563eb; }
+                .footer { margin-top: 50px; text-align: center; font-size: 13px; color: #666; font-style: italic; }
+                @media print {
+                    @page { margin: 20px; }
+                    body { margin: 0; }
+                    .btn-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="store-name">LAPTOP STORE</div>
+                <div>Địa chỉ: 123 Đường Công Nghệ, Q. Thủ Đức, TP.HCM</div>
+                <div>Hotline: 0123.456.789 - Email: support@laptopstore.com</div>
+                <div class="invoice-title">HÓA ĐƠN BÁN HÀNG</div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-box">
+                    <h4>Khách hàng</h4>
+                    <strong>${order.user.fullName}</strong><br>
+                    SĐT: ${order.user.phone}<br>
+                    Địa chỉ: ${order.user.address || 'Tại cửa hàng'}
+                </div>
+                <div class="info-box" style="text-align: right;">
+                    <h4>Đơn hàng</h4>
+                    Đơn số: #${order.id}<br>
+                    Ngày đặt: ${date}<br>
+                    Trạng thái: ${order.status === 'pending' ? 'Chờ xử lý' : (order.status === 'cancelled' ? 'Đã hủy' : 'Đã hoàn thành')}
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th style="text-align: center;">SL</th>
+                        <th style="text-align: right;">Đơn giá</th>
+                        <th style="text-align: right;">Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+            </table>
+
+            <div class="total-section">
+                Tổng cộng: ${Number(order.totalAmount).toLocaleString()}đ
+            </div>
+
+            <div class="footer">
+                <p>Cảm ơn quý khách đã mua sắm tại Laptop Store!</p>
+                <p>Vui lòng giữ lại hóa đơn để được bảo hành sản phẩm.</p>
+            </div>
+            
+            <script>
+                window.onload = function() { 
+                    setTimeout(function() { window.print(); }, 500); 
+                }
+            </script>
+        </body>
+        </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
 }
 
 // 4. Quản lý khách hàng
@@ -794,3 +908,93 @@ async function submitImportReceipt() {
     }
 }
 
+// 6. Quản lý Tồn kho (Stock)
+async function loadStockData() {
+    const keyword = document.getElementById("searchStockInput") ? document.getElementById("searchStockInput").value : '';
+    try {
+        // Fetch all products for stock view
+        const response = await fetch(`http://localhost:3000/api/products?limit=1000&search=${keyword}`);
+        const result = await response.json();
+
+        if (result.success) {
+            const products = result.data;
+            renderStockStats(products);
+            renderStockTable(products);
+        }
+    } catch (error) {
+        console.error("Lỗi tải dữ liệu tồn kho:", error);
+    }
+}
+
+function renderStockStats(products) {
+    const totalProducts = products.length;
+    let lowStockCount = 0;
+    let totalValue = 0;
+
+    products.forEach(p => {
+        if (p.stock < 5) lowStockCount++;
+        totalValue += p.price * p.stock;
+    });
+
+    document.getElementById("stockTotalProducts").innerText = totalProducts;
+    document.getElementById("stockLowCount").innerText = lowStockCount;
+    document.getElementById("stockTotalValue").innerText = totalValue.toLocaleString() + "đ";
+}
+
+function renderStockTable(products) {
+    const container = document.getElementById("stockTableBody");
+    if (!container) return;
+    container.innerHTML = "";
+
+    products.forEach(p => {
+        let statusHtml = '';
+        if (p.stock === 0) {
+            statusHtml = '<span style="color:red; font-weight:bold;">Hết hàng</span>';
+        } else if (p.stock < 5) {
+            statusHtml = '<span style="color:orange; font-weight:bold;">Sắp hết</span>';
+        } else {
+            statusHtml = '<span style="color:green; font-weight:bold;">Còn hàng</span>';
+        }
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img src="http://localhost:3000/${p.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/40'">
+                    <strong>${p.name}</strong>
+                </div>
+            </td>
+            <td>${Number(p.price).toLocaleString()}đ</td>
+            <td style="font-weight:bold; font-size:1.1rem;">${p.stock}</td>
+            <td>${(p.price * p.stock).toLocaleString()}đ</td>
+            <td>${statusHtml}</td>
+        `;
+        container.appendChild(tr);
+    });
+}
+
+const searchStockInput = document.getElementById("searchStockInput");
+if (searchStockInput) {
+    let timeout = null;
+    searchStockInput.oninput = () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(loadStockData, 300);
+    }
+}
+
+function logoutAdmin() {
+    Swal.fire({
+        title: 'Đăng xuất?',
+        text: "Bạn có chắc chắn muốn đăng xuất không?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Đăng xuất',
+        cancelButtonText: 'Hủy'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+    });
+}

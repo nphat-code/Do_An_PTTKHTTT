@@ -407,7 +407,16 @@
 
             try {
                 // Fetch fresh data from API
-                const response = await fetch(`/api/users/${user.id}`);
+                const response = await fetch(`/api/users/${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    alert("Phiên đăng nhập hết hạn hoặc tài khoản bị khóa.");
+                    logout();
+                    return;
+                }
+
                 const result = await response.json();
 
                 if (!result.success) {

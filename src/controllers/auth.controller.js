@@ -147,9 +147,31 @@ const resetPassword = async (req, res) => {
     }
 };
 
+const getMe = async (req, res) => {
+    try {
+        // req.user is attached by authMiddleware
+        const user = req.user;
+        res.status(200).json({
+            success: true,
+            user: {
+                id: user.id,
+                fullName: user.fullName,
+                email: user.email,
+                phone: user.phone,
+                address: user.address,
+                role: user.role,
+                isLocked: user.isLocked
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     register,
     login,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    getMe
 };
