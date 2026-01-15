@@ -381,6 +381,38 @@
             </div>
         </div>
     </div>
+    <div id="viewImportDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Chi tiết phiếu nhập <span id="displayImportId"></span></h2>
+                <span class="close-view-import-btn" style="cursor:pointer; font-size: 24px;">&times;</span>
+            </div>
+            <div id="importInfo" style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Info will be populated by JS -->
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Giá nhập</th>
+                            <th>Số lượng</th>
+                            <th>Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody id="viewImportItemsTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <h3>Tổng tiền: <span id="viewImportTotalDetail" style="color: #2563eb;">0đ</span></h3>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary close-view-import-btn">Đóng</button>
+            </div>
+        </div>
+    </div>
     <script src="js/main.js"></script>
 </body>
 

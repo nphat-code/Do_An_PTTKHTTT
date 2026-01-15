@@ -769,6 +769,11 @@ function renderImportHistoryTable(receipts) {
             <td>${receipt.totalBox || 0}</td>
             <td><strong style="color: #2563eb;">${Number(receipt.totalAmount || 0).toLocaleString()}đ</strong></td>
             <td>${receipt.note || ''}</td>
+            <td>
+                <button class="btn-edit" onclick="viewImportDetails(${receipt.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
         `;
         container.appendChild(tr);
     });
@@ -801,6 +806,7 @@ async function openImportModal() {
                 option.dataset.name = p.name;
                 select.appendChild(option);
             });
+
             // Tự động set giá nhập gợi ý (ví dụ = 70% giá bán)
             if (result.data.length > 0) {
                 select.value = result.data[0].id;
@@ -814,11 +820,70 @@ async function openImportModal() {
             }
         }
     } catch (error) {
-        console.error("Lỗi tải sản phẩm:", error);
-        select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+        console.error("Lỗi tải danh sách sản phẩm:", error);
     }
 
-    importModal.style.display = 'flex';
+    importModal.style.display = "flex";
+}
+
+// ------------------------------------------------------------------
+// View Import Detail Modal Logic
+const viewImportDetailModal = document.getElementById("viewImportDetailModal");
+
+// Đóng modal chi tiết phiếu nhập
+document.querySelectorAll(".close-view-import-btn").forEach(btn => {
+    btn.onclick = () => viewImportDetailModal.style.display = "none";
+});
+
+// Hàm xem chi tiết phiếu nhập
+async function viewImportDetails(receiptId) {
+    try {
+        const response = await fetch(`http://localhost:3000/api/imports/${receiptId}`);
+        const result = await response.json();
+
+        if (result.success) {
+            const receipt = result.data;
+            const date = new Date(receipt.createdAt).toLocaleString('vi-VN');
+
+            // 1. Hiển thị ID và thông tin chung
+            document.getElementById("displayImportId").innerText = `#${receipt.id}`;
+            document.getElementById("importInfo").innerHTML = `
+                <div>
+                    <p><strong>Ngày nhập:</strong> ${date}</p>
+                    <p><strong>Tổng số thùng/món:</strong> ${receipt.totalBox}</p>
+                </div>
+                <div>
+                     <p><strong>Ghi chú:</strong> ${receipt.note || 'Không có'}</p>
+                </div>
+            `;
+
+            // 2. Hiển thị danh sách sản phẩm
+            const itemsContainer = document.getElementById("viewImportItemsTableBody");
+            itemsContainer.innerHTML = "";
+
+            receipt.products.forEach(p => {
+                const qty = p.ImportReceiptItem ? p.ImportReceiptItem.quantity : 0;
+                const price = p.ImportReceiptItem ? Number(p.ImportReceiptItem.price) : 0;
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${p.name}</td>
+                    <td>${Number(price).toLocaleString()}đ</td>
+                    <td>${qty}</td>
+                    <td>${(price * qty).toLocaleString()}đ</td>
+                `;
+                itemsContainer.appendChild(tr);
+            });
+
+            // 3. Hiển thị tổng tiền
+            document.getElementById("viewImportTotalDetail").innerText = Number(receipt.totalAmount).toLocaleString() + "đ";
+
+            // Hiện modal
+            viewImportDetailModal.style.display = "flex";
+        }
+    } catch (error) {
+        console.error("Lỗi khi tải chi tiết phiếu nhập:", error);
+        Swal.fire("Lỗi", "Không thể lấy thông tin chi tiết phiếu nhập", "error");
+    }
 }
 
 function addImportItem() {

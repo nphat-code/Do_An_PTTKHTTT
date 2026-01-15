@@ -87,7 +87,32 @@ const getImportHistory = async (req, res) => {
     }
 };
 
+// 3. Lấy chi tiết phiếu nhập
+const getImportReceiptById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const receipt = await ImportReceipt.findOne({
+            where: { id },
+            include: [
+                {
+                    model: Product,
+                    through: { attributes: ['quantity', 'price'] }
+                }
+            ]
+        });
+
+        if (!receipt) {
+            return res.status(404).json({ success: false, message: "Phiếu nhập không tồn tại" });
+        }
+
+        res.status(200).json({ success: true, data: receipt });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     createImportReceipt,
-    getImportHistory
+    getImportHistory,
+    getImportReceiptById
 };
