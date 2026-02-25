@@ -55,7 +55,31 @@ MA_NV_QUAN_LY (FK)
 STRING(20)
 Cửa hàng trưởng (Trỏ về bảng NHAN_VIEN).
 
-4. Nhân viên
+4. Kho
+KHO(MA_KHO, TEN_KHO, MA_CN, DIA_CHI, LOAI_KHO, TRANG_THAI)
+Thuộc tính
+Kiểu dữ liệu
+Mô tả
+MA_KHO (PK)
+STRING(20)
+Mã định danh kho (Vd: KHO_Q5_01, KHO_TRUNG_BAY).
+TEN_KHO
+STRING
+Tên gọi của kho (Vd: Kho tổng Quận 5, Kho trưng bày tầng 1).
+MA_CN (FK)
+STRING(20)
+Thuộc chi nhánh nào (Kết nối với bảng CHI_NHANH).
+DIA_CHI
+TEXT
+Địa chỉ cụ thể của kho (nếu khác địa chỉ chi nhánh).
+LOAI_KHO
+ENUM
+Phân loại: 'Kho lưu trữ', 'Kho trưng bày', 'Kho bảo hành'.
+TRANG_THAI
+BOOLEAN
+true: Đang hoạt động, false: Tạm đóng cửa.
+
+5. Nhân viên
 NHAN_VIEN(MA_NV, HO_TEN, NGAY_SINH, GIOI_TINH, SDT, EMAIL, DIA_CHI, MA_CV, MA_CN, TRANG_THAI, TEN_DANG_NHAP, MAT_KHAU)
 Thuộc tính
 Kiểu dữ liệu
@@ -97,7 +121,7 @@ MAT_KHAU
 STRING
 Mật khẩu đăng nhập (Lưu dưới dạng chuỗi đã Hash).
 
-5. Chức vụ
+6. Chức vụ
 CHUC_VU(MA_CV, TEN_CV, MO_TA, LUONG_CO_BAN)
 Thuộc tính
 Kiểu dữ liệu
@@ -115,7 +139,7 @@ LUONG_CO_BAN
 DECIMAL(15, 2)
 Mức lương cơ bản của chức vụ đó.
 
-6. Khách hàng
+7. Khách hàng
 KHACH_HANG(MA_KH, HO_TEN, NGAY_SINH, GIOI_TINH, SDT, EMAIL, DIA_CHI)
 Thuộc tính
 Kiểu dữ liệu
@@ -142,7 +166,7 @@ DIA_CHI
 TEXT
 Địa chỉ giao hàng hoặc địa chỉ thường trú.
 
-7. Loại máy
+8. Loại máy
 LOAI_MAY(MA_LOAI, TEN_LOAI)
 Thuộc tính
 Kiểu dữ liệu
@@ -154,7 +178,7 @@ TEN_LOAI
 STRING
 Tên phân loại laptop.
 
-8. Dòng máy
+9. Dòng máy
 DONG_MAY(MA_MODEL, TEN_MODEL, THONG_SO_KY_THUAT, MA_HANG, MA_LOAI, GIA_NHAP, GIA_BAN, SO_LUONG_TON)
 Thuộc tính
 Kiểu dữ liệu
@@ -184,7 +208,7 @@ SO_LUONG_TON
 INTEGER
 Tổng số lượng máy của model này trên toàn hệ thống.
 
-9. Cấu hình
+10. Cấu hình
 CAU_HINH(MA_CH, CPU, RAM, O_CUNG, VGA, MAN_HINH, PIN, TRONG_LUONG)
 Thuộc tính
 Kiểu dữ liệu
@@ -214,7 +238,7 @@ TRONG_LUONG
 FLOAT
 Cân nặng (kg).
 
-10. Chi tiết máy
+11. Chi tiết máy
 CHI_TIET_MAY(SO_SERIAL, TRANG_THAI, MA_MODEL, MA_KHO)
 Thuộc tính
 Kiểu dữ liệu
@@ -235,7 +259,7 @@ MA_HD (FK)
 STRING(20)
 Hóa đơn mà máy này đã được bán. (có thể NULL)
 
-11. Linh kiện
+12. Linh kiện
 LINH_KIEN(MA_LK, TEN_LK, MA_HANG, LOAI_LK, DON_GIA)
 Thuộc tính
 Kiểu dữ liệu
@@ -256,7 +280,7 @@ GIA_NHAP
 DECIMAL(15, 2)
 Giá nhập để tính toán chi phí bảo hành.
 
-12. Kho linh kiện
+13. Kho linh kiện
 KHO_LINH_KIEN(MALK, MA_KHO, SO_LUONG_TON)
 Thuộc tính
 Kiểu dữ liệu
@@ -271,7 +295,7 @@ SO_LUONG_TON
 INTEGER
 Số lượng hiện có tại kho này.
 
-13. Hóa đơn
+14. Hóa đơn
 HOA_DON(MA_HD, NGAY_LAP, TONG_TIEN, GHI_CHU, MA_KH, MA_NV, MA_HTTT, MA_KM)
 Thuộc tính
 Kiểu dữ liệu
@@ -301,7 +325,7 @@ MA_KM (FK)
 STRING(20)
 Khóa ngoại trỏ đến KHUYEN_MAI (có thể NULL).
 
-14. Chi tiết hóa đơn
+15. Chi tiết hóa đơn
 CT_HOA_DON(MA_HD, MA_MODEL, SO_LUONG, DON_GIA, THANH_TIEN)
 Thuộc tính
 Kiểu dữ liệu
@@ -319,7 +343,7 @@ DON_GIA
 DECIMAL(15, 2)
 Giá bán tại thời điểm đó cho 1 máy.
 
-15. Phiếu nhập
+16. Phiếu nhập
 PHIEU_NHAP(MA_PN, NGAY_NHAP, MA_NCC, MA_NV, MA_HTTT, TONG_TIEN)
 Thuộc tính
 Kiểu dữ liệu
@@ -343,7 +367,7 @@ TONG_TIEN
 DECIMAL(15, 2)
 Tổng giá trị lô hàng nhập.
 
-16. Chi tiết phiếu nhập máy
+17. Chi tiết phiếu nhập máy
 CT _NHAP_MAY(MA_PN, MA_MODEL, SO_LUONG, DON_GIA)
 Thuộc tính
 Kiểu dữ liệu
@@ -361,7 +385,7 @@ DON_GIA
 DECIMAL(15, 2)
 Giá nhập thực tế tại thời điểm này.
 
-17. Chi tiết phiếu nhập linh kiện
+18. Chi tiết phiếu nhập linh kiện
 CT_NHAP_LK(MA_PN, MA_LK, SO_LUONG, DON_GIA)
 Thuộc tính
 Kiểu dữ liệu
@@ -379,7 +403,7 @@ DON_GIA
 DECIMAL(15, 2)
 Giá nhập thực tế của linh kiện.
 
-18. Phiếu kiểm kê
+19. Phiếu kiểm kê
 PHIEU_KIEM_KE(MA_PK, NGAY_KIEM_KE, MA_NV, MA_KHO, GHI_CHU)
 Thuộc tính
 Kiểu dữ liệu
@@ -400,7 +424,7 @@ GHI_CHU
 TEXT
 Mô tả chung (Vd: "Kiểm kê định kỳ cuối quý 1").
 
-19. Chi tiết kiểm kê máy
+20. Chi tiết kiểm kê máy
 CT_KIEM_KE_MAY(MA_PK, SO_SERIAL, TT_HE_THONG, TT_THUC_TE)
 Thuộc tính
 Kiểu dữ liệu
@@ -417,7 +441,8 @@ Trạng thái ghi trên DB (Vd: 'Trong kho').
 TT_THUC_TE
 ENUM
 Trạng thái thực tế khi quét mã (Vd: 'Trong kho', 'Thất lạc', 'Hỏng').
-20. Chi tiết kiểm kê linh kiện
+
+21. Chi tiết kiểm kê linh kiện
 CT_KIEM_KE_LK(MA_PK, MA_LK, SL_HE_THONG, SL_THUC_TE, GHI_CHU)
 Thuộc tính
 Kiểu dữ liệu
@@ -438,7 +463,7 @@ GHI_CHU
 TEXT
 Giải trình nếu có chênh lệch (Vd: "Hỏng chưa cập nhật").
 
-21. Phiếu bảo hành
+22. Phiếu bảo hành
 PHIEU_BAO_HANH(MA_PBH, NGAY_LAP, MA_NV_TIEP_NHAN, MA_NV_KY_THUAT, MO_TA_LOI, KET_LUAN_KY_THUAT, NGAY_TRA_MAY, CHI_PHI_SUA_CHUA, MA_HTTT, TRANG_THAI)
 Thuộc tính
 Kiểu dữ liệu
@@ -477,7 +502,7 @@ TRANG_THAI
 ENUM
 'Chờ kiểm tra', 'Đang sửa', 'Đã xong', 'Đã trả máy'.
 
-22. Chi tiết sửa chữa
+23. Chi tiết sửa chữa
 CHI_TIET_SUA_CHUA(MA_PBH, MA_LK, SO_LUONG, DON_GIA, MA_KHO_XUAT)
 Thuộc tính
 Kiểu dữ liệu
@@ -498,7 +523,7 @@ MA_KHO_XUAT (FK)
 STRING(20)
 Lấy linh kiện từ kho nào để thay (Trỏ về KHO).
 
-23. Chương trình khuyến mãi
+24. Chương trình khuyến mãi
 CHUONG_TRINH_KM(MA_KM, TEN_KM, NGAY_BAT_DAU, NGAY_KET_THUC, LOAI_KM, GIA_TRI_KM, DIEU_KIEN_AP_DUNG, TRANG_THAI)
 Thuộc tính
 Kiểu dữ liệu
@@ -528,7 +553,7 @@ TRANG_THAI
 BOOLEAN
 true: Đang kích hoạt, false: Tạm dừng.
 
-24. Dòng máy khuyến mãi
+25. Dòng máy khuyến mãi
 DONG_MAY_KM(MA_KM, MA_MODEL, NGAY_THEM)
 Thuộc tính
 Kiểu dữ liệu
@@ -543,7 +568,7 @@ NGAY_THEM
 DATE
 Ngày dòng máy này được đưa vào danh sách khuyến mãi (Mặc định: NOW).
 
-25. Hình thức thanh toán
+26. Hình thức thanh toán
 HINH_THUC_THANH_TOAN(MA_HTTT, TEN_HTTT, MO_TA)
 Thuộc tính
 Kiểu dữ liệu
