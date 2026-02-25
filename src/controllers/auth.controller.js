@@ -1,4 +1,4 @@
-const { User } = require('../models/index');
+const { NhanVien, KhachHang } = require('../models/index');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -6,26 +6,23 @@ const { Op } = require('sequelize');
 
 const register = async (req, res) => {
     try {
-        const { fullName, email, password, phone, address } = req.body;
+        const { maKh, hoTen, ngaySinh, gioiTinh, sdt, email, diaChi } = req.body;
 
         // Check if user exists
-        const existingUser = await User.findOne({ where: { email } });
+        const existingUser = await KhachHang.findOne({ where: { email } });
         if (existingUser) {
             return res.status(400).json({ success: false, message: "Email đã tồn tại" });
         }
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
         // Create user
-        const newUser = await User.create({
-            fullName,
+        const newUser = await KhachHang.create({
+            maKh,
+            hoTen,
+            ngaySinh,
+            gioiTinh,
+            sdt,
             email,
-            password: hashedPassword,
-            phone,
-            address,
-            role: 'customer' // Default role
+            diaChi
         });
 
         res.status(201).json({ success: true, message: "Đăng ký thành công!" });
@@ -39,43 +36,49 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user
-        const user = await User.findOne({ where: { email } });
-        if (!user) {
-            return res.status(400).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
-        }
-
-        // Check if user is locked
-        if (user.isLocked) {
-            return res.status(403).json({ success: false, message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin." });
-        }
-
-        // Check password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
-        }
-
-        // Generate Token
-        const token = jwt.sign(
-            { id: user.id, role: user.role },
-            process.env.JWT_SECRET || 'secretkey123', // Use env in production
-            { expiresIn: '1d' }
-        );
-
-        res.status(200).json({
-            success: true,
-            message: "Đăng nhập thành công",
-            token,
-            user: {
-                id: user.id,
-                fullName: user.fullName,
-                email: user.email,
-                phone: user.phone,
-                address: user.address,
-                role: user.role
+        // First, check if it's an employee (NhanVien)
+        const employee = await NhanVien.findOne({ where: { email } });
+        if (employee) {
+            if (!employee.trangThai) {
+                return res.status(403).json({ success: false, message: "Tài khoản nhân viên đã ngừng hoạt động." });
             }
-        });
+
+            // Check password
+            const isMatch = await bcrypt.compare(password, employee.matKhau);
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
+            }
+
+            // Generate Token for Employee
+            const token = jwt.sign(
+                { id: employee.maNv, role: 'employee' },
+                process.env.JWT_SECRET || 'secretkey123',
+                { expiresIn: '1d' }
+            );
+
+            return res.status(200).json({
+                success: true,
+                message: "Đăng nhập nhân viên thành công",
+                token,
+                user: {
+                    id: employee.maNv,
+                    fullName: employee.hoTen,
+                    email: employee.email,
+                    role: 'employee'
+                }
+            });
+        }
+
+        // If not employee, check if it's a customer
+        const customer = await KhachHang.findOne({ where: { email } });
+        if (customer) {
+            // KhachHang schema doesn't have a password field currently,
+            // assuming password logic applies or needs to be adapted:
+            // For now, simulating a simple check or returning an error if they don't have passwords in DB.
+            return res.status(400).json({ success: false, message: "Vui lòng đăng nhập thông qua sđt/otp hoặc Admin cần cập nhật password cho Khách Hàng." });
+        }
+
+        return res.status(400).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
 
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -83,89 +86,15 @@ const login = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-    try {
-        const { email } = req.body;
-        const user = await User.findOne({ where: { email } });
-        if (!user) {
-            return res.status(404).json({ success: false, message: "Email không tồn tại trong hệ thống" });
-        }
-
-        // Generate Token
-        const resetToken = crypto.randomBytes(20).toString('hex');
-
-        // Save token and expire time (1 hour)
-        user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
-        await user.save();
-
-        // Simulate sending email
-        // In real app: await sendEmail(user.email, resetUrl);
-
-        // Return token directly for demo purpose
-        const resetUrl = `http://localhost:3000/reset-password.html?token=${resetToken}`;
-
-        res.status(200).json({
-            success: true,
-            message: "Đã gửi email khôi phục mật khẩu! (Vì đây là demo, vui lòng click vào link dưới)",
-            resetLink: resetUrl
-        });
-
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.status(501).json({ success: false, message: "Tính năng quên mật khẩu đang được cấu hình lại cho Database mới" });
 };
 
 const resetPassword = async (req, res) => {
-    try {
-        const { token, newPassword } = req.body;
-
-        // Find user with valid token and not expired
-        const user = await User.findOne({
-            where: {
-                resetPasswordToken: token,
-                resetPasswordExpires: { [Op.gt]: Date.now() }
-            }
-        });
-
-        if (!user) {
-            return res.status(400).json({ success: false, message: "Token không hợp lệ hoặc đã hết hạn" });
-        }
-
-        // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-
-        // Clear reset token
-        user.resetPasswordToken = null;
-        user.resetPasswordExpires = null;
-        await user.save();
-
-        res.status(200).json({ success: true, message: "Đổi mật khẩu thành công! Vui lòng đăng nhập lại." });
-
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.status(501).json({ success: false, message: "Tính năng này đang được bảo trì" });
 };
 
 const getMe = async (req, res) => {
-    try {
-        // req.user is attached by authMiddleware
-        const user = req.user;
-        res.status(200).json({
-            success: true,
-            user: {
-                id: user.id,
-                fullName: user.fullName,
-                email: user.email,
-                phone: user.phone,
-                address: user.address,
-                role: user.role,
-                isLocked: user.isLocked
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.status(501).json({ success: false, message: "Tính năng lấy thông tin cá nhân đang được bảo trì" });
 };
 
 module.exports = {

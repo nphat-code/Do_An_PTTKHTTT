@@ -1,59 +1,38 @@
 const fs = require('fs');
 const path = require('path');
-const sequelize = require('../config/database');
+const { sequelize, DongMay } = require('../models/index');
 const { Op } = require('sequelize');
-const { Product, Order, User } = require('../models/index')
 
 const getAllProducts = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        if (isNaN(page) || page < 1) {
-            page = 1;
-        }
-        const limit = parseInt(req.query.limit) || 5; // Mặc định 5 sản phẩm/trang
+        const limit = parseInt(req.query.limit) || 5;
         const offset = (page - 1) * limit;
-        const { search, minPrice, maxPrice, ram, brand } = req.query;
+        const { search, minPrice, maxPrice, brand } = req.query;
+
         let whereClause = {};
+
         if (search) {
-            whereClause.name = { [Op.iLike]: `%${search}%` };
-        }
-
-        // Filter by Brand (checking if name contains the brand)
-        if (brand) {
-            if (whereClause.name) {
-                // If name filter already exists (from search), combine them
-                whereClause[Op.and] = [
-                    { name: whereClause.name },
-                    { name: { [Op.iLike]: `%${brand}%` } }
-                ];
-                delete whereClause.name; // Remove the single property to avoid conflict
-            } else {
-                whereClause.name = { [Op.iLike]: `%${brand}%` };
-            }
-        }
-
-        // Filter by RAM
-        if (ram) {
-            whereClause.ram = { [Op.iLike]: `%${ram}%` };
+            whereClause.tenModel = { [Op.iLike]: `%${search}%` };
         }
 
         if (minPrice || maxPrice) {
-            whereClause.price = {};
-            if (minPrice && !isNaN(minPrice)) whereClause.price[Op.gte] = parseFloat(minPrice); // Lớn hơn hoặc bằng
-            if (maxPrice && !isNaN(maxPrice)) whereClause.price[Op.lte] = parseFloat(maxPrice); // Nhỏ hơn hoặc bằng
+            whereClause.giaBan = {};
+            if (minPrice && !isNaN(minPrice)) whereClause.giaBan[Op.gte] = parseFloat(minPrice);
+            if (maxPrice && !isNaN(maxPrice)) whereClause.giaBan[Op.lte] = parseFloat(maxPrice);
         }
 
-        const result = await Product.findAndCountAll({
+        const result = await DongMay.findAndCountAll({
             where: whereClause,
             limit: limit,
             offset: offset,
-            order: [['createdAt', 'DESC']]
         });
 
-        const stats = await Product.findAll({
+        // Basic stats using giaBan and soLuongTon
+        const stats = await DongMay.findAll({
             where: whereClause,
             attributes: [
-                [sequelize.fn('SUM', sequelize.literal('price * stock')), 'totalValue']
+                [sequelize.fn('SUM', sequelize.literal('COALESCE("giaBan", 0) * COALESCE("soLuongTon", 0)')), 'totalValue']
             ],
             raw: true
         });
@@ -78,7 +57,7 @@ const getAllProducts = async (req, res) => {
 
 const getProductById = async (req, res) => {
     try {
-        const product = await Product.findByPk(req.params.id);
+        const product = await DongMay.findByPk(req.params.id);
         if (!product) {
             return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
         }
@@ -90,15 +69,14 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
     try {
-        const { name, price, cpu, ram, stock } = req.body;
-        const imagePath = req.file ? `public/uploads/${req.file.filename}` : null;
-        const newProduct = await Product.create({
-            name,
-            price: Number(price),
-            cpu,
-            ram,
-            stock: Number(stock),
-            image: imagePath
+        const { maModel, tenModel, giaNhap, giaBan, soLuongTon } = req.body;
+
+        const newProduct = await DongMay.create({
+            maModel,
+            tenModel,
+            giaNhap: giaNhap ? Number(giaNhap) : null,
+            giaBan: giaBan ? Number(giaBan) : null,
+            soLuongTon: soLuongTon ? Number(soLuongTon) : 0
         });
 
         res.status(201).json({
@@ -113,15 +91,12 @@ const createProduct = async (req, res) => {
 
 const updateProduct = async (req, res) => {
     try {
-        const product = await Product.findByPk(req.params.id);
+        const product = await DongMay.findByPk(req.params.id);
         if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy" });
-        const dataToUpdate = { ...req.body };
-        if (req.file) {
-            deleteFile(product.image);
-            dataToUpdate.image = `public/uploads/${req.file.filename}`;
-        }
 
+        const dataToUpdate = { ...req.body };
         await product.update(dataToUpdate);
+
         res.status(200).json({ success: true, data: product });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
@@ -130,24 +105,13 @@ const updateProduct = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findByPk(req.params.id);
+        const product = await DongMay.findByPk(req.params.id);
         if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy" });
-        deleteFile(product.image);
+
         await product.destroy();
-        res.status(200).json({ success: true, message: "Đã xóa thành công sản phẩm và ảnh" });
+        res.status(200).json({ success: true, message: "Đã xóa thành công sản phẩm" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
-    }
-};
-
-const deleteFile = (filePath) => {
-    if (!filePath) return;
-    const fullPath = path.join(__dirname, '../../', filePath);
-    if (fs.existsSync(fullPath)) {
-        fs.unlink(fullPath, (err) => {
-            if (err) console.error("Lỗi khi xóa file cũ:", err);
-            else console.log("Đã xóa file cũ thành công:", filePath);
-        });
     }
 };
 

@@ -1,53 +1,51 @@
-const { sequelize, Product, User, Order, OrderItem } = require('../models/index');
-const bcrypt = require('bcryptjs');
+const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon } = require('../models/index');
+const { Op } = require('sequelize');
+
+const generateOrderCode = () => {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+    return `HD${dateStr}_${randomNum}`;
+};
 
 const createOrder = async (req, res) => {
     // Khởi tạo Transaction để đảm bảo nếu một bước lỗi thì toàn bộ quá trình sẽ bị hủy (rollback)
     const t = await sequelize.transaction();
 
     try {
-        const { customerInfo, cartItems } = req.body;
+        const { customerInfo, cartItems, maHttt, maKm } = req.body;
 
         if (!cartItems || cartItems.length === 0) {
             return res.status(400).json({ success: false, message: "Giỏ hàng trống" });
         }
 
-        // Tạo mật khẩu mặc định (số điện thoại)
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(customerInfo.phone, salt);
-
-        const { Op } = require('sequelize');
-
-        // ...
-
-        // 1. Tìm xem user đã tồn tại chưa (theo Phone hặc Email)
-        let user = await User.findOne({
+        // 1. Tìm xem user đã tồn tại chưa (trong KhachHang)
+        let customer = await KhachHang.findOne({
             where: {
                 [Op.or]: [
-                    { phone: customerInfo.phone },
+                    { sdt: customerInfo.phone },
                     { email: customerInfo.email }
                 ]
             },
             transaction: t
         });
 
-        if (user) {
+        if (customer) {
             // Update thông tin mới nhất
-            await user.update({
-                fullName: customerInfo.fullName,
-                address: customerInfo.address,
-                phone: customerInfo.phone, // Update phone nếu tìm thấy theo email
-                email: customerInfo.email  // Update email nếu tìm thấy theo phone
+            await customer.update({
+                hoTen: customerInfo.fullName,
+                diaChi: customerInfo.address,
+                sdt: customerInfo.phone,
+                email: customerInfo.email
             }, { transaction: t });
         } else {
-            // Nếu chưa có thì tạo mới
-            user = await User.create({
-                fullName: customerInfo.fullName,
+            // Nếu chưa có thì tạo mới, fake ID for now if not provided
+            customer = await KhachHang.create({
+                maKh: `KH_${Date.now()}`,
+                hoTen: customerInfo.fullName,
                 email: customerInfo.email,
-                phone: customerInfo.phone,
-                address: customerInfo.address,
-                password: hashedPassword,
-                role: 'customer'
+                sdt: customerInfo.phone,
+                diaChi: customerInfo.address,
             }, { transaction: t });
         }
 
@@ -56,48 +54,55 @@ const createOrder = async (req, res) => {
 
         // 2. Kiểm tra kho và tính tổng tiền
         for (let item of cartItems) {
-            const product = await Product.findByPk(item.id, { transaction: t });
+            const product = await DongMay.findByPk(item.id, { transaction: t });
 
             if (!product) {
-                throw new Error(`Sản phẩm ID ${item.id} không tồn tại`);
+                throw new Error(`Dòng máy ID ${item.id} không tồn tại`);
             }
 
-            if (product.stock < item.quantity) {
-                throw new Error(`Sản phẩm ${product.name} chỉ còn ${product.stock} máy, không đủ số lượng bạn yêu cầu`);
+            if (product.soLuongTon < item.quantity) {
+                throw new Error(`Sản phẩm ${product.tenModel} chỉ còn ${product.soLuongTon} máy, không đủ số lượng bạn yêu cầu`);
             }
 
             // Tính toán tổng tiền
-            const itemPrice = parseFloat(product.price);
-            totalAmount += itemPrice * item.quantity;
+            const itemPrice = parseFloat(product.giaBan || 0);
+            const thanhTien = itemPrice * item.quantity;
+            totalAmount += thanhTien;
 
-            // Chuẩn bị dữ liệu cho bảng trung gian OrderItem
+            // Chuẩn bị dữ liệu cho bảng trung gian CtHoaDon
             itemsToCreate.push({
-                productId: product.id,
-                quantity: item.quantity,
-                price: itemPrice // Lưu giá tại thời điểm mua
+                maModel: product.maModel,
+                soLuong: item.quantity,
+                donGia: itemPrice,
+                thanhTien: thanhTien
             });
 
             // 3. Trừ số lượng trong kho
             await product.update({
-                stock: product.stock - item.quantity
+                soLuongTon: product.soLuongTon - item.quantity
             }, { transaction: t });
         }
 
-        // 4. Tạo đơn hàng chính
-        const order = await Order.create({
-            userId: user.id,
-            totalAmount: totalAmount,
-            status: 'pending'
+        // 4. Tạo hóa đơn chính
+        const maHd = generateOrderCode();
+        const order = await HoaDon.create({
+            maHd: maHd,
+            ngayLap: new Date(),
+            tongTien: totalAmount,
+            ghiChu: customerInfo.ghiChu || '',
+            maKh: customer.maKh,
+            maHttt: maHttt || null, // Assuming payment method is provided or null
+            maKm: maKm || null,
         }, { transaction: t });
 
-        // 5. Lưu chi tiết các sản phẩm vào bảng OrderItem
-        // Thêm orderId vào từng item
+        // 5. Lưu chi tiết các sản phẩm vào bảng CtHoaDon
+        // Thêm maHd vào từng item
         const orderItemsWithId = itemsToCreate.map(item => ({
             ...item,
-            orderId: order.id
+            maHd: order.maHd
         }));
 
-        await OrderItem.bulkCreate(orderItemsWithId, { transaction: t });
+        await CtHoaDon.bulkCreate(orderItemsWithId, { transaction: t });
 
         // Hoàn tất giao dịch
         await t.commit();
@@ -105,25 +110,25 @@ const createOrder = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Đặt hàng thành công!",
-            orderId: order.id
+            orderId: order.maHd // Return maHd instead of id
         });
 
     } catch (error) {
         // Nếu có bất kỳ lỗi nào, hủy bỏ toàn bộ thay đổi trong database
-        await t.rollback();
+        if (t && !t.finished) await t.rollback();
         res.status(400).json({ success: false, message: error.message });
     }
 };
 
-// Hàm lấy danh sách đơn hàng cho trang Admin
+// Hàm lấy danh sách hóa đơn cho trang Admin
 const getAllOrders = async (req, res) => {
     try {
-        const orders = await Order.findAll({
+        const orders = await HoaDon.findAll({
             include: [
-                { model: User, attributes: ['fullName', 'phone'] },
-                { model: Product, through: { attributes: ['quantity', 'price'] } }
+                { model: KhachHang, attributes: ['hoTen', 'sdt'] },
+                { model: DongMay, through: { attributes: ['soLuong', 'donGia', 'thanhTien'] } }
             ],
-            order: [['createdAt', 'DESC']]
+            order: [['ngayLap', 'DESC']]
         });
         res.status(200).json({ success: true, data: orders });
     } catch (error) {
@@ -131,95 +136,38 @@ const getAllOrders = async (req, res) => {
     }
 };
 
-// Hàm lấy chi tiết một đơn hàng
+// Hàm lấy chi tiết một hóa đơn
 const getOrderById = async (req, res) => {
     try {
-        const order = await Order.findByPk(req.params.id, {
+        const order = await HoaDon.findByPk(req.params.id, {
             include: [
-                { model: User },
+                { model: KhachHang },
                 {
-                    model: Product,
-                    through: { attributes: ['quantity', 'price'] }
+                    model: DongMay,
+                    through: { attributes: ['soLuong', 'donGia', 'thanhTien'] }
                 }
             ]
         });
-        if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+        if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy hóa đơn" });
         res.status(200).json({ success: true, data: order });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
+// Updating status is not as straightforward as before, 
+// since HoaDon table schema does not include a 'status' field.
+// You might need to add a TRANG_THAI to HOA_DON in the future.
+// For now, this is somewhat disabled or we log it.
 const updateOrderStatus = async (req, res) => {
-    const t = await sequelize.transaction();
-    try {
-        const { id } = req.params;
-        const { status } = req.body; // Trạng thái mới: 'completed', 'cancelled', v.v.
-
-        // 1. Tìm đơn hàng hiện tại cùng các sản phẩm trong đó
-        const order = await Order.findByPk(id, {
-            include: [{ model: Product }],
-            transaction: t
-        });
-
-        if (!order) {
-            throw new Error("Không tìm thấy đơn hàng");
-        }
-
-        // 2. Xử lý logic cộng lại kho nếu trạng thái mới là 'cancelled' 
-        // và trạng thái cũ KHÔNG PHẢI là 'cancelled' (tránh cộng dồn nhiều lần)
-        if (status === 'cancelled' && order.status !== 'cancelled') {
-            for (let product of order.products) {
-                // Lấy số lượng từ bảng trung gian order_item
-                const quantityToReturn = product.order_item.quantity;
-
-                // Cộng lại vào kho
-                await product.update({
-                    stock: product.stock + quantityToReturn
-                }, { transaction: t });
-            }
-        }
-        // (Tùy chọn) Nếu chuyển từ 'cancelled' sang trạng thái khác thì phải trừ kho đi
-        else if (order.status === 'cancelled' && status !== 'cancelled') {
-            for (let product of order.products) {
-                const quantityToSubtract = product.order_item.quantity;
-                if (product.stock < quantityToSubtract) {
-                    throw new Error(`Sản phẩm ${product.name} đã hết hàng, không thể khôi phục đơn hàng này.`);
-                }
-                await product.update({
-                    stock: product.stock - quantityToSubtract
-                }, { transaction: t });
-            }
-        }
-
-        // 3. Cập nhật trạng thái đơn hàng
-        await order.update({ status }, { transaction: t });
-
-        await t.commit();
-        res.status(200).json({ success: true, message: "Cập nhật trạng thái thành công" });
-    } catch (error) {
-        await t.rollback();
-        res.status(400).json({ success: false, message: error.message });
-    }
+    res.status(501).json({ success: false, message: 'Bảng Hoá Đơn hiện chưa có trường Trạng Thái (Status), tính năng cập nhật trạng thái bị tạm dừng' });
 };
 
 const getDashboardStats = async (req, res) => {
     try {
-        // 1. Thống kê theo trạng thái đơn hàng
-        const statusStats = await Order.findAll({
-            attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
-            group: ['status'],
-            raw: true
-        });
-
         // 2. Thống kê doanh thu theo tháng (12 tháng gần nhất)
-        // Lưu ý: Đây là cú pháp PostgreSQL, nếu dùng MySQL/SQLite sẽ khác một chút hàm date_trunc/to_char
-        // Vì project này chưa rõ DB nào, ta sẽ dùng JS để xử lý group cho an toàn với mọi DB
-        const orders = await Order.findAll({
-            where: {
-                status: 'completed' // Chỉ tính đơn hoàn thành
-            },
-            attributes: ['createdAt', 'totalAmount'],
+        const orders = await HoaDon.findAll({
+            attributes: ['ngayLap', 'tongTien'],
             raw: true
         });
 
@@ -233,45 +181,31 @@ const getDashboardStats = async (req, res) => {
         }
 
         orders.forEach(order => {
-            const date = new Date(order.createdAt);
-            const key = `${date.getMonth() + 1}/${date.getFullYear()}`;
-            if (revenueByMonth[key] !== undefined) {
-                revenueByMonth[key] += parseFloat(order.totalAmount);
+            if (order.ngayLap) {
+                const date = new Date(order.ngayLap);
+                const key = `${date.getMonth() + 1}/${date.getFullYear()}`;
+                if (revenueByMonth[key] !== undefined) {
+                    revenueByMonth[key] += parseFloat(order.tongTien || 0);
+                }
             }
         });
 
-        // 3. Top 5 sản phẩm bán chạy
-        const topProducts = await Product.findAll({
-            attributes: [
-                'name',
-                [sequelize.literal('(SELECT COALESCE(SUM("order_items"."quantity"), 0) FROM "order_items" WHERE "order_items"."productId" = "product"."id")'), 'totalSold']
-            ],
-            order: [[sequelize.literal('"totalSold"'), 'DESC']],
-            limit: 5,
-            raw: true
+        // 3. Top 5 sản phẩm bán chạy (using CtHoaDon)
+        // Not implemented simply for now without a 'status' to consider only completed ones.
+        // Needs a slightly more complex raw query with GROUP BY.
+        const processedTopProducts = [];
+
+        // 4. Tổng sản phẩm (DongMay) và Tổng doanh thu (HoaDon)
+        const totalProductsCount = await DongMay.count();
+
+        let totalRevenue = 0;
+        orders.forEach(order => {
+            totalRevenue += parseFloat(order.tongTien || 0);
         });
-
-        // Fix null totalSold to 0
-        const processedTopProducts = topProducts.map(p => ({
-            name: p.name,
-            totalSold: parseInt(p.totalSold) || 0
-        }));
-
-        // 4. Tổng sản phẩm và Tổng doanh thu
-        const totalProductsCount = await Product.count();
-
-        const revenueResult = await Order.findAll({
-            where: { status: 'completed' },
-            attributes: [
-                [sequelize.fn('SUM', sequelize.col('totalAmount')), 'totalRevenue']
-            ],
-            raw: true
-        });
-        const totalRevenue = parseFloat(revenueResult[0].totalRevenue || 0);
 
         res.status(200).json({
             success: true,
-            statusStats,
+            statusStats: [], // No status currently
             revenueByMonth,
             topProducts: processedTopProducts,
             totalProducts: totalProductsCount,

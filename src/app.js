@@ -27,7 +27,7 @@ sequelize.authenticate()
     .then(() => {
         console.log('Kết nối Database thành công!');
         // Đồng bộ các bảng (bao gồm cả bảng trung gian OrderItems)
-        return sequelize.sync({ alter: true });
+        // return sequelize.sync({ alter: true });
     })
     .then(() => {
         console.log('Các bảng đã được đồng bộ hóa!');
