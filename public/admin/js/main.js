@@ -2,7 +2,7 @@
 const token = sessionStorage.getItem('token');
 const user = JSON.parse(sessionStorage.getItem('user'));
 
-if (!token || !user || user.role !== 'admin') {
+if (!token || !user || user.role !== 'employee') {
     alert("Bạn cần đăng nhập quyền Admin!");
     window.location.href = '/login.html';
 }
@@ -14,11 +14,13 @@ const cancelBtn = document.getElementById("cancelBtn");
 const productForm = document.getElementById("productForm");
 const previewContainer = document.getElementById("previewContainer");
 
-btnAdd.onclick = () => {
+btnAdd.onclick = async () => {
     isEditMode = false;
     productForm.reset();
     document.getElementById("productId").value = "";
+    document.getElementById("maModel").disabled = false;
     document.querySelector(".modal-header h2").innerText = "Thêm Laptop Mới";
+    await loadDropdowns();
     productModal.style.display = "flex";
 };
 closeBtn.onclick = () => productModal.style.display = "none";
@@ -101,22 +103,23 @@ function renderTable(products) {
     if (!previewContainer) return;
     previewContainer.innerHTML = "";
     products.forEach(p => {
+        const cauHinh = p.CauHinh || {};
+        const hang = p.HangSanXuat ? p.HangSanXuat.tenHang : '-';
+        const configText = [cauHinh.cpu, cauHinh.ram].filter(Boolean).join(' / ') || '-';
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>#${p.id}</td>
+            <td>#${p.maModel}</td>
+            <td>${hang}</td>
+            <td><strong>${p.tenModel}</strong></td>
+            <td>${configText}</td>
+            <td>${Number(p.giaBan || 0).toLocaleString()}đ</td>
+            <td>${p.soLuongTon || 0}</td>
             <td>
-                <img src="${p.image ? 'http://localhost:3000/' + p.image : 'https://via.placeholder.com/50'}" 
-                    alt="laptop" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
-            </td>
-            <td><strong>${p.name}</strong></td>
-            <td>${p.cpu} / ${p.ram}GB</td>
-            <td>${Number(p.price).toLocaleString()}đ</td>
-            <td>${p.stock}</td>
-            <td>
-                <button type="button" class="btn-edit" onclick='openEditModal(${JSON.stringify(p).replace(/'/g, "&#39;")}); return false;'>
+                <button type="button" class="btn-edit" onclick="openEditModal('${p.maModel}')">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button type="button" class="btn-delete" onclick="deleteProduct(event, ${p.id}); return false;">
+                <button type="button" class="btn-delete" onclick="deleteProduct(event, '${p.maModel}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -165,32 +168,90 @@ async function deleteProduct(event, id) {
     }
 }
 
-window.openEditModal = (product) => {
+// Hàm load dropdown Hãng + Loại khi mở modal
+async function loadDropdowns() {
+    try {
+        const [brandsRes, catsRes] = await Promise.all([
+            fetch('http://localhost:3000/api/products/brands'),
+            fetch('http://localhost:3000/api/products/categories')
+        ]);
+        const brandsData = await brandsRes.json();
+        const catsData = await catsRes.json();
+
+        const hangSelect = document.getElementById("maHang");
+        const loaiSelect = document.getElementById("maLoai");
+
+        if (hangSelect && brandsData.success) {
+            hangSelect.innerHTML = '<option value="">-- Chọn hãng --</option>';
+            brandsData.data.forEach(b => {
+                hangSelect.innerHTML += `<option value="${b.maHang}">${b.tenHang}</option>`;
+            });
+        }
+        if (loaiSelect && catsData.success) {
+            loaiSelect.innerHTML = '<option value="">-- Chọn loại --</option>';
+            catsData.data.forEach(c => {
+                loaiSelect.innerHTML += `<option value="${c.maLoai}">${c.tenLoai}</option>`;
+            });
+        }
+    } catch (err) {
+        console.error("Lỗi tải dropdown:", err);
+    }
+}
+
+window.openEditModal = async (maModel) => {
     isEditMode = true;
+    await loadDropdowns();
     document.querySelector(".modal-header h2").innerText = "Chỉnh sửa sản phẩm";
-    document.getElementById("productId").value = product.id;
-    document.getElementById("name").value = product.name;
-    document.getElementById("cpu").value = product.cpu;
-    document.getElementById("ram").value = product.ram;
-    document.getElementById("price").value = product.price;
-    document.getElementById("stock").value = product.stock;
+
+    try {
+        const res = await fetch(`http://localhost:3000/api/products/${maModel}`);
+        const result = await res.json();
+        if (!result.success) return Swal.fire('Lỗi', result.message, 'error');
+
+        const p = result.data;
+        const ch = p.CauHinh || {};
+
+        document.getElementById("productId").value = p.maModel;
+        document.getElementById("maModel").value = p.maModel;
+        document.getElementById("maModel").disabled = true; // PK ko cho sửa
+        document.getElementById("tenModel").value = p.tenModel || '';
+        document.getElementById("maHang").value = p.maHang || '';
+        document.getElementById("maLoai").value = p.maLoai || '';
+        document.getElementById("cpu").value = ch.cpu || '';
+        document.getElementById("ram").value = ch.ram || '';
+        document.getElementById("oCung").value = ch.oCung || '';
+        document.getElementById("vga").value = ch.vga || '';
+        document.getElementById("manHinh").value = ch.manHinh || '';
+        document.getElementById("pin").value = ch.pin || '';
+        document.getElementById("giaNhap").value = p.giaNhap || 0;
+        document.getElementById("giaBan").value = p.giaBan || 0;
+        document.getElementById("soLuongTon").value = p.soLuongTon || 0;
+    } catch (err) {
+        console.error(err);
+    }
+
     productModal.style.display = "flex";
 };
 
 productForm.onsubmit = async function (e) {
     e.preventDefault();
     const id = document.getElementById("productId").value;
-    const formData = new FormData();
-    formData.append("name", document.getElementById("name").value);
-    formData.append("cpu", document.getElementById("cpu").value);
-    formData.append("ram", document.getElementById("ram").value);
-    formData.append("price", document.getElementById("price").value);
-    formData.append("stock", document.getElementById("stock").value);
 
-    const imageFile = document.getElementById("productImage").files[0];
-    if (imageFile) {
-        formData.append("image", imageFile);
-    }
+    const payload = {
+        maModel: document.getElementById("maModel").value,
+        tenModel: document.getElementById("tenModel").value,
+        maHang: document.getElementById("maHang").value || null,
+        maLoai: document.getElementById("maLoai").value || null,
+        cpu: document.getElementById("cpu").value,
+        ram: document.getElementById("ram").value,
+        oCung: document.getElementById("oCung").value,
+        vga: document.getElementById("vga").value,
+        manHinh: document.getElementById("manHinh").value,
+        pin: document.getElementById("pin").value,
+        giaNhap: document.getElementById("giaNhap").value,
+        giaBan: document.getElementById("giaBan").value,
+        soLuongTon: document.getElementById("soLuongTon").value
+    };
 
     const url = isEditMode ? `http://localhost:3000/api/products/${id}` : 'http://localhost:3000/api/products';
     const method = isEditMode ? 'PUT' : 'POST';
@@ -198,11 +259,13 @@ productForm.onsubmit = async function (e) {
     try {
         const response = await fetch(url, {
             method: method,
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
 
         if (response.ok) {
             productModal.style.display = "none";
+            document.getElementById("maModel").disabled = false;
             Swal.fire({
                 icon: 'success',
                 title: 'Thành công!',
@@ -252,21 +315,19 @@ function renderOrdersTable(orders) {
     container.innerHTML = "";
 
     orders.forEach(order => {
-        const date = new Date(order.createdAt).toLocaleString('vi-VN');
+        const date = new Date(order.ngayLap || order.createdAt).toLocaleString('vi-VN');
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>#${order.id}</td>
-            <td>${order.user ? order.user.fullName : 'N/A'}</td>
-            <td>${order.user ? order.user.phone : 'N/A'}</td>
+            <td>#${order.maHd}</td>
+            <td>${order.KhachHang ? order.KhachHang.hoTen : 'N/A'}</td>
+            <td>${order.KhachHang ? order.KhachHang.sdt : 'N/A'}</td>
             <td>${date}</td>
-            <td><strong style="color: #2563eb;">${Number(order.totalAmount).toLocaleString()}đ</strong></td>
+            <td><strong style="color: #2563eb;">${Number(order.tongTien || 0).toLocaleString()}đ</strong></td>
             <td>
-                <span class="status-badge ${order.status}">
-                    ${order.status === 'pending' ? 'Chờ xử lý' : (order.status === 'cancelled' ? 'Đã hủy' : 'Đã hoàn thành')}
-                </span>
+                <span class="status-badge pending">Chờ xử lý</span>
             </td>
             <td>
-                <button class="btn-edit" onclick="viewOrderDetails(${order.id})">
+                <button class="btn-edit" onclick="viewOrderDetails('${order.maHd}')">
                     <i class="fas fa-eye"></i>
                 </button>
             </td>
@@ -351,39 +412,7 @@ function renderCharts(data) {
         }
     });
 
-    // 2. Biểu đồ trạng thái
-    if (statusChartInstance) statusChartInstance.destroy();
-
-    const statusLabels = data.statusStats.map(s => {
-        if (s.status === 'pending') return 'Chờ xử lý';
-        if (s.status === 'completed') return 'Hoàn thành';
-        if (s.status === 'cancelled') return 'Đã hủy';
-        return s.status;
-    });
-    const statusValues = data.statusStats.map(s => s.count);
-
-    // Map colors based on status
-    const statusColors = data.statusStats.map(s => {
-        if (s.status === 'pending') return '#f59e0b'; // Cam - Chờ xử lý
-        if (s.status === 'completed') return '#10b981'; // Xanh lá - Hoàn thành
-        if (s.status === 'cancelled') return '#ef4444'; // Đỏ - Đã hủy
-        return '#9ca3af'; // Mặc định
-    });
-
-    statusChartInstance = new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-            labels: statusLabels,
-            datasets: [{
-                data: statusValues,
-                backgroundColor: statusColors,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true
-        }
-    });
+    // 2. Biểu đồ trạng thái (Disabled because no status currently)
 }
 
 function renderTopProducts(products) {
@@ -443,22 +472,21 @@ async function viewOrderDetails(orderId) {
         if (result.success) {
             const order = result.data;
             currentViewingOrder = order;
-            document.getElementById("updateStatusSelect").value = order.status;
             // 1. Hiển thị ID đơn hàng
-            document.getElementById("displayOrderId").innerText = `#${order.id}`;
+            document.getElementById("displayOrderId").innerText = `#${order.maHd}`;
 
             // 2. Hiển thị thông tin khách hàng
-            const date = new Date(order.createdAt).toLocaleString('vi-VN');
+            const date = new Date(order.ngayLap || order.createdAt).toLocaleString('vi-VN');
             document.getElementById("orderInfo").innerHTML = `
                 <div>
-                    <p><strong>Khách hàng:</strong> ${order.user.fullName}</p>
-                    <p><strong>Số điện thoại:</strong> ${order.user.phone}</p>
-                    <p><strong>Địa chỉ:</strong> ${order.user.address}</p>
+                    <p><strong>Khách hàng:</strong> ${order.KhachHang ? order.KhachHang.hoTen : 'N/A'}</p>
+                    <p><strong>Số điện thoại:</strong> ${order.KhachHang ? order.KhachHang.sdt : 'N/A'}</p>
+                    <p><strong>Địa chỉ:</strong> ${order.KhachHang ? order.KhachHang.diaChi : 'N/A'}</p>
                 </div>
                 <div>
                     <p><strong>Ngày đặt:</strong> ${date}</p>
-                    <p><strong>Trạng thái:</strong> ${order.status === 'pending' ? 'Chờ xử lý' : (order.status === 'cancelled' ? 'Đã hủy' : 'Đã hoàn thành')}</p>
-                    <p><strong>Email:</strong> ${order.user.email || 'N/A'}</p>
+                    <p><strong>Trạng thái:</strong> Cập nhật</p>
+                    <p><strong>Email:</strong> ${order.KhachHang ? order.KhachHang.email : 'N/A'}</p>
                 </div>
             `;
 
@@ -466,13 +494,13 @@ async function viewOrderDetails(orderId) {
             const itemsContainer = document.getElementById("orderItemsTableBody");
             itemsContainer.innerHTML = "";
 
-            // Sequelize trả về mảng products kèm theo thông tin từ bảng trung gian (order_item)
-            order.products.forEach(p => {
-                const qty = p.order_item.quantity;
-                const priceAtPurchase = Number(p.order_item.price);
+            // Sequelize trả về mảng products kèm theo thông tin từ bảng trung gian
+            order.DongMays.forEach(p => {
+                const qty = p.CtHoaDon ? p.CtHoaDon.soLuong : 0;
+                const priceAtPurchase = p.CtHoaDon ? Number(p.CtHoaDon.donGia) : 0;
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td>${p.name}</td>
+                    <td>${p.tenModel}</td>
                     <td>${priceAtPurchase.toLocaleString()}đ</td>
                     <td>${qty}</td>
                     <td>${(priceAtPurchase * qty).toLocaleString()}đ</td>
@@ -481,7 +509,7 @@ async function viewOrderDetails(orderId) {
             });
 
             // 4. Hiển thị tổng tiền
-            document.getElementById("orderTotalDetail").innerText = Number(order.totalAmount).toLocaleString() + "đ";
+            document.getElementById("orderTotalDetail").innerText = Number(order.tongTien || 0).toLocaleString() + "đ";
 
             // Hiện modal
             orderDetailModal.style.display = "flex";
@@ -493,42 +521,7 @@ async function viewOrderDetails(orderId) {
 }
 
 async function confirmUpdateStatus() {
-    const newStatus = document.getElementById("updateStatusSelect").value;
-
-    const confirmText = newStatus === 'cancelled'
-        ? "Đơn hàng này sẽ bị hủy và sản phẩm sẽ được cộng lại vào kho!"
-        : "Xác nhận thay đổi trạng thái đơn hàng?";
-
-    const result = await Swal.fire({
-        title: 'Xác nhận?',
-        text: confirmText,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Đồng ý',
-        cancelButtonText: 'Hủy'
-    });
-
-    if (result.isConfirmed) {
-        try {
-            const response = await fetch(`http://localhost:3000/api/orders/${currentViewingOrder.id}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                Swal.fire("Thành công", data.message, "success");
-                orderDetailModal.style.display = "none";
-                loadOrders(); // Load lại danh sách đơn hàng ở trang Admin
-                loadProducts(); // Load lại danh sách sản phẩm
-            } else {
-                Swal.fire("Lỗi", data.message, "error");
-            }
-        } catch (error) {
-            Swal.fire("Lỗi", "Không thể kết nối đến server", "error");
-        }
-    }
+    Swal.fire("Lỗi", "Hiện chưa có Status cho bảng Hoá Đơn", "error");
 }
 
 
@@ -539,28 +532,31 @@ function printInvoice() {
     const order = currentViewingOrder;
     const printWindow = window.open('', '', 'height=600,width=800');
 
-    const date = new Date(order.createdAt).toLocaleString('vi-VN');
+    const date = new Date(order.ngayLap || order.createdAt).toLocaleString('vi-VN');
 
     let itemsHtml = '';
-    order.products.forEach(p => {
-        const qty = p.order_item.quantity;
-        const price = Number(p.order_item.price);
-        const total = qty * price;
-        itemsHtml += `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 8px;">${p.name}</td>
-                <td style="padding: 8px; text-align: center;">${qty}</td>
-                <td style="padding: 8px; text-align: right;">${price.toLocaleString()}đ</td>
-                <td style="padding: 8px; text-align: right;">${total.toLocaleString()}đ</td>
-            </tr>
-        `;
-    });
+
+    if (order.DongMays) {
+        order.DongMays.forEach(p => {
+            const qty = p.CtHoaDon ? p.CtHoaDon.soLuong : 0;
+            const price = p.CtHoaDon ? Number(p.CtHoaDon.donGia) : 0;
+            const total = qty * price;
+            itemsHtml += `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 8px;">${p.tenModel}</td>
+                    <td style="padding: 8px; text-align: center;">${qty}</td>
+                    <td style="padding: 8px; text-align: right;">${price.toLocaleString()}đ</td>
+                    <td style="padding: 8px; text-align: right;">${total.toLocaleString()}đ</td>
+                </tr>
+            `;
+        });
+    }
 
     const html = `
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Hóa Đơn #${order.id}</title>
+            <title>Hóa Đơn #${order.maHd}</title>
             <style>
                 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #333; }
                 .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
@@ -592,15 +588,15 @@ function printInvoice() {
             <div class="info-section">
                 <div class="info-box">
                     <h4>Khách hàng</h4>
-                    <strong>${order.user.fullName}</strong><br>
-                    SĐT: ${order.user.phone}<br>
-                    Địa chỉ: ${order.user.address || 'Tại cửa hàng'}
+                    <strong>${order.KhachHang ? order.KhachHang.hoTen : ''}</strong><br>
+                    SĐT: ${order.KhachHang ? order.KhachHang.sdt : ''}<br>
+                    Địa chỉ: ${order.KhachHang ? (order.KhachHang.diaChi || 'Tại cửa hàng') : ''}
                 </div>
                 <div class="info-box" style="text-align: right;">
                     <h4>Đơn hàng</h4>
-                    Đơn số: #${order.id}<br>
+                    Đơn số: #${order.maHd}<br>
                     Ngày đặt: ${date}<br>
-                    Trạng thái: ${order.status === 'pending' ? 'Chờ xử lý' : (order.status === 'cancelled' ? 'Đã hủy' : 'Đã hoàn thành')}
+                    Trạng thái: Cập nhật
                 </div>
             </div>
 
@@ -619,7 +615,7 @@ function printInvoice() {
             </table>
 
             <div class="total-section">
-                Tổng cộng: ${Number(order.totalAmount).toLocaleString()}đ
+                Tổng cộng: ${Number(order.tongTien || 0).toLocaleString()}đ
             </div>
 
             <div class="footer">
@@ -665,28 +661,17 @@ function renderCustomersTable(users) {
     container.innerHTML = "";
 
     users.forEach(user => {
-        // Bỏ qua admin trong danh sách khách hàng nếu muốn (tùy chọn)
-        if (user.role === 'admin') return;
-
-        const date = new Date(user.createdAt).toLocaleDateString('vi-VN');
-        const statusHtml = user.isLocked
-            ? '<span style="color: red; font-weight: bold;">Đã khóa</span>'
-            : '<span style="color: green; font-weight: bold;">Hoạt động</span>';
-
-        const btnHtml = user.isLocked
-            ? `<button class="btn-secondary" onclick="toggleUserLock(${user.id})" style="background-color: #10b981; color: white;">Mở khóa</button>`
-            : `<button class="btn-delete" onclick="toggleUserLock(${user.id})">Khóa</button>`;
-
+        const date = new Date(user.createdAt || new Date()).toLocaleDateString('vi-VN');
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>#${user.id}</td>
-            <td><strong>${user.fullName}</strong></td>
-            <td>${user.phone}</td>
+            <td>#${user.maKh}</td>
+            <td><strong>${user.hoTen}</strong></td>
+            <td>${user.sdt}</td>
             <td>${user.email || 'N/A'}</td>
-            <td>${user.address || 'N/A'}</td>
+            <td>${user.diaChi || 'N/A'}</td>
             <td>${date}</td>
-            <td>${statusHtml}</td>
-            <td>${btnHtml}</td>
+            <td>-</td>
+            <td>-</td>
         `;
         container.appendChild(tr);
     });
@@ -761,16 +746,16 @@ function renderImportHistoryTable(receipts) {
     container.innerHTML = "";
 
     receipts.forEach(receipt => {
-        const date = new Date(receipt.createdAt).toLocaleString('vi-VN');
+        const date = new Date(receipt.ngayNhap || receipt.createdAt).toLocaleString('vi-VN');
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>#${receipt.id}</td>
+            <td>#${receipt.maPn}</td>
             <td>${date}</td>
-            <td>${receipt.totalBox || 0}</td>
-            <td><strong style="color: #2563eb;">${Number(receipt.totalAmount || 0).toLocaleString()}đ</strong></td>
-            <td>${receipt.note || ''}</td>
+            <td>-</td>
+            <td><strong style="color: #2563eb;">${Number(receipt.tongTien || 0).toLocaleString()}đ</strong></td>
+            <td>${receipt.ghiChu || ''}</td>
             <td>
-                <button class="btn-edit" onclick="viewImportDetails(${receipt.id})">
+                <button class="btn-edit" onclick="viewImportDetails('${receipt.maPn}')">
                     <i class="fas fa-eye"></i>
                 </button>
             </td>
@@ -799,18 +784,18 @@ async function openImportModal() {
             select.innerHTML = '';
             result.data.forEach(p => {
                 const option = document.createElement("option");
-                option.value = p.id;
-                option.text = `${p.name} (Kho: ${p.stock})`;
+                option.value = p.maModel;
+                option.text = `${p.tenModel} (Kho: ${p.soLuongTon || 0})`;
                 // Lưu giá hiện tại vào data attribute để tham khảo nếu cần
-                option.dataset.price = p.price;
-                option.dataset.name = p.name;
+                option.dataset.price = p.giaBan || 0;
+                option.dataset.name = p.tenModel;
                 select.appendChild(option);
             });
 
             // Tự động set giá nhập gợi ý (ví dụ = 70% giá bán)
             if (result.data.length > 0) {
-                select.value = result.data[0].id;
-                document.getElementById("importPrice").value = result.data[0].price * 0.7;
+                select.value = result.data[0].maModel;
+                document.getElementById("importPrice").value = (result.data[0].giaBan || 0) * 0.7;
             }
 
             select.onchange = function () {
@@ -843,17 +828,17 @@ async function viewImportDetails(receiptId) {
 
         if (result.success) {
             const receipt = result.data;
-            const date = new Date(receipt.createdAt).toLocaleString('vi-VN');
+            const date = new Date(receipt.ngayNhap || receipt.createdAt).toLocaleString('vi-VN');
 
             // 1. Hiển thị ID và thông tin chung
-            document.getElementById("displayImportId").innerText = `#${receipt.id}`;
+            document.getElementById("displayImportId").innerText = `#${receipt.maPn}`;
             document.getElementById("importInfo").innerHTML = `
                 <div>
                     <p><strong>Ngày nhập:</strong> ${date}</p>
-                    <p><strong>Tổng số thùng/món:</strong> ${receipt.totalBox}</p>
+                    <p><strong>Tổng số thùng/món:</strong> -</p>
                 </div>
                 <div>
-                     <p><strong>Ghi chú:</strong> ${receipt.note || 'Không có'}</p>
+                     <p><strong>Ghi chú:</strong> ${receipt.ghiChu || 'Không có'}</p>
                 </div>
             `;
 
@@ -861,21 +846,23 @@ async function viewImportDetails(receiptId) {
             const itemsContainer = document.getElementById("viewImportItemsTableBody");
             itemsContainer.innerHTML = "";
 
-            receipt.products.forEach(p => {
-                const qty = p.ImportReceiptItem ? p.ImportReceiptItem.quantity : 0;
-                const price = p.ImportReceiptItem ? Number(p.ImportReceiptItem.price) : 0;
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${p.name}</td>
-                    <td>${Number(price).toLocaleString()}đ</td>
-                    <td>${qty}</td>
-                    <td>${(price * qty).toLocaleString()}đ</td>
-                `;
-                itemsContainer.appendChild(tr);
-            });
+            if (receipt.DongMays) {
+                receipt.DongMays.forEach(p => {
+                    const qty = p.CtNhapMay ? p.CtNhapMay.soLuong : 0;
+                    const price = p.CtNhapMay ? Number(p.CtNhapMay.donGia) : 0;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${p.tenModel}</td>
+                        <td>${Number(price).toLocaleString()}đ</td>
+                        <td>${qty}</td>
+                        <td>${(price * qty).toLocaleString()}đ</td>
+                    `;
+                    itemsContainer.appendChild(tr);
+                });
+            }
 
             // 3. Hiển thị tổng tiền
-            document.getElementById("viewImportTotalDetail").innerText = Number(receipt.totalAmount).toLocaleString() + "đ";
+            document.getElementById("viewImportTotalDetail").innerText = Number(receipt.tongTien || 0).toLocaleString() + "đ";
 
             // Hiện modal
             viewImportDetailModal.style.display = "flex";
@@ -997,8 +984,8 @@ function renderStockStats(products) {
     let totalValue = 0;
 
     products.forEach(p => {
-        if (p.stock < 5) lowStockCount++;
-        totalValue += p.price * p.stock;
+        if ((p.soLuongTon || 0) < 5) lowStockCount++;
+        totalValue += (p.giaBan || 0) * (p.soLuongTon || 0);
     });
 
     document.getElementById("stockTotalProducts").innerText = totalProducts;
@@ -1013,9 +1000,12 @@ function renderStockTable(products) {
 
     products.forEach(p => {
         let statusHtml = '';
-        if (p.stock === 0) {
+        const soLuong = p.soLuongTon || 0;
+        const giaBan = p.giaBan || 0;
+
+        if (soLuong === 0) {
             statusHtml = '<span style="color:red; font-weight:bold;">Hết hàng</span>';
-        } else if (p.stock < 5) {
+        } else if (soLuong < 5) {
             statusHtml = '<span style="color:orange; font-weight:bold;">Sắp hết</span>';
         } else {
             statusHtml = '<span style="color:green; font-weight:bold;">Còn hàng</span>';
@@ -1025,13 +1015,13 @@ function renderStockTable(products) {
         tr.innerHTML = `
             <td>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <img src="http://localhost:3000/${p.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/40'">
-                    <strong>${p.name}</strong>
+                    <img src="http://localhost:3000/${p.hinhAnh}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/40'">
+                    <strong>${p.tenModel}</strong>
                 </div>
             </td>
-            <td>${Number(p.price).toLocaleString()}đ</td>
-            <td style="font-weight:bold; font-size:1.1rem;">${p.stock}</td>
-            <td>${(p.price * p.stock).toLocaleString()}đ</td>
+            <td>${Number(giaBan).toLocaleString()}đ</td>
+            <td style="font-weight:bold; font-size:1.1rem;">${soLuong}</td>
+            <td>${(giaBan * soLuong).toLocaleString()}đ</td>
             <td>${statusHtml}</td>
         `;
         container.appendChild(tr);

@@ -1,6 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-const { sequelize, DongMay } = require('../models/index');
+const { sequelize, DongMay, CauHinh, HangSanXuat, LoaiMay } = require('../models/index');
 const { Op } = require('sequelize');
 
 const getAllProducts = async (req, res) => {
@@ -22,13 +20,23 @@ const getAllProducts = async (req, res) => {
             if (maxPrice && !isNaN(maxPrice)) whereClause.giaBan[Op.lte] = parseFloat(maxPrice);
         }
 
+        if (brand) {
+            whereClause.maHang = brand;
+        }
+
         const result = await DongMay.findAndCountAll({
             where: whereClause,
             limit: limit,
             offset: offset,
+            include: [
+                { model: CauHinh, attributes: ['maCh', 'cpu', 'ram', 'oCung', 'vga', 'manHinh', 'pin', 'trongLuong'] },
+                { model: HangSanXuat, attributes: ['maHang', 'tenHang'] },
+                { model: LoaiMay, attributes: ['maLoai', 'tenLoai'] }
+            ],
+            order: [['maModel', 'ASC']]
         });
 
-        // Basic stats using giaBan and soLuongTon
+        // Basic stats
         const stats = await DongMay.findAll({
             where: whereClause,
             attributes: [
@@ -57,7 +65,13 @@ const getAllProducts = async (req, res) => {
 
 const getProductById = async (req, res) => {
     try {
-        const product = await DongMay.findByPk(req.params.id);
+        const product = await DongMay.findByPk(req.params.id, {
+            include: [
+                { model: CauHinh },
+                { model: HangSanXuat },
+                { model: LoaiMay }
+            ]
+        });
         if (!product) {
             return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
         }
@@ -68,37 +82,121 @@ const getProductById = async (req, res) => {
 };
 
 const createProduct = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
-        const { maModel, tenModel, giaNhap, giaBan, soLuongTon } = req.body;
+        const { maModel, tenModel, giaNhap, giaBan, soLuongTon, maHang, maLoai,
+            cpu, ram, oCung, vga, manHinh, pin, trongLuong } = req.body;
 
+        // 1. Create CauHinh if any config field is provided
+        let maCh = null;
+        if (cpu || ram || oCung || vga || manHinh || pin) {
+            maCh = 'CH_' + Date.now();
+            await CauHinh.create({
+                maCh,
+                cpu: cpu || null,
+                ram: ram || null,
+                oCung: oCung || null,
+                vga: vga || null,
+                manHinh: manHinh || null,
+                pin: pin || null,
+                trongLuong: trongLuong ? parseFloat(trongLuong) : null
+            }, { transaction: t });
+        }
+
+        // 2. Create DongMay
         const newProduct = await DongMay.create({
             maModel,
             tenModel,
             giaNhap: giaNhap ? Number(giaNhap) : null,
             giaBan: giaBan ? Number(giaBan) : null,
-            soLuongTon: soLuongTon ? Number(soLuongTon) : 0
+            soLuongTon: soLuongTon ? Number(soLuongTon) : 0,
+            maCh: maCh,
+            maHang: maHang || null,
+            maLoai: maLoai || null
+        }, { transaction: t });
+
+        await t.commit();
+
+        // Fetch with associations
+        const created = await DongMay.findByPk(maModel, {
+            include: [
+                { model: CauHinh },
+                { model: HangSanXuat },
+                { model: LoaiMay }
+            ]
         });
 
         res.status(201).json({
             success: true,
             message: "Đã thêm máy tính mới vào hệ thống",
-            data: newProduct
+            data: created
         });
     } catch (error) {
+        await t.rollback();
         res.status(400).json({ success: false, message: error.message });
     }
 };
 
 const updateProduct = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
-        const product = await DongMay.findByPk(req.params.id);
-        if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy" });
+        const product = await DongMay.findByPk(req.params.id, { include: [{ model: CauHinh }] });
+        if (!product) {
+            await t.rollback();
+            return res.status(404).json({ success: false, message: "Không tìm thấy" });
+        }
 
-        const dataToUpdate = { ...req.body };
-        await product.update(dataToUpdate);
+        const { tenModel, giaNhap, giaBan, soLuongTon, maHang, maLoai,
+            cpu, ram, oCung, vga, manHinh, pin, trongLuong } = req.body;
 
-        res.status(200).json({ success: true, data: product });
+        // Update CauHinh
+        if (cpu || ram || oCung || vga || manHinh || pin) {
+            if (product.maCh && product.CauHinh) {
+                // Update existing
+                await product.CauHinh.update({
+                    cpu: cpu || product.CauHinh.cpu,
+                    ram: ram || product.CauHinh.ram,
+                    oCung: oCung || product.CauHinh.oCung,
+                    vga: vga || product.CauHinh.vga,
+                    manHinh: manHinh || product.CauHinh.manHinh,
+                    pin: pin || product.CauHinh.pin,
+                    trongLuong: trongLuong ? parseFloat(trongLuong) : product.CauHinh.trongLuong
+                }, { transaction: t });
+            } else {
+                // Create new config
+                const maCh = 'CH_' + Date.now();
+                await CauHinh.create({
+                    maCh, cpu, ram, oCung, vga, manHinh, pin,
+                    trongLuong: trongLuong ? parseFloat(trongLuong) : null
+                }, { transaction: t });
+                await product.update({ maCh }, { transaction: t });
+            }
+        }
+
+        // Update DongMay fields
+        const updateData = {};
+        if (tenModel !== undefined) updateData.tenModel = tenModel;
+        if (giaNhap !== undefined) updateData.giaNhap = Number(giaNhap);
+        if (giaBan !== undefined) updateData.giaBan = Number(giaBan);
+        if (soLuongTon !== undefined) updateData.soLuongTon = Number(soLuongTon);
+        if (maHang !== undefined) updateData.maHang = maHang || null;
+        if (maLoai !== undefined) updateData.maLoai = maLoai || null;
+
+        await product.update(updateData, { transaction: t });
+
+        await t.commit();
+
+        const updated = await DongMay.findByPk(req.params.id, {
+            include: [
+                { model: CauHinh },
+                { model: HangSanXuat },
+                { model: LoaiMay }
+            ]
+        });
+
+        res.status(200).json({ success: true, data: updated });
     } catch (error) {
+        await t.rollback();
         res.status(400).json({ success: false, message: error.message });
     }
 };
@@ -115,10 +213,32 @@ const deleteProduct = async (req, res) => {
     }
 };
 
+// API lấy danh sách Hãng sản xuất
+const getBrands = async (req, res) => {
+    try {
+        const brands = await HangSanXuat.findAll({ order: [['tenHang', 'ASC']] });
+        res.status(200).json({ success: true, data: brands });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// API lấy danh sách Loại máy
+const getCategories = async (req, res) => {
+    try {
+        const categories = await LoaiMay.findAll({ order: [['tenLoai', 'ASC']] });
+        res.status(200).json({ success: true, data: categories });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllProducts,
     getProductById,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getBrands,
+    getCategories
 };

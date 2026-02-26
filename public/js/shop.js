@@ -166,20 +166,27 @@ function renderProducts(products) {
     products.forEach(p => {
         const card = document.createElement("div");
         card.className = "product-card";
-        const imageUrl = p.image ? `http://localhost:3000/${p.image}` : 'https://via.placeholder.com/250x200?text=No+Image';
+        const cauHinh = p.CauHinh || {};
+        const hang = p.HangSanXuat ? p.HangSanXuat.tenHang : '';
+        const configParts = [cauHinh.cpu, cauHinh.ram, cauHinh.oCung].filter(Boolean);
+        const configText = configParts.length > 0 ? configParts.join(' | ') : 'Chưa cập nhật cấu hình';
+        const stock = p.soLuongTon || 0;
 
         card.innerHTML = `
-            <img src="${imageUrl}" class="product-img" alt="${p.name}">
+            <div class="product-img" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; height:200px;">
+                <i class="fas fa-laptop"></i>
+            </div>
             <div class="product-info">
-                <div class="product-name">${p.name}</div>
-                <div class="product-config">CPU: ${p.cpu} | RAM: ${p.ram}GB</div>
-                <div class="product-price">${Number(p.price).toLocaleString()}đ</div>
-                <p style="font-size: 0.8rem; color: ${p.stock > 0 ? 'green' : 'red'}">
-                    ${p.stock > 0 ? `Còn lại: ${p.stock}` : 'Hết hàng'}
+                ${hang ? `<div style="font-size:0.75rem; color:#6366f1; font-weight:600; margin-bottom:4px;">${hang}</div>` : ''}
+                <div class="product-name">${p.tenModel}</div>
+                <div class="product-config">${configText}</div>
+                <div class="product-price">${Number(p.giaBan || 0).toLocaleString()}đ</div>
+                <p style="font-size: 0.8rem; color: ${stock > 0 ? 'green' : 'red'}">
+                    ${stock > 0 ? `Còn lại: ${stock}` : 'Hết hàng'}
                 </p>
-                <button class="btn-buy" onclick='addToCart(${JSON.stringify(p).replace(/'/g, "&#39;")})' 
-                    ${p.stock <= 0 ? 'disabled style="background:#ccc"' : ''}>
-                    ${p.stock > 0 ? 'Thêm vào giỏ hàng' : 'Tạm hết hàng'}
+                <button class="btn-buy" onclick="addToCart('${p.maModel}')" 
+                    ${stock <= 0 ? 'disabled style="background:#ccc"' : ''}>
+                    ${stock > 0 ? 'Thêm vào giỏ hàng' : 'Tạm hết hàng'}
                 </button>
             </div>
         `;
@@ -187,23 +194,61 @@ function renderProducts(products) {
     });
 }
 
+// Cache sản phẩm đang hiển thị để dùng cho addToCart
+let _currentProducts = [];
+
+// Override loadProducts để cache
+const _originalLoadProducts = loadProducts;
+loadProducts = async function (searchValue, page = 1) {
+    currentPage = page;
+    const keyword = searchValue !== undefined ? searchValue : document.getElementById("searchInput").value;
+    const priceRange = document.getElementById("priceFilter").value;
+    const brand = document.getElementById("brandFilter").value;
+
+    let minPrice = "";
+    let maxPrice = "";
+
+    if (priceRange) {
+        [minPrice, maxPrice] = priceRange.split("-");
+    }
+
+    try {
+        let url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&brand=${brand}&limit=${itemsPerPage}&page=${page}`;
+
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.success) {
+            _currentProducts = result.data;
+            renderProducts(result.data);
+            renderPagination(result.pagination);
+        }
+    } catch (error) {
+        console.error("Lỗi khi tải sản phẩm:", error);
+    }
+};
+
 // 3. Thêm sản phẩm vào giỏ hàng
-function addToCart(product) {
-    const existingItem = cart.find(item => item.id === product.id);
+function addToCart(maModel) {
+    const product = _currentProducts.find(p => p.maModel === maModel);
+    if (!product) return;
+
+    const stock = product.soLuongTon || 0;
+    const existingItem = cart.find(item => item.id === maModel);
 
     if (existingItem) {
-        if (existingItem.quantity >= product.stock) {
+        if (existingItem.quantity >= stock) {
             Swal.fire("Thông báo", "Số lượng trong kho không đủ!", "warning");
             return;
         }
         existingItem.quantity += 1;
     } else {
         cart.push({
-            id: product.id,
-            name: product.name,
-            price: product.price,
+            id: maModel,
+            name: product.tenModel,
+            price: Number(product.giaBan || 0),
             quantity: 1,
-            stock: product.stock
+            stock: stock
         });
     }
 
@@ -300,7 +345,7 @@ function checkAuth() {
         authContainer.innerHTML = `
             <span>Xin chào, <a href="/profile.html" style="color: inherit; text-decoration: underline;">${user.fullName}</a></span> | 
             <a href="#" onclick="logout()">Đăng xuất</a>
-            ${user.role === 'admin' ? ' | <a href="/admin/">Admin</a>' : ''}
+            ${user.role === 'employee' ? ' | <a href="/admin/">Quản lý</a>' : ''}
         `;
         verifySession(); // Verify if token is still valid
     } else {
@@ -336,8 +381,26 @@ window.logout = () => {
     window.location.reload();
 };
 
+// Load danh sách hãng vào dropdown từ DB
+async function loadBrandFilter() {
+    try {
+        const res = await fetch('http://localhost:3000/api/products/brands');
+        const data = await res.json();
+        if (data.success) {
+            const select = document.getElementById('brandFilter');
+            select.innerHTML = '<option value="">Thương hiệu</option>';
+            data.data.forEach(b => {
+                select.innerHTML += `<option value="${b.maHang}">${b.tenHang}</option>`;
+            });
+        }
+    } catch (e) {
+        console.error('Lỗi tải hãng:', e);
+    }
+}
+
 // Khởi tạo trang
-window.onload = () => {
+window.onload = async () => {
+    await loadBrandFilter();
     loadProducts();
     updateCartUI();
     checkAuth();

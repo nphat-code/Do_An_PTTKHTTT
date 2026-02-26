@@ -39,7 +39,7 @@ if (loginForm) {
                     timer: 1500
                 }).then(() => {
                     // Redirect dựa trên role
-                    if (result.user.role === 'admin') {
+                    if (result.user.role === 'employee') {
                         window.location.href = '/admin/';
                     } else {
                         window.location.href = '/';
@@ -59,15 +59,19 @@ if (registerForm) {
         e.preventDefault();
         const fullName = document.getElementById('fullName').value;
         const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
         const phone = document.getElementById('phone').value;
         const address = document.getElementById('address').value;
+
+        if (!phone) {
+            Swal.fire('Lỗi', 'Vui lòng nhập số điện thoại (dùng làm mật khẩu đăng nhập)', 'error');
+            return;
+        }
 
         try {
             const response = await fetch('http://localhost:3000/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fullName, email, password, phone, address })
+                body: JSON.stringify({ fullName, email, phone, address })
             });
             const result = await response.json();
 
@@ -75,10 +79,10 @@ if (registerForm) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Đăng ký thành công',
-                    text: 'Vui lòng đăng nhập',
+                    text: 'Mật khẩu đăng nhập là số điện thoại của bạn',
                 }).then(() => {
                     sessionStorage.setItem('autoFillEmail', email);
-                    sessionStorage.setItem('autoFillPassword', password);
+                    sessionStorage.setItem('autoFillPassword', phone); // SĐT dùng làm mật khẩu
                     window.location.href = 'login.html';
                 });
             } else {

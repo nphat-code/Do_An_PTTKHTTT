@@ -85,12 +85,12 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Hình ảnh</th>
+                                <th>Mã Model</th>
+                                <th>Hãng</th>
                                 <th>Tên sản phẩm</th>
                                 <th>Cấu hình</th>
                                 <th>Giá bán</th>
-                                <th>Số lượng</th>
+                                <th>Tồn kho</th>
                                 <th>Thao tác</th>
                             </tr>
                         </thead>
@@ -290,7 +290,7 @@
     </div>
 
     <div id="productModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 750px;">
             <div class="modal-header">
                 <h2>Thêm Laptop Mới</h2>
                 <span class="close-btn">&times;</span>
@@ -298,36 +298,83 @@
             <form id="productForm">
                 <input type="hidden" id="productId">
 
-                <div class="form-group">
-                    <label><i class="fas fa-tag"></i> Tên sản phẩm:</label>
-                    <input type="text" id="name" placeholder="Ví dụ: Asus ROG Strix" required>
-                </div>
-
                 <div class="form-row">
                     <div class="form-group">
-                        <label><i class="fas fa-microchip"></i> CPU:</label>
-                        <input type="text" id="cpu" placeholder="i7 13700H" required>
+                        <label><i class="fas fa-barcode"></i> Mã Model:</label>
+                        <input type="text" id="maModel" placeholder="VD: ASUS_ROG_001" required>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-memory"></i> RAM (GB):</label>
-                        <input type="number" id="ram" placeholder="16" required>
+                        <label><i class="fas fa-tag"></i> Tên Model:</label>
+                        <input type="text" id="tenModel" placeholder="VD: Asus ROG Strix G16" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label><i class="fas fa-money-bill-wave"></i> Giá bán (VNĐ):</label>
-                        <input type="number" id="price" placeholder="0" required>
+                        <label><i class="fas fa-industry"></i> Hãng sản xuất:</label>
+                        <select id="maHang">
+                            <option value="">-- Chọn hãng --</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-boxes"></i> Số lượng kho:</label>
-                        <input type="number" id="stock" placeholder="0" required>
+                        <label><i class="fas fa-laptop"></i> Loại máy:</label>
+                        <select id="maLoai">
+                            <option value="">-- Chọn loại --</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label><i class="fas fa-image"></i> Hình ảnh sản phẩm:</label>
-                    <input type="file" id="productImage" accept="image/*">
+                <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
+                <h4 style="margin-bottom: 10px; color: #4f46e5;"><i class="fas fa-cogs"></i> Cấu hình</h4>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>CPU:</label>
+                        <input type="text" id="cpu" placeholder="VD: Intel Core i7-13700H">
+                    </div>
+                    <div class="form-group">
+                        <label>RAM:</label>
+                        <input type="text" id="ram" placeholder="VD: 16GB DDR5">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ổ cứng:</label>
+                        <input type="text" id="oCung" placeholder="VD: 512GB SSD NVMe">
+                    </div>
+                    <div class="form-group">
+                        <label>VGA:</label>
+                        <input type="text" id="vga" placeholder="VD: RTX 4060 8GB">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Màn hình:</label>
+                        <input type="text" id="manHinh" placeholder="VD: 16 inch 2K 165Hz">
+                    </div>
+                    <div class="form-group">
+                        <label>Pin:</label>
+                        <input type="text" id="pin" placeholder="VD: 90Wh">
+                    </div>
+                </div>
+
+                <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
+                <h4 style="margin-bottom: 10px; color: #10b981;"><i class="fas fa-money-bill-wave"></i> Giá &amp; Tồn
+                    kho</h4>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Giá nhập (VNĐ):</label>
+                        <input type="number" id="giaNhap" placeholder="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Giá bán (VNĐ):</label>
+                        <input type="number" id="giaBan" placeholder="0" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Số lượng tồn:</label>
+                        <input type="number" id="soLuongTon" placeholder="0" min="0">
+                    </div>
                 </div>
 
                 <div class="modal-footer">

@@ -1,23 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/product.controller');
-const multer = require('multer');
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public/uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
-
-const upload = multer({ storage: storage });
+// GET /api/products - Lấy danh sách sản phẩm (DongMay + CauHinh + HangSanXuat + LoaiMay)
 router.get('/', productController.getAllProducts);
+
+// GET /api/products/brands - Lấy danh sách hãng sản xuất
+router.get('/brands', productController.getBrands);
+
+// GET /api/products/categories - Lấy danh sách loại máy
+router.get('/categories', productController.getCategories);
+
+// GET /api/products/:id - Lấy chi tiết sản phẩm
 router.get('/:id', productController.getProductById);
-router.post('/', upload.single('image'), productController.createProduct);
-router.put('/:id', upload.single('image'), productController.updateProduct);
+
+// POST /api/products - Thêm sản phẩm mới
+router.post('/', productController.createProduct);
+
+// PUT /api/products/:id - Cập nhật sản phẩm
+router.put('/:id', productController.updateProduct);
+
+// DELETE /api/products/:id - Xóa sản phẩm
 router.delete('/:id', productController.deleteProduct);
 
 module.exports = router;

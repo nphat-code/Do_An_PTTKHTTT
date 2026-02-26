@@ -6,7 +6,11 @@ const { Op } = require('sequelize');
 
 const register = async (req, res) => {
     try {
-        const { maKh, hoTen, ngaySinh, gioiTinh, sdt, email, diaChi } = req.body;
+        const { fullName, email, phone, address } = req.body;
+
+        if (!fullName || !email) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ họ tên và email" });
+        }
 
         // Check if user exists
         const existingUser = await KhachHang.findOne({ where: { email } });
@@ -14,15 +18,16 @@ const register = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email đã tồn tại" });
         }
 
+        // Auto generate maKh
+        const maKh = 'KH_' + Date.now();
+
         // Create user
         const newUser = await KhachHang.create({
             maKh,
-            hoTen,
-            ngaySinh,
-            gioiTinh,
-            sdt,
+            hoTen: fullName,
+            sdt: phone || null,
             email,
-            diaChi
+            diaChi: address || null
         });
 
         res.status(201).json({ success: true, message: "Đăng ký thành công!" });
@@ -72,10 +77,30 @@ const login = async (req, res) => {
         // If not employee, check if it's a customer
         const customer = await KhachHang.findOne({ where: { email } });
         if (customer) {
-            // KhachHang schema doesn't have a password field currently,
-            // assuming password logic applies or needs to be adapted:
-            // For now, simulating a simple check or returning an error if they don't have passwords in DB.
-            return res.status(400).json({ success: false, message: "Vui lòng đăng nhập thông qua sđt/otp hoặc Admin cần cập nhật password cho Khách Hàng." });
+            // KhachHang không có trường mật khẩu, dùng SĐT làm mật khẩu đăng nhập
+            if (password !== customer.sdt) {
+                return res.status(400).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
+            }
+
+            const token = jwt.sign(
+                { id: customer.maKh, role: 'customer' },
+                process.env.JWT_SECRET || 'secretkey123',
+                { expiresIn: '1d' }
+            );
+
+            return res.status(200).json({
+                success: true,
+                message: "Đăng nhập thành công",
+                token,
+                user: {
+                    id: customer.maKh,
+                    fullName: customer.hoTen,
+                    email: customer.email,
+                    phone: customer.sdt,
+                    address: customer.diaChi,
+                    role: 'customer'
+                }
+            });
         }
 
         return res.status(400).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
