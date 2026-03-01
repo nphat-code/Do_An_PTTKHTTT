@@ -394,12 +394,15 @@ async function changeOrderStatus(orderId, trangThai) {
             Swal.fire({ icon: 'success', title: 'Đã cập nhật trạng thái', timer: 1500, showConfirmButton: false });
             if (currentViewingOrder && currentViewingOrder.maHd === orderId) {
                 currentViewingOrder.trangThai = trangThai;
-                document.getElementById('orderDetailStatus').innerText = trangThai;
+                // Refresh modal nếu đang mở
+                viewOrderDetails(orderId);
             }
+            loadOrders(); // Reload bảng
         } else {
             Swal.fire('Lỗi', result.message || 'Không thể cập nhật', 'error');
         }
     } catch (e) {
+        console.error('changeOrderStatus error:', e);
         Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
     }
 }
@@ -416,6 +419,8 @@ showTab = function (tabName) {
         loadCustomers();
     } else if (tabName === 'inventory') {
         loadImportHistory();
+    } else if (tabName === 'suppliers') {
+        loadSuppliers();
     } else if (tabName === 'overview') {
         loadDashboardStats();
     }
@@ -540,33 +545,52 @@ async function viewOrderDetails(orderId) {
         if (result.success) {
             const order = result.data;
             currentViewingOrder = order;
-            // 1. Hiển thị ID đơn hàng
+
+            // 1. Mã đơn hàng
             document.getElementById("displayOrderId").innerText = `#${order.maHd}`;
 
-            // 2. Hiển thị thông tin khách hàng
+            // 2. Thông tin khách hàng & đơn hàng (card style)
             const date = new Date(order.ngayLap || order.createdAt).toLocaleString('vi-VN');
+            const status = order.trangThai || 'Chờ xử lý';
+            const statusColors = {
+                'Chờ xử lý': { bg: '#fef3c7', color: '#d97706' },
+                'Đã xác nhận': { bg: '#dbeafe', color: '#2563eb' },
+                'Đang giao': { bg: '#e0e7ff', color: '#4f46e5' },
+                'Đã giao': { bg: '#dcfce7', color: '#16a34a' },
+                'Đã hủy': { bg: '#fecaca', color: '#dc2626' }
+            };
+            const sc = statusColors[status] || { bg: '#f1f5f9', color: '#64748b' };
+
             document.getElementById("orderInfo").innerHTML = `
-                <div>
-                    <p><strong>Khách hàng:</strong> ${order.KhachHang ? order.KhachHang.hoTen : 'N/A'}</p>
-                    <p><strong>Số điện thoại:</strong> ${order.KhachHang ? order.KhachHang.sdt : 'N/A'}</p>
-                    <p><strong>Địa chỉ:</strong> ${order.KhachHang ? order.KhachHang.diaChi : 'N/A'}</p>
+                <div style="background: #f8fafc; border-radius: 12px; padding: 16px;">
+                    <h4 style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;"><i class="fas fa-user" style="margin-right: 6px;"></i>Khách hàng</h4>
+                    <p style="font-weight: 600; font-size: 1rem; margin-bottom: 6px;">${order.KhachHang ? order.KhachHang.hoTen : 'N/A'}</p>
+                    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 4px;"><i class="fas fa-phone" style="width:16px; color:#6366f1;"></i> ${order.KhachHang ? order.KhachHang.sdt : 'N/A'}</p>
+                    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 4px;"><i class="fas fa-envelope" style="width:16px; color:#6366f1;"></i> ${order.KhachHang ? order.KhachHang.email : 'N/A'}</p>
+                    <p style="color: #64748b; font-size: 0.9rem;"><i class="fas fa-map-marker-alt" style="width:16px; color:#6366f1;"></i> ${order.KhachHang ? (order.KhachHang.diaChi || 'Chưa cập nhật') : 'N/A'}</p>
                 </div>
-                <div>
-                    <p><strong>Ngày đặt:</strong> ${date}</p>
-                    <p><strong>Trạng thái:</strong> <span id="orderDetailStatus">${order.trangThai || 'Chờ xử lý'}</span>
-                        <select class="status-select" onchange="changeOrderStatus('${order.maHd}', this.value)" style="margin-left: 8px; padding: 4px 8px; border-radius: 6px;">
-                            ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === (order.trangThai || 'Chờ xử lý') ? 'selected' : ''}>${s}</option>`).join('')}
+                <div style="background: #f8fafc; border-radius: 12px; padding: 16px;">
+                    <h4 style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;"><i class="fas fa-info-circle" style="margin-right: 6px;"></i>Thông tin đơn</h4>
+                    <p style="margin-bottom: 8px;"><strong>Ngày đặt:</strong> ${date}</p>
+                    <p style="margin-bottom: 8px;">
+                        <strong>Trạng thái:</strong> 
+                        <span style="display:inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${sc.bg}; color: ${sc.color};">${status}</span>
+                    </p>
+                    <p style="margin-bottom: 4px;">
+                        <strong>Cập nhật:</strong>
+                        <select class="status-select" onchange="changeOrderStatus('${order.maHd}', this.value)" style="padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; cursor: pointer;">
+                            ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`).join('')}
                         </select>
                     </p>
-                    <p><strong>Email:</strong> ${order.KhachHang ? order.KhachHang.email : 'N/A'}</p>
+                    ${order.ghiChu ? `<p style="margin-top: 8px; color: #64748b; font-size: 0.85rem;"><i class="fas fa-sticky-note" style="color:#f59e0b;"></i> ${order.ghiChu}</p>` : ''}
                 </div>
             `;
 
-            // 3. Hiển thị danh sách sản phẩm (DongMays qua bảng trung gian CtHoaDon)
+            // 3. Bảng sản phẩm
             const itemsContainer = document.getElementById("orderItemsTableBody");
             const orderItems = order.DongMays || [];
             if (orderItems.length === 0) {
-                itemsContainer.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #64748b;">Chưa có sản phẩm trong đơn.</td></tr>';
+                itemsContainer.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: #94a3b8;"><i class="fas fa-box-open" style="font-size:1.5rem; display:block; margin-bottom:8px;"></i>Chưa có sản phẩm</td></tr>';
             } else {
                 itemsContainer.innerHTML = "";
                 orderItems.forEach(p => {
@@ -576,16 +600,26 @@ async function viewOrderDetails(orderId) {
                     const thanhTien = Number(ct.thanhTien || priceAtPurchase * qty);
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-                        <td>${p.tenModel || '—'}</td>
-                        <td>${priceAtPurchase.toLocaleString()}đ</td>
-                        <td>${qty}</td>
-                        <td>${thanhTien.toLocaleString()}đ</td>
+                        <td style="padding: 14px 20px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                ${p.hinhAnh
+                            ? `<img src="/${p.hinhAnh}" style="width:40px; height:40px; border-radius:8px; object-fit:cover;">`
+                            : `<div style="width:40px; height:40px; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; color:white; font-size:0.8rem;"><i class="fas fa-laptop"></i></div>`
+                        }
+                                <span style="font-weight:500;">${p.tenModel || '—'}</span>
+                            </div>
+                        </td>
+                        <td style="padding: 14px 20px; text-align: right;">${priceAtPurchase.toLocaleString()}đ</td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            <span style="background:#eef2ff; color:#4f46e5; padding:2px 10px; border-radius:6px; font-weight:600;">${qty}</span>
+                        </td>
+                        <td style="padding: 14px 20px; text-align: right; font-weight: 600; color: #1e293b;">${thanhTien.toLocaleString()}đ</td>
                     `;
                     itemsContainer.appendChild(tr);
                 });
             }
 
-            // 4. Hiển thị tổng tiền
+            // 4. Tổng tiền
             document.getElementById("orderTotalDetail").innerText = Number(order.tongTien || 0).toLocaleString() + "đ";
 
             // Hiện modal
@@ -1281,6 +1315,152 @@ async function resetEmpPassword(maNv) {
         const result = await response.json();
         if (result.success) {
             Swal.fire('Thành công', result.message, 'success');
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+// ==================== QUẢN LÝ NHÀ CUNG CẤP ====================
+
+let editingSupplier = null;
+
+async function loadSuppliers() {
+    try {
+        const search = document.getElementById('searchSupplierInput')?.value || '';
+        const response = await fetch(`/api/suppliers?search=${encodeURIComponent(search)}`);
+        const result = await response.json();
+        if (result.success) {
+            renderSuppliersTable(result.data);
+        }
+    } catch (error) {
+        console.error('Lỗi tải NCC:', error);
+    }
+}
+
+function renderSuppliersTable(suppliers) {
+    const tbody = document.getElementById('supplierTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = suppliers.map(s => `
+        <tr>
+            <td><strong>${s.maNcc}</strong></td>
+            <td>${s.tenNcc}</td>
+            <td>${s.sdt || '—'}</td>
+            <td>${s.email || '—'}</td>
+            <td>${s.diaChi || '—'}</td>
+            <td>
+                <span style="padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+                    ${s.trangThai ? 'background:#dcfce7; color:#16a34a;' : 'background:#fecaca; color:#dc2626;'}">
+                    ${s.trangThai ? 'Hoạt động' : 'Ngừng HĐ'}
+                </span>
+            </td>
+            <td>
+                <button class="btn-edit" onclick='editSupplier(${JSON.stringify(s)})'><i class="fas fa-edit"></i></button>
+                <button class="btn-delete" onclick="deleteSupplier('${s.maNcc}')"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openSupplierModal(supplier = null) {
+    editingSupplier = supplier;
+    Swal.fire({
+        title: supplier ? 'Cập nhật nhà cung cấp' : 'Thêm nhà cung cấp mới',
+        html: `
+            <div style="text-align:left;">
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mã NCC <span style="color:red;">*</span></label>
+                    <input id="swalMaNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.maNcc || ''}" ${supplier ? 'disabled' : ''} placeholder="VD: NCC001">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Tên NCC <span style="color:red;">*</span></label>
+                    <input id="swalTenNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.tenNcc || ''}" placeholder="Tên nhà cung cấp">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Số điện thoại</label>
+                    <input id="swalSdtNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.sdt || ''}" placeholder="0xxx xxx xxx">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Email</label>
+                    <input id="swalEmailNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.email || ''}" placeholder="email@example.com">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Địa chỉ</label>
+                    <input id="swalDiaChiNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.diaChi || ''}" placeholder="Địa chỉ nhà cung cấp">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: supplier ? 'Cập nhật' : 'Thêm mới',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#6366f1',
+        preConfirm: () => {
+            const maNcc = document.getElementById('swalMaNcc').value.trim();
+            const tenNcc = document.getElementById('swalTenNcc').value.trim();
+            if (!maNcc || !tenNcc) {
+                Swal.showValidationMessage('Vui lòng nhập mã và tên NCC');
+                return false;
+            }
+            return {
+                maNcc,
+                tenNcc,
+                sdt: document.getElementById('swalSdtNcc').value.trim(),
+                email: document.getElementById('swalEmailNcc').value.trim(),
+                diaChi: document.getElementById('swalDiaChiNcc').value.trim()
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await saveSupplier(result.value, !!supplier);
+        }
+    });
+}
+
+function editSupplier(supplier) {
+    openSupplierModal(supplier);
+}
+
+async function saveSupplier(data, isEdit) {
+    try {
+        const url = isEdit ? `/api/suppliers/${data.maNcc}` : '/api/suppliers';
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadSuppliers();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+async function deleteSupplier(maNcc) {
+    const confirm = await Swal.fire({
+        title: 'Xóa nhà cung cấp?',
+        text: `Bạn có chắc muốn xóa NCC: ${maNcc}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#ef4444'
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const response = await fetch(`/api/suppliers/${maNcc}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadSuppliers();
         } else {
             Swal.fire('Lỗi', result.message, 'error');
         }

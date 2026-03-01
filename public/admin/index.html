@@ -24,6 +24,8 @@
                     <li><a href="#" data-tab="customers"><i class="fas fa-users"></i> Khách hàng</a></li>
                     <li><a href="#" data-tab="employees"><i class="fas fa-user-tie"></i> Nhân viên</a></li>
                     <li><a href="#" data-tab="inventory"><i class="fas fa-file-import"></i> Nhập hàng</a></li>
+                    <li><a href="#" data-tab="suppliers"><i class="fas fa-truck"></i> Nhà cung cấp</a></li>
+                    <li><a href="#" data-tab="brands"><i class="fas fa-industry"></i> Hãng sản xuất</a></li>
                     <li><a href="#" data-tab="stock"><i class="fas fa-boxes"></i> Tồn kho</a></li>
                     <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
                     <li><a href="#"><i class="fas fa-cog"></i> Cài đặt</a></li>
@@ -254,6 +256,39 @@
                     </table>
                 </div>
             </section>
+
+            <section id="suppliers-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý nhà cung cấp</h1>
+                    <button class="btn-add" onclick="openSupplierModal()">
+                        <i class="fas fa-plus" style="margin-right: 8px;"></i> Thêm NCC
+                    </button>
+                </header>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchSupplierInput" placeholder="Tìm kiếm nhà cung cấp..."
+                        oninput="loadSuppliers()">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã NCC</th>
+                                <th>Tên nhà cung cấp</th>
+                                <th>Số điện thoại</th>
+                                <th>Email</th>
+                                <th>Địa chỉ</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplierTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
 
         <div id="importModal" class="modal">
@@ -421,35 +456,53 @@
         </div>
     </div>
     <div id="orderDetailModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h2>Chi tiết đơn hàng <span id="displayOrderId"></span></h2>
-                <span class="close-order-btn" style="cursor:pointer; font-size: 24px;">&times;</span>
+        <div class="modal-content" style="max-width: 850px;">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border-radius: 16px 16px 0 0;">
+                <h2 style="color: white; font-size: 1.15rem;"><i class="fas fa-receipt"
+                        style="margin-right: 8px;"></i>Chi tiết đơn hàng <span id="displayOrderId"></span></h2>
+                <span class="close-order-btn" style="cursor:pointer; font-size: 24px; color: white;">&times;</span>
             </div>
-            <div id="orderInfo" style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+            <div style="padding: 24px;">
+                <!-- Thông tin khách hàng & đơn hàng -->
+                <div id="orderInfo"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;"></div>
+
+                <!-- Bảng sản phẩm -->
+                <h4 style="margin-bottom: 12px; color: #475569; font-size: 0.95rem;"><i class="fas fa-box"
+                        style="color: #6366f1; margin-right: 6px;"></i>Danh sách sản phẩm</h4>
+                <div class="table-container" style="border-radius: 12px; overflow: hidden;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="padding: 14px 20px;">Sản phẩm</th>
+                                <th style="padding: 14px 20px; text-align: right;">Đơn giá</th>
+                                <th style="padding: 14px 20px; text-align: center;">Số lượng</th>
+                                <th style="padding: 14px 20px; text-align: right;">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderItemsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tổng cộng -->
+                <div
+                    style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; padding: 16px 20px; background: #f8fafc; border-radius: 12px;">
+                    <span style="font-size: 1rem; color: #64748b; margin-right: 12px;">Tổng cộng:</span>
+                    <span id="orderTotalDetail" style="font-size: 1.4rem; font-weight: 800; color: #dc2626;">0đ</span>
+                </div>
             </div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th>Đơn giá</th>
-                            <th>Số lượng</th>
-                            <th>Thành tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody id="orderItemsTableBody">
-                    </tbody>
-                </table>
-            </div>
-            <div style="text-align: right; margin-top: 20px;">
-                <h3>Tổng cộng: <span id="orderTotalDetail" style="color: #2563eb;">0đ</span></h3>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="printInvoice()"
-                    style="background-color: #6366f1; color: white; margin-right: 10px;"><i class="fas fa-print"></i>In
-                    Hóa Đơn</button>
-                <button type="button" class="btn-secondary close-order-btn">Đóng</button>
+
+            <div class="modal-footer"
+                style="display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 16px 16px;">
+                <button type="button" onclick="printInvoice()"
+                    style="background: #6366f1; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-print"></i> In Hóa Đơn
+                </button>
+                <button type="button" class="btn-secondary close-order-btn"
+                    style="padding: 10px 20px; border-radius: 8px;">Đóng</button>
             </div>
         </div>
     </div>

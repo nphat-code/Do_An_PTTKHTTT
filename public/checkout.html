@@ -5,61 +5,456 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thanh Toán - Phát Laptop</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            background: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .checkout-page-header {
+            background: white;
+            padding: 15px 5%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .checkout-page-header a {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkout-steps {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .checkout-steps .step {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .checkout-steps .step.active {
+            color: #6366f1;
+            font-weight: 600;
+        }
+
+        .checkout-steps .step.done {
+            color: #16a34a;
+        }
+
+        .checkout-container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .checkout-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkout-title i {
+            color: #6366f1;
+        }
+
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 0.7fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .checkout-card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .checkout-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkout-card h3 i {
+            color: #6366f1;
+            font-size: 1rem;
+        }
+
+        /* Form */
+        .checkout-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 0;
+        }
+
+        .checkout-form .form-group {
+            margin-bottom: 16px;
+        }
+
+        .checkout-form .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .checkout-form label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .checkout-form label .required {
+            color: #ef4444;
+        }
+
+        .checkout-form input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+
+        .checkout-form input:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Payment method */
+        .payment-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .payment-option:hover {
+            border-color: #c7d2fe;
+            background: #f8fafc;
+        }
+
+        .payment-option.selected {
+            border-color: #6366f1;
+            background: #eef2ff;
+        }
+
+        .payment-option input[type="radio"] {
+            accent-color: #6366f1;
+            width: 18px;
+            height: 18px;
+        }
+
+        .payment-option i {
+            font-size: 1.2rem;
+            color: #6366f1;
+            width: 24px;
+            text-align: center;
+        }
+
+        .payment-option span {
+            font-weight: 500;
+            color: #334155;
+        }
+
+        /* Order summary */
+        .order-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .order-item-img {
+            width: 56px;
+            height: 56px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: #f1f5f9;
+            flex-shrink: 0;
+        }
+
+        .order-item-img-placeholder {
+            width: 56px;
+            height: 56px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .order-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .order-item-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .order-item-qty {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .order-item-price {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .order-divider {
+            border: none;
+            border-top: 2px dashed #e2e8f0;
+            margin: 16px 0;
+        }
+
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .order-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .order-total-row .price {
+            color: #dc2626;
+        }
+
+        .btn-checkout {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .btn-checkout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-checkout:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .security-note {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin-top: 12px;
+        }
+
+        .security-note i {
+            color: #16a34a;
+        }
+
+        .empty-cart-msg {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-cart-msg i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .checkout-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .checkout-form .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .checkout-steps {
+                display: none;
+            }
+        }
+    </style>
 </head>
 
 <body>
+    <div class="checkout-page-header">
+        <a href="/"><i class="fas fa-arrow-left"></i> Phát Laptop</a>
+        <div class="checkout-steps">
+            <span class="step done"><i class="fas fa-check-circle"></i> Giỏ hàng</span>
+            <span>→</span>
+            <span class="step active"><i class="fas fa-circle"></i> Thanh toán</span>
+            <span>→</span>
+            <span class="step"><i class="far fa-circle"></i> Hoàn tất</span>
+        </div>
+    </div>
 
-    <!-- Header -->
-    <header style="padding: 20px 5%; background: white; box-shadow: var(--shadow-sm);">
-        <a href="/"
-            style="display: flex; align-items: center; gap: 10px; color: var(--primary-color); font-weight: 700; font-size: 1.25rem;">
-            <i class="fas fa-chevron-left"></i> Quay lại cửa hàng
-        </a>
-    </header>
+    <div class="checkout-container">
+        <div class="checkout-title"><i class="fas fa-credit-card"></i> Thanh toán đơn hàng</div>
 
-    <div class="checkout-wrapper">
-        <div class="checkout-grid">
-            <!-- Cột trái: Thông tin giao hàng -->
-            <div class="checkout-section">
-                <h2><i class="fas fa-shipping-fast"></i> Thông tin giao hàng</h2>
-                <form id="checkoutForm">
-                    <div class="form-group">
-                        <label for="cusName">Họ và tên</label>
-                        <input type="text" id="cusName" required placeholder="Nhập họ tên đầy đủ...">
+        <div id="emptyCartMsg" class="empty-cart-msg" style="display:none;">
+            <i class="fas fa-shopping-cart"></i>
+            <p>Giỏ hàng trống!</p>
+            <a href="/" style="color: #6366f1; font-weight: 600;">← Quay lại mua sắm</a>
+        </div>
+
+        <div id="checkoutContent" class="checkout-grid">
+            <!-- Left: Info -->
+            <div>
+                <div class="checkout-card" style="margin-bottom: 20px;">
+                    <h3><i class="fas fa-user"></i> Thông tin giao hàng</h3>
+                    <form id="checkoutForm" class="checkout-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Họ và tên <span class="required">*</span></label>
+                                <input type="text" id="cusName" required placeholder="Nguyễn Văn A">
+                            </div>
+                            <div class="form-group">
+                                <label>Số điện thoại <span class="required">*</span></label>
+                                <input type="tel" id="cusPhone" required placeholder="0909 xxx xxx">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="cusEmail" placeholder="email@example.com (tùy chọn)">
+                        </div>
+                        <div class="form-group">
+                            <label>Địa chỉ nhận hàng <span class="required">*</span></label>
+                            <input type="text" id="cusAddress" required
+                                placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/TP">
+                        </div>
+                        <div class="form-group">
+                            <label>Ghi chú</label>
+                            <input type="text" id="cusNote" placeholder="Ghi chú cho đơn hàng (tùy chọn)">
+                        </div>
+                    </form>
+                </div>
+
+                <div class="checkout-card">
+                    <h3><i class="fas fa-wallet"></i> Phương thức thanh toán</h3>
+                    <div class="payment-methods">
+                        <label class="payment-option selected" onclick="selectPayment(this)">
+                            <input type="radio" name="payment" value="COD" checked>
+                            <i class="fas fa-truck"></i>
+                            <span>Thanh toán khi nhận hàng (COD)</span>
+                        </label>
+                        <label class="payment-option" onclick="selectPayment(this)">
+                            <input type="radio" name="payment" value="BANK">
+                            <i class="fas fa-university"></i>
+                            <span>Chuyển khoản ngân hàng</span>
+                        </label>
                     </div>
-                    <div class="form-group">
-                        <label for="cusPhone">Số điện thoại</label>
-                        <input type="tel" id="cusPhone" required placeholder="Nhập số điện thoại...">
-                    </div>
-                    <div class="form-group">
-                        <label for="cusEmail">Email</label>
-                        <input type="email" id="cusEmail" placeholder="Nhập email để nhận hóa đơn (tùy chọn)...">
-                    </div>
-                    <div class="form-group">
-                        <label for="cusAddress">Địa chỉ nhận hàng</label>
-                        <input type="text" id="cusAddress" required placeholder="Số nhà, tên đường, phường/xã...">
-                    </div>
-                </form>
+                </div>
             </div>
 
-            <!-- Cột phải: Đơn hàng -->
-            <div class="checkout-section">
-                <h2><i class="fas fa-shopping-bag"></i> Đơn hàng của bạn</h2>
-                <div id="orderItems">
-                    <!-- Items will be populated by JS -->
+            <!-- Right: Order Summary -->
+            <div class="checkout-card" style="position: sticky; top: 80px;">
+                <h3><i class="fas fa-shopping-bag"></i> Đơn hàng (<span id="itemCount">0</span> sản phẩm)</h3>
+                <div id="orderItems"></div>
+                <hr class="order-divider">
+                <div class="order-row">
+                    <span>Tạm tính</span>
+                    <span id="subtotal">0đ</span>
                 </div>
-                <div class="total-row">
-                    <span>Tổng cộng:</span>
-                    <span id="orderTotal">0đ</span>
+                <div class="order-row">
+                    <span>Phí vận chuyển</span>
+                    <span style="color: #16a34a; font-weight: 600;">Miễn phí</span>
+                </div>
+                <hr class="order-divider">
+                <div class="order-total-row">
+                    <span>Tổng cộng</span>
+                    <span class="price" id="orderTotal">0đ</span>
                 </div>
 
-                <button type="button" class="btn-confirm" onclick="submitOrder()">
-                    XÁC NHẬN ĐẶT HÀNG <i class="fas fa-arrow-right" style="margin-left: 10px;"></i>
+                <button type="button" class="btn-checkout" id="btnCheckout" onclick="submitOrder()">
+                    <i class="fas fa-lock"></i> XÁC NHẬN ĐẶT HÀNG
                 </button>
+                <div class="security-note">
+                    <i class="fas fa-shield-alt"></i> Thông tin của bạn được bảo mật
+                </div>
             </div>
         </div>
     </div>

@@ -227,6 +227,14 @@ function openCart() {
     if (modal) modal.style.display = 'block';
 }
 
+function showCartPopup() {
+    const modal = document.getElementById('cartModal');
+    if (modal) {
+        renderCartModal();
+        modal.style.display = 'flex';
+    }
+}
+
 function closeCart() {
     const modal = document.getElementById('cartModal');
     if (modal) modal.style.display = 'none';

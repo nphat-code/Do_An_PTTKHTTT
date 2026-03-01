@@ -114,7 +114,8 @@ const createOrder = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Đặt hàng thành công!",
-            orderId: order.maHd // Return maHd instead of id
+            orderId: order.maHd,
+            totalAmount: totalAmount
         });
 
     } catch (error) {
@@ -162,31 +163,82 @@ const getOrderById = async (req, res) => {
 const ORDER_STATUSES = ['Chờ xử lý', 'Đã xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy'];
 
 const updateOrderStatus = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const { id } = req.params;
         const { trangThai } = req.body;
         if (!trangThai || !ORDER_STATUSES.includes(trangThai)) {
+            await t.rollback();
             return res.status(400).json({
                 success: false,
                 message: 'Trạng thái không hợp lệ. Cho phép: ' + ORDER_STATUSES.join(', ')
             });
         }
-        const order = await HoaDon.findByPk(id);
+        const order = await HoaDon.findByPk(id, { transaction: t });
         if (!order) {
+            await t.rollback();
             return res.status(404).json({ success: false, message: 'Không tìm thấy hóa đơn' });
         }
-        await order.update({ trangThai });
+
+        const oldStatus = order.trangThai;
+
+        // Nếu chuyển sang "Đã hủy" và trước đó CHƯA bị hủy → hoàn lại tồn kho
+        if (trangThai === 'Đã hủy' && oldStatus !== 'Đã hủy') {
+            const orderItems = await CtHoaDon.findAll({
+                where: { maHd: id },
+                transaction: t
+            });
+
+            for (const item of orderItems) {
+                const product = await DongMay.findByPk(item.maModel, { transaction: t });
+                if (product) {
+                    await product.update({
+                        soLuongTon: product.soLuongTon + item.soLuong
+                    }, { transaction: t });
+                }
+            }
+        }
+
+        // Nếu từ "Đã hủy" chuyển sang trạng thái khác → trừ lại tồn kho
+        if (oldStatus === 'Đã hủy' && trangThai !== 'Đã hủy') {
+            const orderItems = await CtHoaDon.findAll({
+                where: { maHd: id },
+                transaction: t
+            });
+
+            for (const item of orderItems) {
+                const product = await DongMay.findByPk(item.maModel, { transaction: t });
+                if (product) {
+                    if (product.soLuongTon < item.soLuong) {
+                        await t.rollback();
+                        return res.status(400).json({
+                            success: false,
+                            message: `Sản phẩm ${product.tenModel} không đủ tồn kho (còn ${product.soLuongTon})`
+                        });
+                    }
+                    await product.update({
+                        soLuongTon: product.soLuongTon - item.soLuong
+                    }, { transaction: t });
+                }
+            }
+        }
+
+        await order.update({ trangThai }, { transaction: t });
+        await t.commit();
+
         res.status(200).json({ success: true, message: 'Đã cập nhật trạng thái', data: order });
     } catch (error) {
+        if (t && !t.finished) await t.rollback();
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 const getDashboardStats = async (req, res) => {
     try {
-        // 2. Thống kê doanh thu theo tháng (12 tháng gần nhất)
+        // 2. Thống kê doanh thu theo tháng (12 tháng gần nhất) - không tính đơn đã hủy
         const orders = await HoaDon.findAll({
-            attributes: ['ngayLap', 'tongTien'],
+            attributes: ['ngayLap', 'tongTien', 'trangThai'],
+            where: { trangThai: { [Op.ne]: 'Đã hủy' } },
             raw: true
         });
 
