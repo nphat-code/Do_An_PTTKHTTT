@@ -139,7 +139,7 @@ async function loadMyOrders() {
                 <div class="order-card">
                     <div class="order-header">
                         <div>
-                            <div class="order-code"><i class="fas fa-receipt"></i> ${order.soHd}</div>
+                            <div class="order-code"><i class="fas fa-receipt"></i> ${order.maHd || order.soHd}</div>
                             <div class="order-date">${ngayLap}</div>
                         </div>
                         <span class="order-status ${status.class}">${status.icon} ${order.trangThai || 'Chờ xử lý'}</span>

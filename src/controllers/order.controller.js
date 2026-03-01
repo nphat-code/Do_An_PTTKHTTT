@@ -15,8 +15,11 @@ const createOrder = async (req, res) => {
     try {
         const { customerInfo, cartItems, maHttt, maKm } = req.body;
 
-        if (!cartItems || cartItems.length === 0) {
-            return res.status(400).json({ success: false, message: "Giỏ hàng trống" });
+        if (!customerInfo || !cartItems || cartItems.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: !customerInfo ? "Thiếu thông tin khách hàng" : "Giỏ hàng trống"
+            });
         }
 
         // 1. Tìm xem user đã tồn tại chưa (trong KhachHang)
@@ -90,8 +93,9 @@ const createOrder = async (req, res) => {
             ngayLap: new Date(),
             tongTien: totalAmount,
             ghiChu: customerInfo.ghiChu || '',
+            trangThai: 'Chờ xử lý',
             maKh: customer.maKh,
-            maHttt: maHttt || null, // Assuming payment method is provided or null
+            maHttt: maHttt || null,
             maKm: maKm || null,
         }, { transaction: t });
 
@@ -155,12 +159,27 @@ const getOrderById = async (req, res) => {
     }
 };
 
-// Updating status is not as straightforward as before, 
-// since HoaDon table schema does not include a 'status' field.
-// You might need to add a TRANG_THAI to HOA_DON in the future.
-// For now, this is somewhat disabled or we log it.
+const ORDER_STATUSES = ['Chờ xử lý', 'Đã xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy'];
+
 const updateOrderStatus = async (req, res) => {
-    res.status(501).json({ success: false, message: 'Bảng Hoá Đơn hiện chưa có trường Trạng Thái (Status), tính năng cập nhật trạng thái bị tạm dừng' });
+    try {
+        const { id } = req.params;
+        const { trangThai } = req.body;
+        if (!trangThai || !ORDER_STATUSES.includes(trangThai)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Trạng thái không hợp lệ. Cho phép: ' + ORDER_STATUSES.join(', ')
+            });
+        }
+        const order = await HoaDon.findByPk(id);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy hóa đơn' });
+        }
+        await order.update({ trangThai });
+        res.status(200).json({ success: true, message: 'Đã cập nhật trạng thái', data: order });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 const getDashboardStats = async (req, res) => {

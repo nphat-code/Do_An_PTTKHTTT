@@ -124,7 +124,7 @@ function renderSpecs(ch) {
 function addToCartDetail() {
     if (!currentProduct) return;
 
-    const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existing = cart.find(item => item.id === currentProduct.maModel);
 
     if (existing) {
@@ -138,12 +138,12 @@ function addToCartDetail() {
             id: currentProduct.maModel,
             name: currentProduct.tenModel,
             price: Number(currentProduct.giaBan),
-            image: currentProduct.hinhAnh || null,
-            quantity: 1
+            quantity: 1,
+            stock: currentProduct.soLuongTon || 0
         });
     }
 
-    sessionStorage.setItem('cart', JSON.stringify(cart));
+    localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
 
     Swal.fire({
@@ -158,11 +158,85 @@ function addToCartDetail() {
 }
 
 function updateCartCount() {
-    const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const total = cart.reduce((sum, item) => sum + item.quantity, 0);
     const el = document.getElementById('cartCount');
     if (el) el.textContent = total;
 }
+
+// Giỏ hàng popup (modal) - dùng khi bấm icon giỏ hàng
+function getCart() {
+    return JSON.parse(localStorage.getItem('cart') || '[]');
+}
+
+function renderCartModal() {
+    const cart = getCart();
+    const cartItemsContainer = document.getElementById('cartItemsContainer');
+    const cartTotalEl = document.getElementById('cartTotal');
+    if (!cartItemsContainer || !cartTotalEl) return;
+
+    cartItemsContainer.innerHTML = '';
+    let totalMoney = 0;
+    cart.forEach((item, index) => {
+        totalMoney += item.price * item.quantity;
+        const div = document.createElement('div');
+        div.className = 'cart-item';
+        div.innerHTML = `
+            <div>
+                <strong>${item.name}</strong><br>
+                <small>${Number(item.price).toLocaleString()}đ x ${item.quantity}</small>
+            </div>
+            <div>
+                <button onclick="changeCartQty(${index}, -1)" style="padding:2px 8px">-</button>
+                <button onclick="changeCartQty(${index}, 1)" style="padding:2px 8px">+</button>
+                <button onclick="removeCartItem(${index})" style="color:red; margin-left:10px; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        cartItemsContainer.appendChild(div);
+    });
+    cartTotalEl.textContent = totalMoney.toLocaleString() + 'đ';
+}
+
+function changeCartQty(index, delta) {
+    const cart = getCart();
+    const item = cart[index];
+    if (!item) return;
+    const newQty = item.quantity + delta;
+    if (newQty > (item.stock || 999)) {
+        if (typeof Swal !== 'undefined') Swal.fire('Thông báo', 'Vượt quá số lượng tồn kho!', 'warning');
+        return;
+    }
+    if (newQty <= 0) cart.splice(index, 1);
+    else item.quantity = newQty;
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCartModal();
+    updateCartCount();
+}
+
+function removeCartItem(index) {
+    const cart = getCart();
+    cart.splice(index, 1);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCartModal();
+    updateCartCount();
+}
+
+function openCart() {
+    renderCartModal();
+    const modal = document.getElementById('cartModal');
+    if (modal) modal.style.display = 'block';
+}
+
+function closeCart() {
+    const modal = document.getElementById('cartModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Đóng modal khi bấm ra ngoài (vùng tối)
+document.addEventListener('click', function (e) {
+    const modal = document.getElementById('cartModal');
+    if (modal && e.target === modal) closeCart();
+});
 
 // Auth check
 function checkAuth() {

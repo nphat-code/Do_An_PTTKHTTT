@@ -341,6 +341,15 @@ async function loadOrders() {
     }
 }
 
+const ORDER_STATUSES = ['Chờ xử lý', 'Đã xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy'];
+const ORDER_STATUS_CLASS = {
+    'Chờ xử lý': 'pending',
+    'Đã xác nhận': 'confirmed',
+    'Đang giao': 'shipping',
+    'Đã giao': 'delivered',
+    'Đã hủy': 'cancelled'
+};
+
 // 2. Hàm vẽ bảng đơn hàng
 function renderOrdersTable(orders) {
     const container = document.getElementById("orderTableBody");
@@ -349,6 +358,8 @@ function renderOrdersTable(orders) {
 
     orders.forEach(order => {
         const date = new Date(order.ngayLap || order.createdAt).toLocaleString('vi-VN');
+        const status = order.trangThai || 'Chờ xử lý';
+        const statusClass = ORDER_STATUS_CLASS[status] || 'pending';
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>#${order.maHd}</td>
@@ -357,7 +368,9 @@ function renderOrdersTable(orders) {
             <td>${date}</td>
             <td><strong style="color: #2563eb;">${Number(order.tongTien || 0).toLocaleString()}đ</strong></td>
             <td>
-                <span class="status-badge pending">Chờ xử lý</span>
+                <select class="status-select" data-order-id="${order.maHd}" onchange="changeOrderStatus('${order.maHd}', this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.85rem;">
+                    ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>
             </td>
             <td>
                 <button class="btn-edit" onclick="viewOrderDetails('${order.maHd}')">
@@ -367,6 +380,28 @@ function renderOrdersTable(orders) {
         `;
         container.appendChild(tr);
     });
+}
+
+async function changeOrderStatus(orderId, trangThai) {
+    try {
+        const res = await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trangThai })
+        });
+        const result = await res.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: 'Đã cập nhật trạng thái', timer: 1500, showConfirmButton: false });
+            if (currentViewingOrder && currentViewingOrder.maHd === orderId) {
+                currentViewingOrder.trangThai = trangThai;
+                document.getElementById('orderDetailStatus').innerText = trangThai;
+            }
+        } else {
+            Swal.fire('Lỗi', result.message || 'Không thể cập nhật', 'error');
+        }
+    } catch (e) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
 }
 
 // 3. Cập nhật hàm showTab để tự động tải dữ liệu khi nhấn vào tab Đơn hàng
@@ -518,28 +553,37 @@ async function viewOrderDetails(orderId) {
                 </div>
                 <div>
                     <p><strong>Ngày đặt:</strong> ${date}</p>
-                    <p><strong>Trạng thái:</strong> Cập nhật</p>
+                    <p><strong>Trạng thái:</strong> <span id="orderDetailStatus">${order.trangThai || 'Chờ xử lý'}</span>
+                        <select class="status-select" onchange="changeOrderStatus('${order.maHd}', this.value)" style="margin-left: 8px; padding: 4px 8px; border-radius: 6px;">
+                            ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === (order.trangThai || 'Chờ xử lý') ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                    </p>
                     <p><strong>Email:</strong> ${order.KhachHang ? order.KhachHang.email : 'N/A'}</p>
                 </div>
             `;
 
-            // 3. Hiển thị danh sách sản phẩm
+            // 3. Hiển thị danh sách sản phẩm (DongMays qua bảng trung gian CtHoaDon)
             const itemsContainer = document.getElementById("orderItemsTableBody");
-            itemsContainer.innerHTML = "";
-
-            // Sequelize trả về mảng products kèm theo thông tin từ bảng trung gian
-            order.DongMays.forEach(p => {
-                const qty = p.CtHoaDon ? p.CtHoaDon.soLuong : 0;
-                const priceAtPurchase = p.CtHoaDon ? Number(p.CtHoaDon.donGia) : 0;
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${p.tenModel}</td>
-                    <td>${priceAtPurchase.toLocaleString()}đ</td>
-                    <td>${qty}</td>
-                    <td>${(priceAtPurchase * qty).toLocaleString()}đ</td>
-                `;
-                itemsContainer.appendChild(tr);
-            });
+            const orderItems = order.DongMays || [];
+            if (orderItems.length === 0) {
+                itemsContainer.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #64748b;">Chưa có sản phẩm trong đơn.</td></tr>';
+            } else {
+                itemsContainer.innerHTML = "";
+                orderItems.forEach(p => {
+                    const ct = p.CtHoaDon || p.ctHoaDon || {};
+                    const qty = ct.soLuong || 0;
+                    const priceAtPurchase = Number(ct.donGia || 0);
+                    const thanhTien = Number(ct.thanhTien || priceAtPurchase * qty);
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${p.tenModel || '—'}</td>
+                        <td>${priceAtPurchase.toLocaleString()}đ</td>
+                        <td>${qty}</td>
+                        <td>${thanhTien.toLocaleString()}đ</td>
+                    `;
+                    itemsContainer.appendChild(tr);
+                });
+            }
 
             // 4. Hiển thị tổng tiền
             document.getElementById("orderTotalDetail").innerText = Number(order.tongTien || 0).toLocaleString() + "đ";
@@ -554,7 +598,17 @@ async function viewOrderDetails(orderId) {
 }
 
 async function confirmUpdateStatus() {
-    Swal.fire("Lỗi", "Hiện chưa có Status cho bảng Hoá Đơn", "error");
+    const order = currentViewingOrder;
+    if (!order) return;
+    const { value: trangThai } = await Swal.fire({
+        title: 'Cập nhật trạng thái',
+        input: 'select',
+        inputOptions: Object.fromEntries(ORDER_STATUSES.map(s => [s, s])),
+        inputValue: order.trangThai || 'Chờ xử lý',
+        showCancelButton: true,
+        inputValidator: (v) => !v && 'Chọn trạng thái'
+    });
+    if (trangThai) await changeOrderStatus(order.maHd, trangThai);
 }
 
 
@@ -569,21 +623,21 @@ function printInvoice() {
 
     let itemsHtml = '';
 
-    if (order.DongMays) {
-        order.DongMays.forEach(p => {
-            const qty = p.CtHoaDon ? p.CtHoaDon.soLuong : 0;
-            const price = p.CtHoaDon ? Number(p.CtHoaDon.donGia) : 0;
-            const total = qty * price;
-            itemsHtml += `
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 8px;">${p.tenModel}</td>
-                    <td style="padding: 8px; text-align: center;">${qty}</td>
-                    <td style="padding: 8px; text-align: right;">${price.toLocaleString()}đ</td>
-                    <td style="padding: 8px; text-align: right;">${total.toLocaleString()}đ</td>
-                </tr>
-            `;
-        });
-    }
+    const printItems = order.DongMays || [];
+    printItems.forEach(p => {
+        const ct = p.CtHoaDon || p.ctHoaDon || {};
+        const qty = ct.soLuong || 0;
+        const price = Number(ct.donGia || 0);
+        const total = Number(ct.thanhTien || qty * price);
+        itemsHtml += `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 8px;">${p.tenModel || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${qty}</td>
+                <td style="padding: 8px; text-align: right;">${price.toLocaleString()}đ</td>
+                <td style="padding: 8px; text-align: right;">${total.toLocaleString()}đ</td>
+            </tr>
+        `;
+    });
 
     const html = `
         <!DOCTYPE html>
@@ -629,7 +683,7 @@ function printInvoice() {
                     <h4>Đơn hàng</h4>
                     Đơn số: #${order.maHd}<br>
                     Ngày đặt: ${date}<br>
-                    Trạng thái: Cập nhật
+                    Trạng thái: ${order.trangThai || 'Chờ xử lý'}
                 </div>
             </div>
 
