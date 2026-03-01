@@ -421,6 +421,8 @@ showTab = function (tabName) {
         loadImportHistory();
     } else if (tabName === 'suppliers') {
         loadSuppliers();
+    } else if (tabName === 'brands') {
+        loadBrands();
     } else if (tabName === 'overview') {
         loadDashboardStats();
     }
@@ -1461,6 +1463,134 @@ async function deleteSupplier(maNcc) {
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
             loadSuppliers();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+// ==================== QUẢN LÝ HÃNG SẢN XUẤT ====================
+
+let editingBrand = null;
+
+async function loadBrands() {
+    try {
+        const search = document.getElementById('searchBrandInput')?.value || '';
+        const response = await fetch(`/api/brands?search=${encodeURIComponent(search)}`);
+        const result = await response.json();
+        if (result.success) {
+            renderBrandsTable(result.data);
+        }
+    } catch (error) {
+        console.error('Lỗi tải Hãng Sản Xuất:', error);
+    }
+}
+
+function renderBrandsTable(brands) {
+    const tbody = document.getElementById('brandTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = brands.map(b => `
+        <tr>
+            <td><strong>${b.maHang}</strong></td>
+            <td>${b.tenHang}</td>
+            <td>${b.quocGia || '—'}</td>
+            <td>
+                <button class="btn-edit" onclick='editBrand(${JSON.stringify(b)})'><i class="fas fa-edit"></i></button>
+                <button class="btn-delete" onclick="deleteBrand('${b.maHang}')"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openBrandModal(brand = null) {
+    editingBrand = brand;
+    Swal.fire({
+        title: brand ? 'Cập nhật hãng sx' : 'Thêm hãng sản xuất',
+        html: `
+            <div style="text-align:left;">
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mã hãng <span style="color:red;">*</span></label>
+                    <input id="swalMaHang" class="swal2-input" style="width:100%; margin:0;" value="${brand?.maHang || ''}" ${brand ? 'disabled' : ''} placeholder="VD: ACER">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Tên hãng <span style="color:red;">*</span></label>
+                    <input id="swalTenHang" class="swal2-input" style="width:100%; margin:0;" value="${brand?.tenHang || ''}" placeholder="VD: Acer Inc.">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Quốc gia</label>
+                    <input id="swalQuocGia" class="swal2-input" style="width:100%; margin:0;" value="${brand?.quocGia || ''}" placeholder="VD: Đài Loan">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: brand ? 'Cập nhật' : 'Thêm mới',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#6366f1',
+        preConfirm: () => {
+            const maHang = document.getElementById('swalMaHang').value.trim();
+            const tenHang = document.getElementById('swalTenHang').value.trim();
+            if (!maHang || !tenHang) {
+                Swal.showValidationMessage('Vui lòng nhập mã và tên hãng');
+                return false;
+            }
+            return {
+                maHang,
+                tenHang,
+                quocGia: document.getElementById('swalQuocGia').value.trim()
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await saveBrand(result.value, !!brand);
+        }
+    });
+}
+
+function editBrand(brand) {
+    openBrandModal(brand);
+}
+
+async function saveBrand(data, isEdit) {
+    try {
+        const url = isEdit ? `/api/brands/${data.maHang}` : '/api/brands';
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadBrands();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+async function deleteBrand(maHang) {
+    const confirm = await Swal.fire({
+        title: 'Xóa hãng sản xuất?',
+        text: `Bạn có chắc muốn xóa hãng: ${maHang}? LƯU Ý: Không thể xóa nếu hãng này đang có sản phẩm.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#ef4444'
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const response = await fetch(`/api/brands/${maHang}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadBrands();
         } else {
             Swal.fire('Lỗi', result.message, 'error');
         }

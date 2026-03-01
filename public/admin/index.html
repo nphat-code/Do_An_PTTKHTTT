@@ -289,6 +289,36 @@
                     </table>
                 </div>
             </section>
+
+            <section id="brands-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý hãng sản xuất</h1>
+                    <button class="btn-add" onclick="openBrandModal()">
+                        <i class="fas fa-plus" style="margin-right: 8px;"></i> Thêm hãng
+                    </button>
+                </header>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchBrandInput" placeholder="Tìm kiếm hãng sản xuất..."
+                        oninput="loadBrands()">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã hãng</th>
+                                <th>Tên hãng</th>
+                                <th>Quốc gia</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="brandTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
 
         <div id="importModal" class="modal">
