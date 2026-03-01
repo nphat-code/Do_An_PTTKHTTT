@@ -4,600 +4,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hồ Sơ Của Tôi - Mobile Store</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Hồ sơ của tôi - Phát Laptop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-
-<body style="background-color: var(--background-bg); min-height: 100vh; padding: 20px;">
-
+    <link rel="stylesheet" href="css/style.css">
     <style>
-        :root {
-            --sidebar-width: 280px;
-            --card-radius: 16px;
+        body {
+            background: #f1f5f9;
+            font-family: 'Inter', sans-serif;
         }
 
-        .profile-layout {
-            display: flex;
-            gap: 30px;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding-top: 20px;
+        .profile-container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
         }
 
-        /* Sidebar Styling */
-        .sidebar {
-            width: var(--sidebar-width);
-            flex-shrink: 0;
-            background: white;
-            border-radius: var(--card-radius);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            padding: 30px 20px;
-            height: fit-content;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .sidebar-avatar {
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        .profile-header {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 20px;
+            padding: 40px;
             color: white;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+            font-size: 2rem;
+            flex-shrink: 0;
         }
 
-        .sidebar-name {
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: var(--text-main);
-            margin-bottom: 5px;
-            text-align: center;
+        .profile-header-info h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0 0 4px;
         }
 
-        .sidebar-role {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 30px;
-            background: #f3f4f6;
-            padding: 4px 12px;
-            border-radius: 20px;
+        .profile-header-info p {
+            margin: 0;
+            opacity: 0.85;
+            font-size: 0.95rem;
         }
 
-        .nav-menu {
-            width: 100%;
+        .profile-tabs {
             display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .nav-item {
-            padding: 12px 15px;
-            border-radius: 10px;
-            cursor: pointer;
-            color: var(--text-muted);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            transition: all 0.2s;
-        }
-
-        .nav-item:hover {
-            background: #f8fafc;
-            color: var(--primary-color);
-        }
-
-        .nav-item.active {
-            background: rgba(79, 70, 229, 0.1);
-            color: var(--primary-color);
-            font-weight: 600;
-        }
-
-        .nav-item i {
-            width: 25px;
-            margin-right: 10px;
-        }
-
-        /* Content Styling */
-        .content-area {
-            flex: 1;
-        }
-
-        .content-card {
+            gap: 0;
+            margin-bottom: 24px;
             background: white;
-            border-radius: var(--card-radius);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-            margin-bottom: 20px;
-            animation: fadeIn 0.3s ease;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .profile-tab {
+            flex: 1;
+            padding: 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: none;
+            background: white;
+            color: #64748b;
+            transition: all 0.3s;
         }
 
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 25px;
+        .profile-tab:hover {
+            background: #f8fafc;
+        }
+
+        .profile-tab.active {
+            background: #6366f1;
+            color: white;
+        }
+
+        .profile-tab i {
+            margin-right: 8px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Info Card */
+        .info-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .info-card h3 {
+            font-size: 1.2rem;
+            color: #1e293b;
+            margin: 0 0 24px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .info-card h3 i {
+            color: #6366f1;
         }
 
         .info-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 25px;
+            gap: 20px;
         }
 
-        .info-box {
-            padding: 15px;
-            background: #f9fafb;
-            border-radius: 10px;
-            border: 1px solid #eee;
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-        .info-box label {
-            display: block;
+        .info-group label {
             font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 8px;
+            color: #94a3b8;
+            font-weight: 500;
         }
 
-        .info-box div {
+        .info-group input {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .info-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .info-group input:disabled {
+            background: #f8fafc;
+            color: #94a3b8;
+        }
+
+        .info-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .btn-save-profile {
+            margin-top: 24px;
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-save-profile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Orders */
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .order-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .order-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .order-code {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 1rem;
+        }
+
+        .order-date {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .order-status {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
             font-weight: 600;
-            color: var(--text-main);
-            font-size: 1.05rem;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-confirmed {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .status-shipping {
+            background: #e0e7ff;
+            color: #4f46e5;
+        }
+
+        .status-delivered {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-cancelled {
+            background: #fecaca;
+            color: #dc2626;
+        }
+
+        .order-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .order-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 0;
+        }
+
+        .order-item-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #f1f5f9;
+        }
+
+        .order-item-name {
+            flex: 1;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: #334155;
+        }
+
+        .order-item-qty {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .order-item-price {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.9rem;
+        }
+
+        .order-total {
+            text-align: right;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #dc2626;
+        }
+
+        .empty-orders {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-orders i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+                padding: 24px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .order-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
         }
     </style>
+</head>
 
-    <div class="profile-layout">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-avatar">
+<body>
+    <header
+        style="background: white; padding: 15px 5%; box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 1000; margin-bottom: 0;">
+        <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">
+            <a href="/" style="text-decoration: none; color: inherit;">
+                <i class="fas fa-laptop"></i> Phát Laptop
+            </a>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="/" style="text-decoration: none; color: #64748b; font-weight: 500; font-size: 0.95rem;">
+                <i class="fas fa-home"></i> Trang chủ
+            </a>
+            <span id="authLinks" style="font-size: 0.9rem;"></span>
+        </div>
+    </header>
+
+    <div class="profile-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="avatar">
                 <i class="fas fa-user"></i>
             </div>
-            <div class="sidebar-name" id="profileName">Đang tải...</div>
-            <div class="sidebar-role" id="profileRole">Khách hàng</div>
-
-            <div class="nav-menu">
-                <div class="nav-item active" onclick="switchTab('info', this)">
-                    <i class="fas fa-user-circle"></i> Thông tin cá nhân
-                </div>
-                <div class="nav-item" onclick="switchTab('orders', this)">
-                    <i class="fas fa-shopping-bag"></i> Lịch sử đơn hàng
-                </div>
-                <div class="nav-item" onclick="switchTab('security', this)">
-                    <i class="fas fa-shield-alt"></i> Bảo mật
-                </div>
-                <div style="height: 1px; background: #eee; margin: 10px 0;"></div>
-                <a href="/" class="nav-item">
-                    <i class="fas fa-arrow-left"></i> Về trang chủ
-                </a>
-                <div class="nav-item" onclick="logout()" style="color: var(--danger-color);">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </div>
+            <div class="profile-header-info">
+                <h1 id="headerName">Đang tải...</h1>
+                <p id="headerEmail"></p>
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="content-area">
+        <!-- Tabs -->
+        <div class="profile-tabs">
+            <button class="profile-tab active" onclick="switchProfileTab('info')">
+                <i class="fas fa-user-edit"></i> Thông tin cá nhân
+            </button>
+            <button class="profile-tab" onclick="switchProfileTab('orders')">
+                <i class="fas fa-shopping-bag"></i> Lịch sử đơn hàng
+            </button>
+        </div>
 
-            <!-- Tab: Thông tin -->
-            <div id="tab-info" class="tab-content">
-                <div class="content-card">
-                    <div class="section-title">
-                        <span>Hồ sơ cá nhân</span>
-                        <button class="btn-primary" onclick="openEditModal()"
-                            style="font-size: 0.9rem; padding: 8px 16px;">
-                            <i class="fas fa-edit"></i> Chỉnh sửa
-                        </button>
-                    </div>
+        <!-- Tab: Thông tin cá nhân -->
+        <div id="tab-info" class="tab-content active">
+            <div class="info-card">
+                <h3><i class="fas fa-id-card"></i> Thông tin tài khoản</h3>
+                <form id="profileForm">
                     <div class="info-grid">
-                        <div class="info-box">
-                            <label>Email đăng nhập</label>
-                            <div id="profileEmail">...</div>
+                        <div class="info-group">
+                            <label>Họ và tên</label>
+                            <input type="text" id="profileName" placeholder="Họ và tên..." required>
                         </div>
-                        <div class="info-box">
+                        <div class="info-group">
+                            <label>Email</label>
+                            <input type="email" id="profileEmail" disabled>
+                        </div>
+                        <div class="info-group">
                             <label>Số điện thoại</label>
-                            <div id="profilePhone">...</div>
+                            <input type="text" id="profilePhone" placeholder="Số điện thoại...">
                         </div>
-                        <div class="info-box" style="grid-column: 1 / -1;">
-                            <label>Địa chỉ nhận hàng mặc định</label>
-                            <div id="profileAddress">...</div>
+                        <div class="info-group">
+                            <label>Mã khách hàng</label>
+                            <input type="text" id="profileId" disabled>
+                        </div>
+                        <div class="info-group full-width">
+                            <label>Địa chỉ</label>
+                            <input type="text" id="profileAddress" placeholder="Địa chỉ giao hàng...">
                         </div>
                     </div>
-                </div>
+                    <button type="submit" class="btn-save-profile">
+                        <i class="fas fa-save"></i> Lưu thay đổi
+                    </button>
+                </form>
             </div>
-
-            <!-- Tab: Đơn hàng -->
-            <div id="tab-orders" class="tab-content" style="display: none;">
-                <div class="content-card">
-                    <div class="section-title">Lịch sử đơn hàng</div>
-                    <div id="ordersList">
-                        <!-- Orders Render Here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab: Bảo mật -->
-            <div id="tab-security" class="tab-content" style="display: none;">
-                <div class="content-card">
-                    <div class="section-title">Đổi mật khẩu</div>
-                    <p style="color: var(--text-muted); margin-bottom: 20px;">Để bảo mật tài khoản, vui lòng không chia
-                        sẻ mật khẩu cho người khác.</p>
-
-                    <div style="max-width: 400px;">
-                        <div class="form-group">
-                            <label>Mật khẩu hiện tại</label>
-                            <input type="password" id="currentPasswordPage" class="form-control" placeholder="........">
-                        </div>
-                        <div class="form-group">
-                            <label>Mật khẩu mới</label>
-                            <input type="password" id="newPasswordPage" class="form-control" placeholder="........">
-                        </div>
-                        <div class="form-group">
-                            <label>Xác nhận mật khẩu mới</label>
-                            <input type="password" id="confirmNewPasswordPage" class="form-control"
-                                placeholder="........">
-                        </div>
-                        <button class="btn-primary" onclick="saveChangePasswordPage()">Cập nhật mật khẩu</button>
-                    </div>
-                </div>
-            </div>
-
         </div>
-    </div>
 
-    <!-- Edit Profile Modal -->
-    <div id="editProfileModal" class="modal">
-        <div class="modal-content" style="width: 500px;">
-            <div class="modal-header">
-                <h2>Cập nhật thông tin</h2>
-                <span class="close-btn" onclick="closeEditModal()">&times;</span>
-            </div>
-            <div style="padding: 20px;">
-                <div class="form-group">
-                    <label>Họ và tên</label>
-                    <input type="text" id="editFullName">
+        <!-- Tab: Lịch sử đơn hàng -->
+        <div id="tab-orders" class="tab-content">
+            <div id="ordersContainer" class="orders-list">
+                <div class="empty-orders">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Đang tải đơn hàng...</p>
                 </div>
-                <div class="form-group">
-                    <label>Số điện thoại</label>
-                    <input type="text" id="editPhone">
-                </div>
-                <div class="form-group">
-                    <label>Địa chỉ</label>
-                    <textarea id="editAddress" rows="3" class="form-control"
-                        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px;"></textarea>
-                </div>
-                <!-- Password field removed -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeEditModal()">Hủy</button>
-                <button class="btn-primary" onclick="saveProfile()">Lưu thay đổi</button>
             </div>
         </div>
     </div>
 
-    <!-- Change Password Modal -->
-    <div id="changePasswordModal" class="modal">
-        <div class="modal-content" style="width: 500px;">
-            <div class="modal-header">
-                <h2>Đổi mật khẩu</h2>
-                <span class="close-btn" onclick="closeChangePasswordModal()">&times;</span>
-            </div>
-            <div style="padding: 20px;">
-                <div class="form-group">
-                    <label>Mật khẩu hiện tại</label>
-                    <input type="password" id="currentPassword" placeholder="Nhập mật khẩu hiện tại" required
-                        autocomplete="new-password">
-                </div>
-                <div class="form-group">
-                    <label>Mật khẩu mới</label>
-                    <input type="password" id="newPassword" placeholder="Nhập mật khẩu mới" required
-                        autocomplete="new-password">
-                </div>
-                <div class="form-group">
-                    <label>Xác nhận mật khẩu mới</label>
-                    <input type="password" id="confirmNewPassword" placeholder="Xác nhận mật khẩu mới" required
-                        autocomplete="new-password">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeChangePasswordModal()">Hủy</button>
-                <button class="btn-primary" onclick="saveChangePassword()">Đổi mật khẩu</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let currentUserId = null;
-
-        function switchTab(tabId, element) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.style.display = 'none';
-            });
-
-            // Show selected tab
-            document.getElementById('tab-' + tabId).style.display = 'block';
-
-            // Validate nav items
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-
-            // Activate clicked item
-            if (element) element.classList.add('active');
-        }
-
-        function logout() {
-            sessionStorage.removeItem('user');
-            sessionStorage.removeItem('token');
-            window.location.href = '/login.html';
-        }
-
-        async function saveChangePasswordPage() {
-            const currentPassword = document.getElementById('currentPasswordPage').value;
-            const newPassword = document.getElementById('newPasswordPage').value;
-            const confirmNewPassword = document.getElementById('confirmNewPasswordPage').value;
-
-            if (!currentPassword || !newPassword || !confirmNewPassword) {
-                Swal.fire('Lỗi', 'Vui lòng nhập đầy đủ thông tin', 'error');
-                return;
-            }
-
-            if (newPassword !== confirmNewPassword) {
-                Swal.fire('Lỗi', 'Mật khẩu xác nhận không khớp', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/users/${currentUserId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ currentPassword, newPassword })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    Swal.fire('Thành công', 'Đổi mật khẩu thành công!', 'success');
-                    // Clear inputs
-                    document.getElementById('currentPasswordPage').value = '';
-                    document.getElementById('newPasswordPage').value = '';
-                    document.getElementById('confirmNewPasswordPage').value = '';
-                } else {
-                    Swal.fire('Thất bại', result.message, 'error');
-                }
-            } catch (error) {
-                console.error(error);
-                Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
-            }
-        }
-
-        async function loadProfile() {
-            const userStr = sessionStorage.getItem('user');
-            if (!userStr) {
-                window.location.href = '/login.html';
-                return;
-            }
-
-            const user = JSON.parse(userStr);
-            currentUserId = user.id;
-
-            try {
-                // Fetch fresh data from API
-                const response = await fetch(`/api/users/${user.id}`, {
-                    headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
-                });
-
-                if (response.status === 401 || response.status === 403) {
-                    alert("Phiên đăng nhập hết hạn hoặc tài khoản bị khóa.");
-                    logout();
-                    return;
-                }
-
-                const result = await response.json();
-
-                if (!result.success) {
-                    throw new Error(result.message);
-                }
-
-                const userData = result.data;
-
-                // Update UI
-                document.getElementById('profileName').textContent = userData.fullName;
-                document.getElementById('profileEmail').textContent = userData.email || 'Chưa cập nhật';
-                document.getElementById('profilePhone').textContent = userData.phone || 'Chưa cập nhật';
-                document.getElementById('profileAddress').textContent = userData.address || 'Chưa cập nhật';
-                document.getElementById('profileRole').textContent = userData.role === 'admin' ? 'Quản trị viên' : 'Khách hàng';
-
-                // Populate Edit Form
-                document.getElementById('editFullName').value = userData.fullName || '';
-                document.getElementById('editPhone').value = userData.phone || '';
-                document.getElementById('editAddress').value = userData.address || '';
-
-                // Render Orders
-                const ordersContainer = document.getElementById('ordersList');
-                if (!userData.orders || userData.orders.length === 0) {
-                    ordersContainer.innerHTML = '<p class="text-muted">Bạn chưa có đơn hàng nào.</p>';
-                    return;
-                }
-
-                ordersContainer.innerHTML = userData.orders.map(order => {
-                    const date = new Date(order.createdAt).toLocaleDateString('vi-VN');
-                    let statusClass = '';
-                    let statusText = '';
-
-                    switch (order.status) {
-                        case 'pending': statusText = 'Chờ xử lý'; statusClass = 'pending'; break;
-                        case 'completed': statusText = 'Hoàn thành'; statusClass = 'completed'; break;
-                        case 'cancelled': statusText = 'Đã hủy'; statusClass = 'cancelled'; break;
-                        default: statusText = order.status; statusClass = 'pending';
-                    }
-
-                    return `
-                        <div class="order-card">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <strong>Đơn hàng #${order.id}</strong>
-                                <span class="status-badge ${statusClass}">${statusText}</span>
-                            </div>
-                            <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 10px;">Ngày đặt: ${date}</div>
-                            <div style="font-weight: 700; color: var(--primary-color); font-size: 1.1rem;">Tổng tiền: ${Number(order.totalAmount).toLocaleString()}đ</div>
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                console.error("Error loading profile:", error);
-                document.getElementById('profileName').textContent = user.fullName;
-                document.getElementById('ordersList').innerHTML = '<p style="color:var(--danger-color)">Không thể tải lịch sử đơn hàng.</p>';
-            }
-        }
-
-        // Modal Logic
-        const modal = document.getElementById('editProfileModal');
-
-        function openEditModal() {
-            modal.style.display = 'flex';
-        }
-
-        function closeEditModal() {
-            modal.style.display = 'none';
-        }
-
-        // Change Password Modal Logic
-        const passwordModal = document.getElementById('changePasswordModal');
-
-        function openChangePasswordModal() {
-            document.getElementById('currentPassword').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmNewPassword').value = '';
-            passwordModal.style.display = 'flex';
-        }
-
-        function closeChangePasswordModal() {
-            passwordModal.style.display = 'none';
-            document.getElementById('currentPassword').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmNewPassword').value = '';
-        }
-
-        async function saveChangePassword() {
-            const currentPassword = document.getElementById('currentPassword').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-
-            if (!currentPassword || !newPassword || !confirmNewPassword) {
-                Swal.fire('Lỗi', 'Vui lòng nhập đầy đủ thông tin', 'error');
-                return;
-            }
-
-            if (newPassword !== confirmNewPassword) {
-                Swal.fire('Lỗi', 'Mật khẩu xác nhận không khớp', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/users/${currentUserId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ currentPassword, newPassword })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    Swal.fire('Thành công', 'Đổi mật khẩu thành công!', 'success').then(() => {
-                        closeChangePasswordModal();
-                    });
-                } else {
-                    Swal.fire('Thất bại', result.message, 'error');
-                }
-            } catch (error) {
-                console.error(error);
-                Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
-            }
-        }
-
-        // Close when clicking outside
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                closeEditModal();
-            }
-            if (event.target == passwordModal) {
-                closeChangePasswordModal();
-            }
-        }
-
-        async function saveProfile() {
-            const fullName = document.getElementById('editFullName').value;
-            const phone = document.getElementById('editPhone').value;
-            const address = document.getElementById('editAddress').value;
-
-            if (!fullName || !phone) {
-                Swal.fire('Lỗi', 'Vui lòng nhập tên và số điện thoại', 'error');
-                return;
-            }
-
-            const data = {
-                fullName,
-                phone,
-                address
-            };
-
-            try {
-                const response = await fetch(`/api/users/${currentUserId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    Swal.fire('Thành công', 'Cập nhật thông tin thành công!', 'success').then(() => {
-                        // Update LocalStorage to keep session fresh
-                        const currentUser = JSON.parse(localStorage.getItem('user'));
-                        currentUser.fullName = fullName;
-                        localStorage.setItem('user', JSON.stringify(currentUser));
-
-                        closeEditModal();
-                        loadProfile(); // Reload UI
-                    });
-                } else {
-                    Swal.fire('Thất bại', result.message, 'error');
-                }
-            } catch (error) {
-                console.error(error);
-                Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
-            }
-        }
-
-        window.onload = loadProfile;
-    </script>
+    <script src="js/profile.js"></script>
 </body>
 
 </html>

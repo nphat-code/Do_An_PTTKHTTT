@@ -166,16 +166,20 @@ function renderProducts(products) {
     products.forEach(p => {
         const card = document.createElement("div");
         card.className = "product-card";
+        card.style.cursor = "pointer";
         const cauHinh = p.CauHinh || {};
         const hang = p.HangSanXuat ? p.HangSanXuat.tenHang : '';
         const configParts = [cauHinh.cpu, cauHinh.ram, cauHinh.oCung].filter(Boolean);
         const configText = configParts.length > 0 ? configParts.join(' | ') : 'Chưa cập nhật cấu hình';
         const stock = p.soLuongTon || 0;
+        const imageHtml = p.hinhAnh
+            ? `<img src="/${p.hinhAnh}" class="product-img" alt="${p.tenModel}" style="width:100%; height:200px; object-fit:cover;">`
+            : `<div class="product-img" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; height:200px;">
+                <i class="fas fa-laptop"></i>
+            </div>`;
 
         card.innerHTML = `
-            <div class="product-img" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; height:200px;">
-                <i class="fas fa-laptop"></i>
-            </div>
+            ${imageHtml}
             <div class="product-info">
                 ${hang ? `<div style="font-size:0.75rem; color:#6366f1; font-weight:600; margin-bottom:4px;">${hang}</div>` : ''}
                 <div class="product-name">${p.tenModel}</div>
@@ -184,12 +188,18 @@ function renderProducts(products) {
                 <p style="font-size: 0.8rem; color: ${stock > 0 ? 'green' : 'red'}">
                     ${stock > 0 ? `Còn lại: ${stock}` : 'Hết hàng'}
                 </p>
-                <button class="btn-buy" onclick="addToCart('${p.maModel}')" 
+                <button class="btn-buy" onclick="event.stopPropagation(); addToCart('${p.maModel}')" 
                     ${stock <= 0 ? 'disabled style="background:#ccc"' : ''}>
                     ${stock > 0 ? 'Thêm vào giỏ hàng' : 'Tạm hết hàng'}
                 </button>
             </div>
         `;
+
+        // Click card → trang chi tiết
+        card.onclick = () => {
+            window.location.href = `/product-detail.html?id=${encodeURIComponent(p.maModel)}`;
+        };
+
         productContainer.appendChild(card);
     });
 }

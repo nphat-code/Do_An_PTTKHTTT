@@ -6,10 +6,10 @@ const { Op } = require('sequelize');
 
 const register = async (req, res) => {
     try {
-        const { fullName, email, phone, address } = req.body;
+        const { fullName, email, password, phone, address } = req.body;
 
-        if (!fullName || !email) {
-            return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ họ tên và email" });
+        if (!fullName || !email || !password) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ họ tên, email và mật khẩu" });
         }
 
         // Check if user exists
@@ -21,13 +21,17 @@ const register = async (req, res) => {
         // Auto generate maKh
         const maKh = 'KH_' + Date.now();
 
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         // Create user
         const newUser = await KhachHang.create({
             maKh,
             hoTen: fullName,
             sdt: phone || null,
             email,
-            diaChi: address || null
+            diaChi: address || null,
+            matKhau: hashedPassword
         });
 
         res.status(201).json({ success: true, message: "Đăng ký thành công!" });
@@ -77,8 +81,13 @@ const login = async (req, res) => {
         // If not employee, check if it's a customer
         const customer = await KhachHang.findOne({ where: { email } });
         if (customer) {
-            // KhachHang không có trường mật khẩu, dùng SĐT làm mật khẩu đăng nhập
-            if (password !== customer.sdt) {
+            // Kiểm tra mật khẩu bằng bcrypt
+            if (!customer.matKhau) {
+                return res.status(400).json({ success: false, message: "Tài khoản chưa có mật khẩu. Vui lòng liên hệ Admin." });
+            }
+
+            const isMatch = await bcrypt.compare(password, customer.matKhau);
+            if (!isMatch) {
                 return res.status(400).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
             }
 
@@ -119,7 +128,38 @@ const resetPassword = async (req, res) => {
 };
 
 const getMe = async (req, res) => {
-    res.status(501).json({ success: false, message: "Tính năng lấy thông tin cá nhân đang được bảo trì" });
+    try {
+        const user = req.user;
+        if (!user) {
+            return res.status(401).json({ success: false, message: "Không tìm thấy thông tin người dùng" });
+        }
+
+        if (user.role === 'employee') {
+            return res.status(200).json({
+                success: true,
+                user: {
+                    id: user.maNv,
+                    fullName: user.hoTen,
+                    email: user.email,
+                    role: 'employee'
+                }
+            });
+        } else {
+            return res.status(200).json({
+                success: true,
+                user: {
+                    id: user.maKh,
+                    fullName: user.hoTen,
+                    email: user.email,
+                    phone: user.sdt,
+                    address: user.diaChi,
+                    role: 'customer'
+                }
+            });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 module.exports = {

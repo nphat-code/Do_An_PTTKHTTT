@@ -3,8 +3,8 @@ const token = sessionStorage.getItem('token');
 const user = JSON.parse(sessionStorage.getItem('user'));
 
 if (!token || !user || user.role !== 'employee') {
-    alert("Bạn cần đăng nhập quyền Admin!");
-    window.location.href = '/login.html';
+    alert("Bạn cần đăng nhập quyền Nhân viên!");
+    window.location.href = '/admin/login.html';
 }
 
 const productModal = document.getElementById("productModal");
@@ -59,6 +59,7 @@ function showTab(tabName) {
     if (tabName === 'products') loadProducts();
     if (tabName === 'orders') loadOrders();
     if (tabName === 'customers') loadCustomers();
+    if (tabName === 'employees') loadEmployees();
     if (tabName === 'inventory') loadImportHistory();
     if (tabName === 'stock') loadStockData();
 }
@@ -213,7 +214,7 @@ window.openEditModal = async (maModel) => {
 
         document.getElementById("productId").value = p.maModel;
         document.getElementById("maModel").value = p.maModel;
-        document.getElementById("maModel").disabled = true; // PK ko cho sửa
+        document.getElementById("maModel").disabled = true;
         document.getElementById("tenModel").value = p.tenModel || '';
         document.getElementById("maHang").value = p.maHang || '';
         document.getElementById("maLoai").value = p.maLoai || '';
@@ -226,6 +227,15 @@ window.openEditModal = async (maModel) => {
         document.getElementById("giaNhap").value = p.giaNhap || 0;
         document.getElementById("giaBan").value = p.giaBan || 0;
         document.getElementById("soLuongTon").value = p.soLuongTon || 0;
+
+        // Hiển ảnh hiện tại
+        const previewImg = document.getElementById('previewImg');
+        if (p.hinhAnh) {
+            previewImg.src = `/${p.hinhAnh}`;
+            previewImg.style.display = 'block';
+        } else {
+            previewImg.style.display = 'none';
+        }
     } catch (err) {
         console.error(err);
     }
@@ -233,25 +243,47 @@ window.openEditModal = async (maModel) => {
     productModal.style.display = "flex";
 };
 
+// Preview ảnh khi chọn file
+document.getElementById('hinhAnh').onchange = function (e) {
+    const file = e.target.files[0];
+    const previewImg = document.getElementById('previewImg');
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            previewImg.src = ev.target.result;
+            previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        previewImg.style.display = 'none';
+    }
+};
+
 productForm.onsubmit = async function (e) {
     e.preventDefault();
     const id = document.getElementById("productId").value;
 
-    const payload = {
-        maModel: document.getElementById("maModel").value,
-        tenModel: document.getElementById("tenModel").value,
-        maHang: document.getElementById("maHang").value || null,
-        maLoai: document.getElementById("maLoai").value || null,
-        cpu: document.getElementById("cpu").value,
-        ram: document.getElementById("ram").value,
-        oCung: document.getElementById("oCung").value,
-        vga: document.getElementById("vga").value,
-        manHinh: document.getElementById("manHinh").value,
-        pin: document.getElementById("pin").value,
-        giaNhap: document.getElementById("giaNhap").value,
-        giaBan: document.getElementById("giaBan").value,
-        soLuongTon: document.getElementById("soLuongTon").value
-    };
+    // Sử dụng FormData để hỗ trợ upload ảnh
+    const formData = new FormData();
+    formData.append('maModel', document.getElementById("maModel").value);
+    formData.append('tenModel', document.getElementById("tenModel").value);
+    formData.append('maHang', document.getElementById("maHang").value || '');
+    formData.append('maLoai', document.getElementById("maLoai").value || '');
+    formData.append('cpu', document.getElementById("cpu").value);
+    formData.append('ram', document.getElementById("ram").value);
+    formData.append('oCung', document.getElementById("oCung").value);
+    formData.append('vga', document.getElementById("vga").value);
+    formData.append('manHinh', document.getElementById("manHinh").value);
+    formData.append('pin', document.getElementById("pin").value);
+    formData.append('giaNhap', document.getElementById("giaNhap").value);
+    formData.append('giaBan', document.getElementById("giaBan").value);
+    formData.append('soLuongTon', document.getElementById("soLuongTon").value);
+
+    // Thêm file ảnh nếu có chọn
+    const fileInput = document.getElementById('hinhAnh');
+    if (fileInput.files[0]) {
+        formData.append('hinhAnh', fileInput.files[0]);
+    }
 
     const url = isEditMode ? `http://localhost:3000/api/products/${id}` : 'http://localhost:3000/api/products';
     const method = isEditMode ? 'PUT' : 'POST';
@@ -259,13 +291,14 @@ productForm.onsubmit = async function (e) {
     try {
         const response = await fetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: formData  // Không set Content-Type, browser sẽ tự set multipart/form-data
         });
 
         if (response.ok) {
             productModal.style.display = "none";
             document.getElementById("maModel").disabled = false;
+            document.getElementById('hinhAnh').value = ''; // Reset file input
+            document.getElementById('previewImg').style.display = 'none';
             Swal.fire({
                 icon: 'success',
                 title: 'Thành công!',
@@ -1049,7 +1082,155 @@ function logoutAdmin() {
         if (result.isConfirmed) {
             sessionStorage.removeItem('token');
             sessionStorage.removeItem('user');
-            window.location.href = '/login.html';
+            window.location.href = '/admin/login.html';
         }
     });
+}
+
+// ======================== QUẢN LÝ NHÂN VIÊN ========================
+
+async function loadEmployees() {
+    try {
+        const response = await fetch('/api/employees', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const result = await response.json();
+        if (result.success) {
+            const tbody = document.getElementById('employeeTableBody');
+            tbody.innerHTML = result.data.map(emp => `
+                <tr>
+                    <td>${emp.maNv}</td>
+                    <td>${emp.hoTen}</td>
+                    <td>${emp.email}</td>
+                    <td>${emp.sdt || '-'}</td>
+                    <td>
+                        <span style="color: ${emp.trangThai ? 'green' : 'red'}; font-weight: 600;">
+                            ${emp.trangThai ? '✅ Hoạt động' : '🔒 Đã khóa'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn-edit" onclick="toggleEmployee('${emp.maNv}', ${emp.trangThai})" title="${emp.trangThai ? 'Khóa' : 'Mở khóa'}">
+                            <i class="fas ${emp.trangThai ? 'fa-lock' : 'fa-unlock'}"></i>
+                        </button>
+                        <button class="btn-edit" onclick="resetEmpPassword('${emp.maNv}')" title="Đặt lại mật khẩu">
+                            <i class="fas fa-key"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Lỗi tải nhân viên:', error);
+    }
+}
+
+function openEmployeeModal() {
+    document.getElementById('employeeModal').style.display = 'flex';
+    document.getElementById('employeeForm').reset();
+    document.getElementById('empEditId').value = '';
+    document.getElementById('empMaNv').disabled = false;
+}
+
+function closeEmployeeModal() {
+    document.getElementById('employeeModal').style.display = 'none';
+}
+
+document.getElementById('employeeForm').onsubmit = async (e) => {
+    e.preventDefault();
+
+    const data = {
+        maNv: document.getElementById('empMaNv').value,
+        hoTen: document.getElementById('empHoTen').value,
+        email: document.getElementById('empEmail').value,
+        sdt: document.getElementById('empSdt').value,
+        matKhau: document.getElementById('empPassword').value
+    };
+
+    try {
+        const response = await fetch('/api/employees', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            Swal.fire('Thành công', result.message, 'success');
+            closeEmployeeModal();
+            loadEmployees();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+};
+
+async function toggleEmployee(maNv, currentStatus) {
+    const action = currentStatus ? 'khóa' : 'mở khóa';
+    const confirm = await Swal.fire({
+        title: `${currentStatus ? 'Khóa' : 'Mở khóa'} nhân viên?`,
+        text: `Bạn có chắc muốn ${action} tài khoản ${maNv}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Xác nhận',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const response = await fetch(`/api/employees/${maNv}/toggle`, {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire('Thành công', result.message, 'success');
+            loadEmployees();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+async function resetEmpPassword(maNv) {
+    const { value: newPassword } = await Swal.fire({
+        title: 'Đặt lại mật khẩu',
+        text: `Nhập mật khẩu mới cho nhân viên ${maNv}:`,
+        input: 'password',
+        inputPlaceholder: 'Mật khẩu mới (tối thiểu 6 ký tự)',
+        showCancelButton: true,
+        confirmButtonText: 'Đặt lại',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+            if (!value || value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
+        }
+    });
+
+    if (!newPassword) return;
+
+    try {
+        const response = await fetch(`/api/employees/${maNv}/reset-password`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ newPassword })
+        });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire('Thành công', result.message, 'success');
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
 }

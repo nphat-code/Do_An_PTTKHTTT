@@ -16,12 +16,14 @@ const orderRoutes = require('./routes/order.routes');
 const userRoutes = require('./routes/user.routes');
 const authRoutes = require('./routes/auth.routes');
 const importRoutes = require('./routes/import.routes');
+const employeeRoutes = require('./routes/employee.routes');
 
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/imports', importRoutes);
+app.use('/api/employees', employeeRoutes);
 
 sequelize.authenticate()
     .then(() => {

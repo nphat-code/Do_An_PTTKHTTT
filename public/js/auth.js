@@ -9,7 +9,6 @@ if (loginForm) {
     if (autoFillEmail && autoFillPassword) {
         document.getElementById('email').value = autoFillEmail;
         document.getElementById('password').value = autoFillPassword;
-        // Xóa thông tin đã lưu để không tự điền lần sau
         sessionStorage.removeItem('autoFillEmail');
         sessionStorage.removeItem('autoFillPassword');
     }
@@ -28,7 +27,20 @@ if (loginForm) {
             const result = await response.json();
 
             if (result.success) {
-                // Lưu token và thông tin user vào sessionStorage để tách biệt phiên làm việc giữa các tab
+                // Nếu là nhân viên → hướng dẫn sang trang login admin
+                if (result.user.role === 'employee') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Tài khoản nhân viên',
+                        text: 'Vui lòng đăng nhập tại trang quản lý.',
+                        confirmButtonText: 'Đến trang quản lý'
+                    }).then(() => {
+                        window.location.href = '/admin/login.html';
+                    });
+                    return;
+                }
+
+                // Khách hàng → lưu session và về trang chủ
                 sessionStorage.setItem('token', result.token);
                 sessionStorage.setItem('user', JSON.stringify(result.user));
 
@@ -38,12 +50,7 @@ if (loginForm) {
                     showConfirmButton: false,
                     timer: 1500
                 }).then(() => {
-                    // Redirect dựa trên role
-                    if (result.user.role === 'employee') {
-                        window.location.href = '/admin/';
-                    } else {
-                        window.location.href = '/';
-                    }
+                    window.location.href = '/';
                 });
             } else {
                 Swal.fire('Lỗi', result.message, 'error');
@@ -59,19 +66,15 @@ if (registerForm) {
         e.preventDefault();
         const fullName = document.getElementById('fullName').value;
         const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
         const phone = document.getElementById('phone').value;
         const address = document.getElementById('address').value;
-
-        if (!phone) {
-            Swal.fire('Lỗi', 'Vui lòng nhập số điện thoại (dùng làm mật khẩu đăng nhập)', 'error');
-            return;
-        }
 
         try {
             const response = await fetch('http://localhost:3000/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fullName, email, phone, address })
+                body: JSON.stringify({ fullName, email, password, phone, address })
             });
             const result = await response.json();
 
@@ -79,10 +82,10 @@ if (registerForm) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Đăng ký thành công',
-                    text: 'Mật khẩu đăng nhập là số điện thoại của bạn',
+                    text: 'Vui lòng đăng nhập',
                 }).then(() => {
                     sessionStorage.setItem('autoFillEmail', email);
-                    sessionStorage.setItem('autoFillPassword', phone); // SĐT dùng làm mật khẩu
+                    sessionStorage.setItem('autoFillPassword', password);
                     window.location.href = 'login.html';
                 });
             } else {

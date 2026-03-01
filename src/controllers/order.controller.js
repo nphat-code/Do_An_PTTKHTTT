@@ -218,10 +218,68 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
+// Lấy đơn hàng của khách hàng đang đăng nhập
+const getMyOrders = async (req, res) => {
+    try {
+        const maKh = req.user.maKh;
+        if (!maKh) {
+            return res.status(400).json({ success: false, message: 'Không tìm thấy thông tin khách hàng' });
+        }
+
+        const orders = await HoaDon.findAll({
+            where: { maKh },
+            include: [{
+                model: DongMay,
+                through: { attributes: ['soLuong', 'donGia', 'thanhTien'] }
+            }],
+            order: [['ngayLap', 'DESC']]
+        });
+
+        res.status(200).json({ success: true, data: orders });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Cập nhật thông tin cá nhân khách hàng
+const updateProfile = async (req, res) => {
+    try {
+        const maKh = req.user.maKh;
+        const { hoTen, sdt, diaChi } = req.body;
+
+        const customer = await KhachHang.findByPk(maKh);
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy khách hàng' });
+        }
+
+        await customer.update({
+            hoTen: hoTen || customer.hoTen,
+            sdt: sdt !== undefined ? sdt : customer.sdt,
+            diaChi: diaChi !== undefined ? diaChi : customer.diaChi
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Cập nhật thông tin thành công',
+            data: {
+                id: customer.maKh,
+                fullName: customer.hoTen,
+                email: customer.email,
+                phone: customer.sdt,
+                address: customer.diaChi
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
     getOrderById,
     updateOrderStatus,
-    getDashboardStats
+    getDashboardStats,
+    getMyOrders,
+    updateProfile
 };

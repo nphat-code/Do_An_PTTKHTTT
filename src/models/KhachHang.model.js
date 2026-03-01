@@ -8,7 +8,8 @@ const KhachHang = sequelize.define('KhachHang', {
     gioiTinh: { type: DataTypes.ENUM('Nam', 'Nữ', 'Khác') },
     sdt: { type: DataTypes.STRING(15) },
     email: { type: DataTypes.STRING },
-    diaChi: { type: DataTypes.TEXT }
+    diaChi: { type: DataTypes.TEXT },
+    matKhau: { type: DataTypes.STRING }
 }, { tableName: 'KHACH_HANG', timestamps: false });
 
 module.exports = KhachHang;

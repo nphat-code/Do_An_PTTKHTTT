@@ -22,6 +22,7 @@
                     <li><a href="#" data-tab="products"><i class="fas fa-laptop"></i> Sản phẩm</a></li>
                     <li><a href="#" data-tab="orders"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
                     <li><a href="#" data-tab="customers"><i class="fas fa-users"></i> Khách hàng</a></li>
+                    <li><a href="#" data-tab="employees"><i class="fas fa-user-tie"></i> Nhân viên</a></li>
                     <li><a href="#" data-tab="inventory"><i class="fas fa-file-import"></i> Nhập hàng</a></li>
                     <li><a href="#" data-tab="stock"><i class="fas fa-boxes"></i> Tồn kho</a></li>
                     <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
@@ -149,6 +150,31 @@
                             </tr>
                         </thead>
                         <tbody id="customerTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="employees-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý nhân viên</h1>
+                    <button class="btn-add" onclick="openEmployeeModal()"><i class="fas fa-plus"></i> Thêm nhân
+                        viên</button>
+                </header>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã NV</th>
+                                <th>Họ tên</th>
+                                <th>Email</th>
+                                <th>SĐT</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -359,6 +385,16 @@
                 </div>
 
                 <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
+                <h4 style="margin-bottom: 10px; color: #f59e0b;"><i class="fas fa-image"></i> Hình ảnh sản phẩm</h4>
+                <div class="form-group">
+                    <input type="file" id="hinhAnh" accept="image/*" style="margin-bottom: 8px;">
+                    <div id="imagePreview" style="margin-top: 5px;">
+                        <img id="previewImg" src="" alt=""
+                            style="max-height: 120px; border-radius: 8px; display: none; border: 2px solid #e5e7eb;">
+                    </div>
+                </div>
+
+                <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
                 <h4 style="margin-bottom: 10px; color: #10b981;"><i class="fas fa-money-bill-wave"></i> Giá &amp; Tồn
                     kho</h4>
 
@@ -460,6 +496,48 @@
             </div>
         </div>
     </div>
+
+    <!-- Employee Modal -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h2>Thêm nhân viên mới</h2>
+                <span class="close-btn" onclick="closeEmployeeModal()">&times;</span>
+            </div>
+            <form id="employeeForm">
+                <input type="hidden" id="empEditId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-id-badge"></i> Mã NV:</label>
+                        <input type="text" id="empMaNv" placeholder="VD: NV002" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Họ tên:</label>
+                        <input type="text" id="empHoTen" placeholder="Nhập họ tên..." required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-envelope"></i> Email:</label>
+                        <input type="email" id="empEmail" placeholder="Nhập email..." required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-phone"></i> SĐT:</label>
+                        <input type="text" id="empSdt" placeholder="Nhập SĐT...">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Mật khẩu:</label>
+                    <input type="password" id="empPassword" placeholder="Nhập mật khẩu..." required minlength="6">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeEmployeeModal()">Hủy</button>
+                    <button type="submit" class="btn-primary">Lưu nhân viên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="js/main.js"></script>
 </body>
 

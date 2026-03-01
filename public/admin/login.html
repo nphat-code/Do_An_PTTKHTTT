@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập Quản lý - Phát Laptop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .admin-login-container {
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 40px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .admin-login-header .icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            color: white;
+            font-size: 1.8rem;
+        }
+
+        .admin-login-header h2 {
+            font-size: 1.5rem;
+            color: #1f2937;
+            margin: 0 0 5px;
+        }
+
+        .admin-login-header p {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .admin-login-container .form-group {
+            margin-bottom: 18px;
+        }
+
+        .admin-login-container label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .admin-login-container input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .admin-login-container input:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+
+        .btn-admin-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-admin-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back-link a:hover {
+            color: #4f46e5;
+        }
+    </style>
+</head>
+
+<body class="auth-body">
+    <div class="admin-login-container">
+        <div class="admin-login-header">
+            <div class="icon">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h2>Đăng nhập Quản lý</h2>
+            <p>Dành cho nhân viên cửa hàng</p>
+        </div>
+
+        <form id="adminLoginForm">
+            <div class="form-group">
+                <label><i class="fas fa-envelope"></i> Email</label>
+                <input type="email" id="email" required placeholder="Nhập email nhân viên...">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i> Mật khẩu</label>
+                <input type="password" id="password" required placeholder="Nhập mật khẩu...">
+            </div>
+            <button type="submit" class="btn-admin-login">
+                <i class="fas fa-sign-in-alt"></i> Đăng Nhập
+            </button>
+        </form>
+
+        <div class="back-link">
+            <a href="/"><i class="fas fa-arrow-left"></i> Quay lại trang chủ</a>
+        </div>
+    </div>
+
+    <script>
+        // Nếu đã đăng nhập với role employee thì redirect luôn vào admin
+        const existingUser = JSON.parse(sessionStorage.getItem('user'));
+        if (existingUser && existingUser.role === 'employee') {
+            window.location.href = '/admin/';
+        }
+
+        document.getElementById('adminLoginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Chỉ cho phép nhân viên đăng nhập ở trang này
+                    if (result.user.role !== 'employee') {
+                        Swal.fire('Không có quyền', 'Trang này chỉ dành cho nhân viên. Vui lòng dùng trang đăng nhập khách hàng.', 'warning');
+                        return;
+                    }
+
+                    sessionStorage.setItem('token', result.token);
+                    sessionStorage.setItem('user', JSON.stringify(result.user));
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đăng nhập thành công',
+                        text: 'Chào mừng ' + result.user.fullName,
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.href = '/admin/';
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Lỗi', 'Không thể kết nối đến server', 'error');
+            }
+        };
+    </script>
+</body>
+
+</html>

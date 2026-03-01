@@ -104,12 +104,14 @@ const createProduct = async (req, res) => {
         }
 
         // 2. Create DongMay
+        const hinhAnh = req.file ? `uploads/products/${req.file.filename}` : null;
         const newProduct = await DongMay.create({
             maModel,
             tenModel,
             giaNhap: giaNhap ? Number(giaNhap) : null,
             giaBan: giaBan ? Number(giaBan) : null,
             soLuongTon: soLuongTon ? Number(soLuongTon) : 0,
+            hinhAnh,
             maCh: maCh,
             maHang: maHang || null,
             maLoai: maLoai || null
@@ -181,6 +183,7 @@ const updateProduct = async (req, res) => {
         if (soLuongTon !== undefined) updateData.soLuongTon = Number(soLuongTon);
         if (maHang !== undefined) updateData.maHang = maHang || null;
         if (maLoai !== undefined) updateData.maLoai = maLoai || null;
+        if (req.file) updateData.hinhAnh = `uploads/products/${req.file.filename}`;
 
         await product.update(updateData, { transaction: t });
 
