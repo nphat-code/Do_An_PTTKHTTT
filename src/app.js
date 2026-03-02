@@ -19,6 +19,8 @@ const importRoutes = require('./routes/import.routes');
 const employeeRoutes = require('./routes/employee.routes');
 const supplierRoutes = require('./routes/supplier.routes');
 const brandRoutes = require('./routes/brand.routes');
+const branchRoutes = require('./routes/branch.routes');
+const warehouseRoutes = require('./routes/warehouse.routes');
 
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
@@ -28,6 +30,8 @@ app.use('/api/imports', importRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/brands', brandRoutes);
+app.use('/api/branches', branchRoutes);
+app.use('/api/warehouses', warehouseRoutes);
 
 sequelize.authenticate()
     .then(() => {

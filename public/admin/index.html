@@ -26,6 +26,7 @@
                     <li><a href="#" data-tab="inventory"><i class="fas fa-file-import"></i> Nhập hàng</a></li>
                     <li><a href="#" data-tab="suppliers"><i class="fas fa-truck"></i> Nhà cung cấp</a></li>
                     <li><a href="#" data-tab="brands"><i class="fas fa-industry"></i> Hãng sản xuất</a></li>
+                    <li><a href="#" data-tab="branches"><i class="fas fa-code-branch"></i> Chi nhánh</a></li>
                     <li><a href="#" data-tab="stock"><i class="fas fa-boxes"></i> Tồn kho</a></li>
                     <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
                     <li><a href="#"><i class="fas fa-cog"></i> Cài đặt</a></li>
@@ -315,6 +316,37 @@
                             </tr>
                         </thead>
                         <tbody id="brandTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="branches-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý chi nhánh</h1>
+                    <button class="btn-add" onclick="openBranchModal()">
+                        <i class="fas fa-plus" style="margin-right: 8px;"></i> Thêm chi nhánh
+                    </button>
+                </header>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchBranchInput" placeholder="Tìm kiếm chi nhánh..."
+                        oninput="loadBranches()">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã CN</th>
+                                <th>Tên chi nhánh</th>
+                                <th>Địa chỉ</th>
+                                <th>Quản lý</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="branchTableBody">
                         </tbody>
                     </table>
                 </div>
