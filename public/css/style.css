@@ -65,7 +65,8 @@ ul {
 /* Layout Structure */
 .container {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 /* Sidebar Styles */
@@ -74,13 +75,30 @@ ul {
     background-color: #1e293b;
     /* Slate 800 */
     color: #f8fafc;
-    position: sticky;
-    top: 0;
     height: 100vh;
     display: flex;
     flex-direction: column;
     box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
     z-index: 100;
+    overflow-y: auto;
+}
+
+/* Custom internal scrollbar for sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #1e293b;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
 }
 
 .sidebar h2 {
@@ -129,6 +147,7 @@ ul {
     flex: 1;
     padding: 30px 40px;
     width: calc(100% - var(--sidebar-width));
+    height: 100vh;
     overflow-y: auto;
 }
 

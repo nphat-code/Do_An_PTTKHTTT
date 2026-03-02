@@ -11,6 +11,9 @@ router.post('/', employeeController.createEmployee);
 // PUT /api/employees/:id/toggle - Khóa/mở khóa
 router.put('/:id/toggle', employeeController.toggleEmployeeStatus);
 
+// PUT /api/employees/:id - Cập nhật thông tin cơ bản
+router.put('/:id', employeeController.updateEmployee);
+
 // PUT /api/employees/:id/reset-password - Đặt lại mật khẩu
 router.put('/:id/reset-password', employeeController.resetEmployeePassword);
 

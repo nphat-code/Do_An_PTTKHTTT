@@ -1,12 +1,16 @@
-const { NhanVien } = require('../models/index');
+const { NhanVien, ChucVu, ChiNhanh } = require('../models/index');
 const bcrypt = require('bcryptjs');
 
 // Lấy danh sách nhân viên
 const getAllEmployees = async (req, res) => {
     try {
         const employees = await NhanVien.findAll({
-            attributes: ['maNv', 'hoTen', 'email', 'sdt', 'trangThai'],
-            order: [['maNv', 'ASC']]
+            attributes: ['maNv', 'hoTen', 'email', 'sdt', 'trangThai', 'maCv', 'maCn'],
+            order: [['maNv', 'ASC']],
+            include: [
+                { model: ChucVu, attributes: ['tenCv'] },
+                { model: ChiNhanh, attributes: ['tenCn'] }
+            ]
         });
         res.status(200).json({ success: true, data: employees });
     } catch (error) {
@@ -17,7 +21,7 @@ const getAllEmployees = async (req, res) => {
 // Tạo nhân viên mới
 const createEmployee = async (req, res) => {
     try {
-        const { maNv, hoTen, email, sdt, matKhau } = req.body;
+        const { maNv, hoTen, email, sdt, matKhau, maCv, maCn } = req.body;
 
         if (!maNv || !hoTen || !email || !matKhau) {
             return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ: Mã NV, Họ tên, Email, Mật khẩu" });
@@ -44,7 +48,9 @@ const createEmployee = async (req, res) => {
             email,
             sdt: sdt || null,
             matKhau: hashedPassword,
-            trangThai: true
+            trangThai: true,
+            maCv: maCv || null,
+            maCn: maCn || null
         });
 
         res.status(201).json({
@@ -105,9 +111,33 @@ const resetEmployeePassword = async (req, res) => {
     }
 };
 
+// Cập nhật thông tin cơ bản nhân viên (Chức vụ, Chi nhánh)
+const updateEmployee = async (req, res) => {
+    try {
+        const { hoTen, sdt, maCv, maCn } = req.body;
+
+        const employee = await NhanVien.findByPk(req.params.id);
+        if (!employee) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy nhân viên" });
+        }
+
+        await employee.update({
+            hoTen,
+            sdt: sdt || null,
+            maCv: maCv || null,
+            maCn: maCn || null
+        });
+
+        res.status(200).json({ success: true, message: "Đã cập nhật thông tin nhân viên" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllEmployees,
     createEmployee,
+    updateEmployee,
     toggleEmployeeStatus,
     resetEmployeePassword
 };

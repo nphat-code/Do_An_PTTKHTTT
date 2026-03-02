@@ -425,6 +425,12 @@ showTab = function (tabName) {
         loadBrands();
     } else if (tabName === 'branches') {
         loadBranches();
+    } else if (tabName === 'warehouses') {
+        loadWarehouses();
+    } else if (tabName === 'roles') {
+        loadRoles();
+    } else if (tabName === 'employees') {
+        loadEmployees();
     } else if (tabName === 'overview') {
         loadDashboardStats();
     }
@@ -1744,6 +1750,512 @@ async function deleteBranch(maCn) {
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
             loadBranches();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+// ==================== QUẢN LÝ KHO ====================
+
+let editingWarehouse = null;
+
+async function loadWarehouses() {
+    try {
+        const search = document.getElementById('searchWarehouseInput')?.value || '';
+        const response = await fetch(`/api/warehouses?search=${encodeURIComponent(search)}`);
+        const result = await response.json();
+        if (result.success) {
+            renderWarehousesTable(result.data);
+        }
+    } catch (error) {
+        console.error('Lỗi tải Kho:', error);
+    }
+}
+
+function renderWarehousesTable(warehouses) {
+    const tbody = document.getElementById('warehouseTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = warehouses.map(w => `
+        <tr>
+            <td><strong>${w.maKho}</strong></td>
+            <td>${w.tenKho}</td>
+            <td>${w.diaChi || '—'}</td>
+            <td>${w.loaiKho || '—'}</td>
+            <td>${w.ChiNhanh ? `<i class="fas fa-code-branch" style="color: #6366f1; margin-right: 4px;"></i> ${w.ChiNhanh.tenCn}` : '—'}</td>
+            <td>
+                <span style="display:inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; white-space: nowrap; ${w.trangThai ? 'background-color: #d1fae5; color: #065f46;' : 'background-color: #fee2e2; color: #991b1b;'}">
+                    ${w.trangThai ? 'Hoạt động' : 'Ngừng HĐ'}
+                </span>
+            </td>
+            <td>
+                <button class="btn-edit" onclick='editWarehouse(${JSON.stringify(w)})'><i class="fas fa-edit"></i></button>
+                <button class="btn-delete" onclick="deleteWarehouse('${w.maKho}')"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function openWarehouseModal(warehouse = null) {
+    editingWarehouse = warehouse;
+
+    // Fetch branches for dropdown
+    let branchOptions = '<option value="">-- Chọn chi nhánh --</option>';
+    try {
+        const res = await fetch('/api/warehouses/branches');
+        const result = await res.json();
+        if (result.success) {
+            branchOptions += result.data.map(cn =>
+                `<option value="${cn.maCn}" ${warehouse?.maCn === cn.maCn ? 'selected' : ''}>${cn.tenCn} (${cn.maCn})</option>`
+            ).join('');
+        }
+    } catch (e) {
+        console.error('Lỗi lấy danh sách chi nhánh', e);
+    }
+
+    const loaiKhoOptions = ['Kho lưu trữ', 'Kho trưng bày', 'Kho bảo hành'];
+    const typeOptionsHtml = loaiKhoOptions.map(loai =>
+        `<option value="${loai}" ${warehouse?.loaiKho === loai ? 'selected' : ''}>${loai}</option>`
+    ).join('');
+
+    Swal.fire({
+        title: warehouse ? 'Cập nhật kho' : 'Thêm kho mới',
+        html: `
+            <div style="text-align:left;">
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mã kho <span style="color:red;">*</span></label>
+                    <input id="swalMaKho" class="swal2-input" style="width:100%; margin:0;" value="${warehouse?.maKho || ''}" ${warehouse ? 'disabled' : ''} placeholder="VD: KH01">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Tên kho <span style="color:red;">*</span></label>
+                    <input id="swalTenKho" class="swal2-input" style="width:100%; margin:0;" value="${warehouse?.tenKho || ''}" placeholder="VD: Kho chính Quận 1">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Địa chỉ</label>
+                    <input id="swalDiaChiKho" class="swal2-input" style="width:100%; margin:0;" value="${warehouse?.diaChi || ''}" placeholder="VD: 123 Lê Lợi...">
+                </div>
+                <div style="margin-bottom:12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Loại kho</label>
+                        <select id="swalLoaiKho" class="swal2-input" style="width:100%; margin:0; appearance:auto !important; -webkit-appearance:auto !important; -moz-appearance:auto !important;">
+                            ${typeOptionsHtml}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Trạng thái</label>
+                        <select id="swalTrangThaiKho" class="swal2-input" style="width:100%; margin:0; appearance:auto !important; -webkit-appearance:auto !important; -moz-appearance:auto !important;">
+                            <option value="true" ${warehouse?.trangThai !== false ? 'selected' : ''}>Hoạt động</option>
+                            <option value="false" ${warehouse?.trangThai === false ? 'selected' : ''}>Ngừng HĐ</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Chi nhánh trực thuộc</label>
+                    <select id="swalMaCn" class="swal2-input" style="width:100%; margin:0; appearance:auto !important; -webkit-appearance:auto !important; -moz-appearance:auto !important;">
+                        ${branchOptions}
+                    </select>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: warehouse ? 'Cập nhật' : 'Thêm mới',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#6366f1',
+        preConfirm: () => {
+            const maKho = document.getElementById('swalMaKho').value.trim();
+            const tenKho = document.getElementById('swalTenKho').value.trim();
+            if (!maKho || !tenKho) {
+                Swal.showValidationMessage('Vui lòng nhập mã và tên kho');
+                return false;
+            }
+            return {
+                maKho,
+                tenKho,
+                diaChi: document.getElementById('swalDiaChiKho').value.trim(),
+                loaiKho: document.getElementById('swalLoaiKho').value,
+                trangThai: document.getElementById('swalTrangThaiKho').value === 'true',
+                maCn: document.getElementById('swalMaCn').value || null
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await saveWarehouse(result.value, !!warehouse);
+        }
+    });
+}
+
+function editWarehouse(warehouse) {
+    openWarehouseModal(warehouse);
+}
+
+async function saveWarehouse(data, isEdit) {
+    try {
+        const url = isEdit ? `/api/warehouses/${data.maKho}` : '/api/warehouses';
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadWarehouses();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+async function deleteWarehouse(maKho) {
+    const confirm = await Swal.fire({
+        title: 'Xóa hệ thống kho?',
+        text: `Bạn có chắc muốn xóa kho: ${maKho}? LƯU Ý: Nếu kho đang chứa sản phẩm, hệ thống sẽ tự động cập nhật trạng thái Ngừng Hoạt Động thay vì xóa.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xác nhận xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#ef4444'
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const response = await fetch(`/api/warehouses/${maKho}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadWarehouses();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+// ==================== QUẢN LÝ CHỨC VỤ ====================
+
+let editingRole = null;
+
+async function loadRoles() {
+    try {
+        const search = document.getElementById('searchRoleInput')?.value || '';
+        const response = await fetch(`/api/roles?search=${encodeURIComponent(search)}`);
+        const result = await response.json();
+        if (result.success) {
+            renderRolesTable(result.data);
+        }
+    } catch (error) {
+        console.error('Lỗi tải Chức vụ:', error);
+    }
+}
+
+function renderRolesTable(roles) {
+    const tbody = document.getElementById('roleTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = roles.map(r => `
+        <tr>
+            <td><strong>${r.maCv}</strong></td>
+            <td>${r.tenCv}</td>
+            <td>${r.moTa || '—'}</td>
+            <td>${r.luongCoBan ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(r.luongCoBan) : '—'}</td>
+            <td>
+                <button class="btn-edit" onclick='editRole(${JSON.stringify(r)})'><i class="fas fa-edit"></i></button>
+                <button class="btn-delete" onclick="deleteRole('${r.maCv}')"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function openRoleModal(role = null) {
+    editingRole = role;
+
+    Swal.fire({
+        title: role ? 'Cập nhật chức vụ' : 'Thêm chức vụ mới',
+        html: `
+            <div style="text-align:left;">
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mã chức vụ <span style="color:red;">*</span></label>
+                    <input id="swalMaCv" class="swal2-input" style="width:100%; margin:0;" value="${role?.maCv || ''}" ${role ? 'disabled' : ''} placeholder="VD: CV1">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Tên chức vụ <span style="color:red;">*</span></label>
+                    <input id="swalTenCv" class="swal2-input" style="width:100%; margin:0;" value="${role?.tenCv || ''}" placeholder="VD: Quản lý">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mô tả</label>
+                    <input id="swalMoTa" class="swal2-input" style="width:100%; margin:0;" value="${role?.moTa || ''}" placeholder="Mô tả chức vụ">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Lương cơ bản (VND)</label>
+                    <input id="swalLuongCoBan" type="number" class="swal2-input" style="width:100%; margin:0;" value="${role?.luongCoBan || ''}" placeholder="VD: 10000000">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: role ? 'Cập nhật' : 'Thêm mới',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#6366f1',
+        preConfirm: () => {
+            const maCv = document.getElementById('swalMaCv').value.trim();
+            const tenCv = document.getElementById('swalTenCv').value.trim();
+            if (!maCv || !tenCv) {
+                Swal.showValidationMessage('Vui lòng nhập mã và tên chức vụ');
+                return false;
+            }
+            return {
+                maCv,
+                tenCv,
+                moTa: document.getElementById('swalMoTa').value.trim(),
+                luongCoBan: document.getElementById('swalLuongCoBan').value || null
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await saveRole(result.value, !!role);
+        }
+    });
+}
+
+function editRole(role) {
+    openRoleModal(role);
+}
+
+async function saveRole(data, isEdit) {
+    try {
+        const url = isEdit ? `/api/roles/${data.maCv}` : '/api/roles';
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadRoles();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+async function deleteRole(maCv) {
+    const confirm = await Swal.fire({
+        title: 'Xóa chức vụ?',
+        text: `Bạn có chắc muốn xóa chức vụ: ${maCv}? LƯU Ý: Không thể xóa nếu đang có nhân viên giữ chức vụ này.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xác nhận xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#ef4444'
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const response = await fetch(`/api/roles/${maCv}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadRoles();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+// ==================== QUẢN LÝ NHÂN VIÊN ====================
+
+let editingEmployee = null;
+
+async function loadEmployees() {
+    try {
+        const response = await fetch('/api/employees');
+        const result = await response.json();
+        if (result.success) {
+            renderEmployeesTable(result.data);
+        }
+    } catch (error) {
+        console.error('Lỗi tải nhân viên:', error);
+    }
+}
+
+function renderEmployeesTable(employees) {
+    const tbody = document.getElementById('employeeTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = employees.map(e => `
+        <tr>
+            <td><strong>${e.maNv}</strong></td>
+            <td>${e.hoTen}</td>
+            <td>${e.email}</td>
+            <td>${e.sdt || '—'}</td>
+            <td>${e.ChucVu ? e.ChucVu.tenCv : '—'}</td>
+            <td>${e.ChiNhanh ? e.ChiNhanh.tenCn : '—'}</td>
+            <td>
+                <span class="status-badge ${e.trangThai ? 'status-active' : 'status-inactive'}">
+                    ${e.trangThai ? 'Hoạt động' : 'Đã khóa'}
+                </span>
+            </td>
+            <td>
+                <button class="btn-edit" onclick='editEmployee(${JSON.stringify(e)})'><i class="fas fa-edit"></i></button>
+                <button class="btn-delete" style="background:${e.trangThai ? '#ef4444' : '#10b981'}" onclick="toggleEmployee('${e.maNv}', ${e.trangThai})">
+                    <i class="fas ${e.trangThai ? 'fa-lock' : 'fa-unlock'}"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function openEmployeeModal(employee = null) {
+    editingEmployee = employee;
+
+    // Fetch branches and roles for dropdowns
+    let branches = [], roles = [];
+    try {
+        const [resBranches, resRoles] = await Promise.all([
+            fetch('/api/branches'),
+            fetch('/api/roles')
+        ]);
+        const branchData = await resBranches.json();
+        const roleData = await resRoles.json();
+        if (branchData.success) branches = branchData.data;
+        if (roleData.success) roles = roleData.data;
+    } catch (err) {
+        console.error("Lỗi tải data dropdown:", err);
+    }
+
+    const branchOptions = branches.map(b => `<option value="${b.maCn}" ${employee?.maCn === b.maCn ? 'selected' : ''}>${b.tenCn}</option>`).join('');
+    const roleOptions = roles.map(r => `<option value="${r.maCv}" ${employee?.maCv === r.maCv ? 'selected' : ''}>${r.tenCv}</option>`).join('');
+
+    Swal.fire({
+        title: employee ? 'Cập nhật nhân viên' : 'Thêm nhân viên mới',
+        width: 600,
+        html: `
+            <div style="text-align:left;">
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <div style="flex:1;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mã NV <span style="color:red;">*</span></label>
+                        <input id="swalMaNv" class="swal2-input" style="width:100%; margin:0;" value="${employee?.maNv || ''}" ${employee ? 'disabled' : ''} placeholder="VD: NV01">
+                    </div>
+                    <div style="flex:2;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Họ và tên <span style="color:red;">*</span></label>
+                        <input id="swalHoTen" class="swal2-input" style="width:100%; margin:0;" value="${employee?.hoTen || ''}" placeholder="Nguyễn Văn A">
+                    </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Email <span style="color:red;">*</span></label>
+                    <input id="swalEmail" type="email" class="swal2-input" style="width:100%; margin:0;" value="${employee?.email || ''}" ${employee ? 'disabled' : ''} placeholder="nv@gmail.com">
+                </div>
+                ${!employee ? `
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mật khẩu <span style="color:red;">*</span></label>
+                    <input id="swalMatKhau" type="password" class="swal2-input" style="width:100%; margin:0;" placeholder="Nhập mật khẩu">
+                </div>
+                ` : ''}
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <div style="flex:1;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Số điện thoại</label>
+                        <input id="swalSdt" class="swal2-input" style="width:100%; margin:0;" value="${employee?.sdt || ''}" placeholder="09xxxx">
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <div style="flex:1;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Chức vụ</label>
+                        <select id="swalMaCv" class="swal2-select" style="width:100%; margin:0; padding:10px; border:1px solid #d9d9d9; border-radius:4px; font-size:1rem;">
+                            <option value="">-- Chọn chức vụ --</option>
+                            ${roleOptions}
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Chi nhánh</label>
+                        <select id="swalMaCn" class="swal2-select" style="width:100%; margin:0; padding:10px; border:1px solid #d9d9d9; border-radius:4px; font-size:1rem;">
+                            <option value="">-- Chọn chi nhánh --</option>
+                            ${branchOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: employee ? 'Cập nhật' : 'Thêm mới',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#6366f1',
+        preConfirm: () => {
+            const maNv = document.getElementById('swalMaNv').value.trim();
+            const hoTen = document.getElementById('swalHoTen').value.trim();
+            const email = document.getElementById('swalEmail')?.value.trim();
+            const matKhau = document.getElementById('swalMatKhau')?.value;
+
+            if (!maNv || !hoTen || (!employee && (!email || !matKhau))) {
+                Swal.showValidationMessage('Vui lòng nhập đầy đủ các trường bắt buộc');
+                return false;
+            }
+            return {
+                maNv, hoTen, email, matKhau,
+                sdt: document.getElementById('swalSdt').value.trim(),
+                maCv: document.getElementById('swalMaCv').value || null,
+                maCn: document.getElementById('swalMaCn').value || null
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await saveEmployee(result.value, !!employee);
+        }
+    });
+}
+
+function editEmployee(employee) {
+    openEmployeeModal(employee);
+}
+
+async function saveEmployee(data, isEdit) {
+    try {
+        const url = isEdit ? `/api/employees/${data.maNv}` : '/api/employees';
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadEmployees();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+async function toggleEmployee(maNv, currentStatus) {
+    const action = currentStatus ? 'khóa' : 'mở khóa';
+    const confirm = await Swal.fire({
+        title: `${action.charAt(0).toUpperCase() + action.slice(1)} nhân viên?`,
+        text: `Bạn có chắc muốn ${action} nhân viên: ${maNv}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xác nhận',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: currentStatus ? '#ef4444' : '#10b981'
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const response = await fetch(`/api/employees/${maNv}/toggle`, { method: 'PUT' });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadEmployees();
         } else {
             Swal.fire('Lỗi', result.message, 'error');
         }

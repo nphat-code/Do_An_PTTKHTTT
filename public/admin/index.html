@@ -23,10 +23,12 @@
                     <li><a href="#" data-tab="orders"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
                     <li><a href="#" data-tab="customers"><i class="fas fa-users"></i> Khách hàng</a></li>
                     <li><a href="#" data-tab="employees"><i class="fas fa-user-tie"></i> Nhân viên</a></li>
+                    <li><a href="#" data-tab="roles"><i class="fas fa-id-badge"></i> Chức vụ</a></li>
                     <li><a href="#" data-tab="inventory"><i class="fas fa-file-import"></i> Nhập hàng</a></li>
                     <li><a href="#" data-tab="suppliers"><i class="fas fa-truck"></i> Nhà cung cấp</a></li>
                     <li><a href="#" data-tab="brands"><i class="fas fa-industry"></i> Hãng sản xuất</a></li>
                     <li><a href="#" data-tab="branches"><i class="fas fa-code-branch"></i> Chi nhánh</a></li>
+                    <li><a href="#" data-tab="warehouses"><i class="fas fa-warehouse"></i> Quản lý kho</a></li>
                     <li><a href="#" data-tab="stock"><i class="fas fa-boxes"></i> Tồn kho</a></li>
                     <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
                     <li><a href="#"><i class="fas fa-cog"></i> Cài đặt</a></li>
@@ -173,6 +175,8 @@
                                 <th>Họ tên</th>
                                 <th>Email</th>
                                 <th>SĐT</th>
+                                <th>Chức vụ</th>
+                                <th>Chi nhánh</th>
                                 <th>Trạng thái</th>
                                 <th>Thao tác</th>
                             </tr>
@@ -347,6 +351,69 @@
                             </tr>
                         </thead>
                         <tbody id="branchTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="warehouses-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý kho</h1>
+                    <button class="btn-add" onclick="openWarehouseModal()">
+                        <i class="fas fa-plus" style="margin-right: 8px;"></i> Thêm kho
+                    </button>
+                </header>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchWarehouseInput" placeholder="Tìm kiếm kho..."
+                        oninput="loadWarehouses()">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã kho</th>
+                                <th>Tên kho</th>
+                                <th>Địa chỉ</th>
+                                <th>Loại kho</th>
+                                <th>Chi nhánh</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="warehouseTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="roles-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý chức vụ</h1>
+                    <button class="btn-add" onclick="openRoleModal()">
+                        <i class="fas fa-plus" style="margin-right: 8px;"></i> Thêm chức vụ
+                    </button>
+                </header>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchRoleInput" placeholder="Tìm kiếm chức vụ..." oninput="loadRoles()">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã CV</th>
+                                <th>Tên chức vụ</th>
+                                <th>Mô tả</th>
+                                <th>Lương cơ bản</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roleTableBody">
                         </tbody>
                     </table>
                 </div>
