@@ -1,4 +1,4 @@
-const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon, ChiTietMay } = require('../models/index');
+const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon, ChiTietMay, HinhThucThanhToan } = require('../models/index');
 const { Op } = require('sequelize');
 
 const generateOrderCode = () => {
@@ -88,6 +88,12 @@ const createOrder = async (req, res) => {
 
         // 4. Tạo hóa đơn chính
         const maHd = generateOrderCode();
+        // Validate maHttt - only use if it's a valid FK, otherwise null
+        let validMaHttt = null;
+        if (maHttt) {
+            const httt = await HinhThucThanhToan.findByPk(maHttt, { transaction: t });
+            if (httt) validMaHttt = maHttt;
+        }
         const order = await HoaDon.create({
             maHd: maHd,
             ngayLap: new Date(),
@@ -95,7 +101,7 @@ const createOrder = async (req, res) => {
             ghiChu: customerInfo.ghiChu || '',
             trangThai: 'Chờ xử lý',
             maKh: customer.maKh,
-            maHttt: maHttt || null,
+            maHttt: validMaHttt,
             maKm: maKm || null,
         }, { transaction: t });
 
@@ -371,6 +377,28 @@ const updateProfile = async (req, res) => {
     }
 };
 
+const getSerialsForOrder = async (req, res) => {
+    try {
+        const { id, modelId } = req.params;
+        const serials = await ChiTietMay.findAll({
+            where: { maHd: id, maModel: modelId, trangThai: 'Đã bán' },
+            attributes: ['soSerial']
+        });
+        res.json({ success: true, data: serials.map(s => s.soSerial) });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const getPaymentMethods = async (req, res) => {
+    try {
+        const methods = await HinhThucThanhToan.findAll({ order: [['tenHttt', 'ASC']] });
+        res.json({ success: true, data: methods });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
@@ -378,5 +406,7 @@ module.exports = {
     updateOrderStatus,
     getDashboardStats,
     getMyOrders,
-    updateProfile
+    updateProfile,
+    getSerialsForOrder,
+    getPaymentMethods
 };

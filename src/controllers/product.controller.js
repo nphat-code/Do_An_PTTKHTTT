@@ -84,7 +84,7 @@ const getProductById = async (req, res) => {
 const createProduct = async (req, res) => {
     const t = await sequelize.transaction();
     try {
-        const { maModel, tenModel, giaNhap, giaBan, soLuongTon, maHang, maLoai,
+        const { maModel, tenModel, giaNhap, giaBan, maHang, maLoai,
             cpu, ram, oCung, vga, manHinh, pin, trongLuong } = req.body;
 
         // 1. Create CauHinh if any config field is provided
@@ -110,7 +110,7 @@ const createProduct = async (req, res) => {
             tenModel,
             giaNhap: giaNhap ? Number(giaNhap) : null,
             giaBan: giaBan ? Number(giaBan) : null,
-            soLuongTon: soLuongTon ? Number(soLuongTon) : 0,
+            soLuongTon: 0,
             hinhAnh,
             maCh: maCh,
             maHang: maHang || null,
@@ -148,7 +148,7 @@ const updateProduct = async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy" });
         }
 
-        const { tenModel, giaNhap, giaBan, soLuongTon, maHang, maLoai,
+        const { tenModel, giaNhap, giaBan, maHang, maLoai,
             cpu, ram, oCung, vga, manHinh, pin, trongLuong } = req.body;
 
         // Update CauHinh
@@ -180,7 +180,6 @@ const updateProduct = async (req, res) => {
         if (tenModel !== undefined) updateData.tenModel = tenModel;
         if (giaNhap !== undefined) updateData.giaNhap = Number(giaNhap);
         if (giaBan !== undefined) updateData.giaBan = Number(giaBan);
-        if (soLuongTon !== undefined) updateData.soLuongTon = Number(soLuongTon);
         if (maHang !== undefined) updateData.maHang = maHang || null;
         if (maLoai !== undefined) updateData.maLoai = maLoai || null;
         if (req.file) updateData.hinhAnh = `uploads/products/${req.file.filename}`;
@@ -236,6 +235,19 @@ const getCategories = async (req, res) => {
     }
 };
 
+const getProductSerials = async (req, res) => {
+    try {
+        const { ChiTietMay } = require('../models/index');
+        const serials = await ChiTietMay.findAll({
+            where: { maModel: req.params.id, trangThai: 'Trong kho' },
+            attributes: ['soSerial']
+        });
+        res.status(200).json({ success: true, data: serials });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllProducts,
     getProductById,
@@ -243,5 +255,6 @@ module.exports = {
     updateProduct,
     deleteProduct,
     getBrands,
-    getCategories
+    getCategories,
+    getProductSerials
 };

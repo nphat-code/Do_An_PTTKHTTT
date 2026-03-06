@@ -1,15 +1,14 @@
-const { NhanVien, ChucVu, ChiNhanh } = require('../models/index');
+const { NhanVien, ChucVu } = require('../models/index');
 const bcrypt = require('bcryptjs');
 
 // Lấy danh sách nhân viên
 const getAllEmployees = async (req, res) => {
     try {
         const employees = await NhanVien.findAll({
-            attributes: ['maNv', 'hoTen', 'email', 'sdt', 'trangThai', 'maCv', 'maCn'],
+            attributes: ['maNv', 'hoTen', 'email', 'sdt', 'trangThai', 'maCv'],
             order: [['maNv', 'ASC']],
             include: [
-                { model: ChucVu, attributes: ['tenCv'] },
-                { model: ChiNhanh, attributes: ['tenCn'] }
+                { model: ChucVu, attributes: ['tenCv'] }
             ]
         });
         res.status(200).json({ success: true, data: employees });
@@ -49,8 +48,7 @@ const createEmployee = async (req, res) => {
             sdt: sdt || null,
             matKhau: hashedPassword,
             trangThai: true,
-            maCv: maCv || null,
-            maCn: maCn || null
+            maCv: maCv || null
         });
 
         res.status(201).json({
@@ -111,10 +109,10 @@ const resetEmployeePassword = async (req, res) => {
     }
 };
 
-// Cập nhật thông tin cơ bản nhân viên (Chức vụ, Chi nhánh)
+// Cập nhật thông tin cơ bản nhân viên (Chức vụ)
 const updateEmployee = async (req, res) => {
     try {
-        const { hoTen, sdt, maCv, maCn } = req.body;
+        const { hoTen, sdt, maCv } = req.body;
 
         const employee = await NhanVien.findByPk(req.params.id);
         if (!employee) {
@@ -124,8 +122,7 @@ const updateEmployee = async (req, res) => {
         await employee.update({
             hoTen,
             sdt: sdt || null,
-            maCv: maCv || null,
-            maCn: maCn || null
+            maCv: maCv || null
         });
 
         res.status(200).json({ success: true, message: "Đã cập nhật thông tin nhân viên" });

@@ -226,7 +226,6 @@ window.openEditModal = async (maModel) => {
         document.getElementById("pin").value = ch.pin || '';
         document.getElementById("giaNhap").value = p.giaNhap || 0;
         document.getElementById("giaBan").value = p.giaBan || 0;
-        document.getElementById("soLuongTon").value = p.soLuongTon || 0;
 
         // Hiển ảnh hiện tại
         const previewImg = document.getElementById('previewImg');
@@ -277,7 +276,6 @@ productForm.onsubmit = async function (e) {
     formData.append('pin', document.getElementById("pin").value);
     formData.append('giaNhap', document.getElementById("giaNhap").value);
     formData.append('giaBan', document.getElementById("giaBan").value);
-    formData.append('soLuongTon', document.getElementById("soLuongTon").value);
 
     // Thêm file ảnh nếu có chọn
     const fileInput = document.getElementById('hinhAnh');
@@ -851,96 +849,7 @@ if (searchCustomerInput) {
 }
 
 // 5. Quản lý Kho Hàng (Import)
-const importModal = document.getElementById("importModal");
-let importItems = []; // Danh sách tạm thời các sản phẩm sẽ nhập
-
-// Đóng modal nhập hàng
-document.querySelectorAll(".close-import-btn").forEach(btn => {
-    btn.onclick = () => importModal.style.display = "none";
-});
-
-async function loadImportHistory() {
-    try {
-        const response = await fetch('http://localhost:3000/api/imports');
-        const result = await response.json();
-        if (result.success) {
-            renderImportHistoryTable(result.data);
-        }
-    } catch (error) {
-        console.error("Lỗi tải lịch sử nhập hàng:", error);
-    }
-}
-
-function renderImportHistoryTable(receipts) {
-    const container = document.getElementById("importHistoryTableBody");
-    if (!container) return;
-    container.innerHTML = "";
-
-    receipts.forEach(receipt => {
-        const date = new Date(receipt.ngayNhap || receipt.createdAt).toLocaleString('vi-VN');
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>#${receipt.maPn}</td>
-            <td>${date}</td>
-            <td>-</td>
-            <td><strong style="color: #2563eb;">${Number(receipt.tongTien || 0).toLocaleString()}đ</strong></td>
-            <td>${receipt.ghiChu || ''}</td>
-            <td>
-                <button class="btn-edit" onclick="viewImportDetails('${receipt.maPn}')">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </td>
-        `;
-        container.appendChild(tr);
-    });
-}
-
-// Mở modal và tải danh sách sản phẩm để chọn
-async function openImportModal() {
-    importItems = [];
-    renderImportItems();
-    document.getElementById("importNote").value = "";
-    document.getElementById("importQuantity").value = 1;
-    document.getElementById("importPrice").value = 0;
-
-    // Tải danh sách sản phẩm cho dropdown
-    const select = document.getElementById("importProductSelect");
-    select.innerHTML = '<option value="">Đang tải...</option>';
-
-    try {
-        // Lấy tất cả sản phẩm (có thể cần API lấy all không phân trang, hoặc dùng limit lớn)
-        const response = await fetch('http://localhost:3000/api/products?limit=100');
-        const result = await response.json();
-        if (result.success) {
-            select.innerHTML = '';
-            result.data.forEach(p => {
-                const option = document.createElement("option");
-                option.value = p.maModel;
-                option.text = `${p.tenModel} (Kho: ${p.soLuongTon || 0})`;
-                // Lưu giá hiện tại vào data attribute để tham khảo nếu cần
-                option.dataset.price = p.giaBan || 0;
-                option.dataset.name = p.tenModel;
-                select.appendChild(option);
-            });
-
-            // Tự động set giá nhập gợi ý (ví dụ = 70% giá bán)
-            if (result.data.length > 0) {
-                select.value = result.data[0].maModel;
-                document.getElementById("importPrice").value = (result.data[0].giaBan || 0) * 0.7;
-            }
-
-            select.onchange = function () {
-                const selectedOption = select.options[select.selectedIndex];
-                const currentPrice = selectedOption.dataset.price;
-                document.getElementById("importPrice").value = currentPrice * 0.7;
-            }
-        }
-    } catch (error) {
-        console.error("Lỗi tải danh sách sản phẩm:", error);
-    }
-
-    importModal.style.display = "flex";
-}
+// Lịch sử nhập hàng lấy bằng hàm loadImportHistory ở cuối file
 
 // ------------------------------------------------------------------
 // View Import Detail Modal Logic
@@ -1153,10 +1062,53 @@ function renderStockTable(products) {
             <td>${Number(giaBan).toLocaleString()}đ</td>
             <td style="font-weight:bold; font-size:1.1rem;">${soLuong}</td>
             <td>${(giaBan * soLuong).toLocaleString()}đ</td>
-            <td>${statusHtml}</td>
+            <td>
+                <div style="display:flex; flex-direction: column; align-items: flex-start; gap: 8px;">
+                    <div>${statusHtml}</div>
+                    <button onclick="viewSerials('${p.maModel}', '${p.tenModel}')" style="background:#6366f1; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size: 0.8rem;">
+                        <i class="fas fa-barcode"></i> Xem Serial
+                    </button>
+                </div>
+            </td>
         `;
         container.appendChild(tr);
     });
+}
+
+async function viewSerials(maModel, tenModel) {
+    try {
+        const response = await fetch('/api/products/' + maModel + '/serials');
+        const result = await response.json();
+
+        let html = '';
+        if (result.success && result.data && result.data.length > 0) {
+            html = '<div style="max-height: 250px; overflow-y: auto; text-align: left; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;">';
+            html += result.data.map((s, idx) => `<div style="padding: 6px 0; border-bottom: ${idx < result.data.length - 1 ? '1px solid #e2e8f0' : 'none'}; font-family: monospace; font-size: 0.95rem; color: #334155;"><span style="color:#94a3b8; margin-right:8px;">${idx + 1}.</span> ${s.soSerial}</div>`).join('');
+            html += '</div>';
+        } else {
+            html = '<div style="padding: 15px; background: #fee2e2; color: #dc2626; border-radius: 8px; margin-top: 10px; font-weight: 500;">Sản phẩm này hiện chưa có mã Serial (hoặc đã hết hàng trong kho).</div>';
+        }
+
+        Swal.fire({
+            title: '<h3 style="font-size: 1.25rem; color: #1e293b; margin: 0; display:flex; align-items:center; justify-content:center; gap:8px;"><i class="fas fa-barcode" style="color:#6366f1;"></i> Danh sách Serial / IMEI</h3>',
+            html: `
+                <div style="font-weight: 600; font-size: 0.95rem; color: #475569; margin-bottom: 5px;">Model: <span style="color:#0f172a;">${tenModel}</span></div>
+                <div style="font-size: 0.85rem; color: #64748b;">(Chỉ hiển thị các máy đang "Trong kho")</div>
+                ${html}
+            `,
+            showCloseButton: true,
+            showConfirmButton: true,
+            confirmButtonText: 'Đóng',
+            confirmButtonColor: '#64748b',
+            width: 500,
+            customClass: {
+                popup: 'swal-wide-popup'
+            }
+        });
+    } catch (error) {
+        console.error("Lỗi khi tải serial:", error);
+        Swal.fire('Lỗi', 'Không thể xem Serial từ máy chủ', 'error');
+    }
 }
 
 const searchStockInput = document.getElementById("searchStockInput");
@@ -1784,7 +1736,6 @@ function renderWarehousesTable(warehouses) {
             <td>${w.tenKho}</td>
             <td>${w.diaChi || '—'}</td>
             <td>${w.loaiKho || '—'}</td>
-            <td>${w.ChiNhanh ? `<i class="fas fa-code-branch" style="color: #6366f1; margin-right: 4px;"></i> ${w.ChiNhanh.tenCn}` : '—'}</td>
             <td>
                 <span style="display:inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; white-space: nowrap; ${w.trangThai ? 'background-color: #d1fae5; color: #065f46;' : 'background-color: #fee2e2; color: #991b1b;'}">
                     ${w.trangThai ? 'Hoạt động' : 'Ngừng HĐ'}
@@ -1800,20 +1751,6 @@ function renderWarehousesTable(warehouses) {
 
 async function openWarehouseModal(warehouse = null) {
     editingWarehouse = warehouse;
-
-    // Fetch branches for dropdown
-    let branchOptions = '<option value="">-- Chọn chi nhánh --</option>';
-    try {
-        const res = await fetch('/api/warehouses/branches');
-        const result = await res.json();
-        if (result.success) {
-            branchOptions += result.data.map(cn =>
-                `<option value="${cn.maCn}" ${warehouse?.maCn === cn.maCn ? 'selected' : ''}>${cn.tenCn} (${cn.maCn})</option>`
-            ).join('');
-        }
-    } catch (e) {
-        console.error('Lỗi lấy danh sách chi nhánh', e);
-    }
 
     const loaiKhoOptions = ['Kho lưu trữ', 'Kho trưng bày', 'Kho bảo hành'];
     const typeOptionsHtml = loaiKhoOptions.map(loai =>
@@ -1851,12 +1788,6 @@ async function openWarehouseModal(warehouse = null) {
                         </select>
                     </div>
                 </div>
-                <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Chi nhánh trực thuộc</label>
-                    <select id="swalMaCn" class="swal2-input" style="width:100%; margin:0; appearance:auto !important; -webkit-appearance:auto !important; -moz-appearance:auto !important;">
-                        ${branchOptions}
-                    </select>
-                </div>
             </div>
         `,
         showCancelButton: true,
@@ -1875,8 +1806,7 @@ async function openWarehouseModal(warehouse = null) {
                 tenKho,
                 diaChi: document.getElementById('swalDiaChiKho').value.trim(),
                 loaiKho: document.getElementById('swalLoaiKho').value,
-                trangThai: document.getElementById('swalTrangThaiKho').value === 'true',
-                maCn: document.getElementById('swalMaCn').value || null
+                trangThai: document.getElementById('swalTrangThaiKho').value === 'true'
             };
         }
     }).then(async (result) => {
@@ -2098,7 +2028,6 @@ function renderEmployeesTable(employees) {
             <td>${e.email}</td>
             <td>${e.sdt || '—'}</td>
             <td>${e.ChucVu ? e.ChucVu.tenCv : '—'}</td>
-            <td>${e.ChiNhanh ? e.ChiNhanh.tenCn : '—'}</td>
             <td>
                 <span class="status-badge ${e.trangThai ? 'status-active' : 'status-inactive'}">
                     ${e.trangThai ? 'Hoạt động' : 'Đã khóa'}
@@ -2117,22 +2046,16 @@ function renderEmployeesTable(employees) {
 async function openEmployeeModal(employee = null) {
     editingEmployee = employee;
 
-    // Fetch branches and roles for dropdowns
-    let branches = [], roles = [];
+    // Fetch roles for dropdown
+    let roles = [];
     try {
-        const [resBranches, resRoles] = await Promise.all([
-            fetch('/api/branches'),
-            fetch('/api/roles')
-        ]);
-        const branchData = await resBranches.json();
+        const resRoles = await fetch('/api/roles');
         const roleData = await resRoles.json();
-        if (branchData.success) branches = branchData.data;
         if (roleData.success) roles = roleData.data;
     } catch (err) {
         console.error("Lỗi tải data dropdown:", err);
     }
 
-    const branchOptions = branches.map(b => `<option value="${b.maCn}" ${employee?.maCn === b.maCn ? 'selected' : ''}>${b.tenCn}</option>`).join('');
     const roleOptions = roles.map(r => `<option value="${r.maCv}" ${employee?.maCv === r.maCv ? 'selected' : ''}>${r.tenCv}</option>`).join('');
 
     Swal.fire({
@@ -2174,13 +2097,6 @@ async function openEmployeeModal(employee = null) {
                             ${roleOptions}
                         </select>
                     </div>
-                    <div style="flex:1;">
-                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Chi nhánh</label>
-                        <select id="swalMaCn" class="swal2-select" style="width:100%; margin:0; padding:10px; border:1px solid #d9d9d9; border-radius:4px; font-size:1rem;">
-                            <option value="">-- Chọn chi nhánh --</option>
-                            ${branchOptions}
-                        </select>
-                    </div>
                 </div>
             </div>
         `,
@@ -2201,8 +2117,7 @@ async function openEmployeeModal(employee = null) {
             return {
                 maNv, hoTen, email, matKhau,
                 sdt: document.getElementById('swalSdt').value.trim(),
-                maCv: document.getElementById('swalMaCv').value || null,
-                maCn: document.getElementById('swalMaCn').value || null
+                maCv: document.getElementById('swalMaCv').value || null
             };
         }
     }).then(async (result) => {
@@ -2256,6 +2171,218 @@ async function toggleEmployee(maNv, currentStatus) {
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
             loadEmployees();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+// ==================== QUẢN LÝ NHẬP HÀNG (IMPORT) ====================
+let importItems = [];
+
+async function loadImportHistory() {
+    try {
+        const response = await fetch('/api/imports');
+        const result = await response.json();
+        if (result.success) {
+            renderImportHistoryTable(result.data);
+        }
+    } catch (error) {
+        console.error('Lỗi tải lịch sử nhập hàng:', error);
+    }
+}
+
+function renderImportHistoryTable(receipts) {
+    const tbody = document.getElementById('importHistoryTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = receipts.map(r => {
+        let totalQty = r.DongMays ? r.DongMays.reduce((sum, item) => sum + item.CtNhapMay.soLuong, 0) : 0;
+        return `
+            <tr>
+                <td><strong>${r.maPn}</strong></td>
+                <td>${new Date(r.ngayNhap).toLocaleString('vi-VN')}</td>
+                <td>${totalQty}</td>
+                <td style="color:#ef4444; font-weight:700;">${r.tongTien.toLocaleString()} đ</td>
+                <td>Nhập kho</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function openImportModal() {
+    importItems = [];
+    renderImportItemsTable();
+    document.getElementById('importModal').style.display = 'flex';
+
+    try {
+        const res = await fetch('/api/warehouses');
+        const result = await res.json();
+        if (result.success) {
+            const select = document.getElementById('importKhoId');
+            select.innerHTML = result.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
+        }
+    } catch (e) {
+        console.error('Lỗi tải kho', e);
+    }
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').style.display = 'none';
+}
+
+async function addImportItemUI() {
+    // Lấy DS model sản phẩm
+    let products = [];
+    try {
+        const res = await fetch('/api/products?limit=1000');
+        const result = await res.json();
+        if (result.success) products = result.data;
+    } catch (e) {
+        console.error(e);
+        return Swal.fire('Lỗi', 'Không thể tải ds sản phẩm', 'error');
+    }
+
+    const options = products.map(p => `<option value="${p.maModel}" data-price="${p.giaBan || 0}">${p.maModel} - ${p.tenModel}</option>`).join('');
+
+    const { value: formValues } = await Swal.fire({
+        title: 'Thêm Model vào phiếu nhập',
+        width: 600,
+        html: `
+            <div style="text-align:left;">
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">Chọn sản phẩm:</label>
+                <select id="swalImpProductId" class="swal2-select" style="width:100%; margin:0 0 15px 0;">${options}</select>
+                
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">Đơn giá nhập (1 máy):</label>
+                <input id="swalImpPrice" type="number" class="swal2-input" style="width:100%; margin:0 0 15px 0;" placeholder="VD: 15000000">
+
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">Quét mã vạch Serial / IMEI:</label>
+                <div style="font-size:0.85rem; color:#64748b; margin-bottom:8px;">Bấm chuột vào ô dưới và Dùng súng quét mã (Scanner). Các mã sẽ tự động xếp thành danh sách.</div>
+                <textarea id="swalImpSerials" class="swal2-textarea" style="width:100%; margin:0; height: 120px;" placeholder="SERIAL123\nSERIAL124\nSERIAL125..."></textarea>
+            </div>
+        `,
+        didOpen: () => {
+            const input = document.getElementById('swalImpSerials');
+            input.focus();
+            // Người dùng có thể quét hoặc nhập thủ công, cắt dán hàng loạt.
+            // Textarea tự động hỗ trợ Enter để xuống dòng.
+        },
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Thêm vào danh sách',
+        cancelButtonText: 'Hủy',
+        preConfirm: () => {
+            const selectEl = document.getElementById('swalImpProductId');
+            const productId = selectEl.value;
+            const productName = selectEl.options.length > 0 && selectEl.selectedIndex >= 0 ? selectEl.options[selectEl.selectedIndex].text : '';
+            const price = document.getElementById('swalImpPrice').value;
+            const serialText = document.getElementById('swalImpSerials').value;
+
+            if (!productId || !price || !serialText.trim()) {
+                Swal.showValidationMessage('Vui lòng nhập đầy đủ Giá và Serial!');
+                return false;
+            }
+
+            const serials = serialText.split('\n').map(s => s.trim()).filter(s => s !== '');
+            if (serials.length === 0) {
+                Swal.showValidationMessage('Phải có ít nhất 1 dòng Serial');
+                return false;
+            }
+
+            // Check duplicates in input
+            const uniqueSerials = new Set(serials);
+            if (uniqueSerials.size !== serials.length) {
+                Swal.showValidationMessage('Có số Serial bị trùng lặp trong ô nhập liệu!');
+                return false;
+            }
+
+            return {
+                productId,
+                productName,
+                price: Number(price),
+                quantity: serials.length,
+                serials: serials
+            };
+        }
+    });
+
+    if (formValues) {
+        importItems.push(formValues);
+        renderImportItemsTable();
+    }
+}
+
+function removeImportItem(index) {
+    importItems.splice(index, 1);
+    renderImportItemsTable();
+}
+
+function renderImportItemsTable() {
+    const tbody = document.getElementById('importItemsTableBody');
+    let total = 0;
+
+    if (importItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: #64748b;">Chưa có sản phẩm nào được chọn.</td></tr>';
+        document.getElementById('importTotalAmount').textContent = '0 ₫';
+        return;
+    }
+
+    tbody.innerHTML = importItems.map((item, index) => {
+        const itemTotal = item.quantity * item.price;
+        total += itemTotal;
+        return `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px;"><strong>${item.productName}</strong></td>
+                <td style="padding: 12px; text-align: center;"><strong>${item.quantity}</strong></td>
+                <td style="padding: 12px; text-align: right;">${item.price.toLocaleString()} ₫</td>
+                <td style="padding: 12px;"><div style="max-height: 60px; overflow-y: auto; font-family: monospace; font-size: 0.85em; background: #f8fafc; padding: 6px; border-radius: 4px;">${item.serials.join('<br>')}</div></td>
+                <td style="padding: 12px; text-align: center;">
+                    <button class="btn-delete" onclick="removeImportItem(${index})" style="background:none; color:#ef4444; padding:5px;"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('importTotalAmount').textContent = total.toLocaleString() + ' ₫';
+}
+
+async function submitImport() {
+    if (importItems.length === 0) {
+        return Swal.fire('Cảnh báo', 'Vui lòng thêm ít nhất 1 sản phẩm vào phiếu nhập', 'warning');
+    }
+
+    const maKho = document.getElementById('importKhoId').value;
+    if (!maKho) {
+        return Swal.fire('Cảnh báo', 'Vui lòng chọn kho nhập', 'warning');
+    }
+
+    const confirm = await Swal.fire({
+        title: 'Xác nhận tạo phiếu?',
+        text: 'Dữ liệu Serial sẽ được lưu vào hệ thống và không thể sửa đổi ngay lập tức.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const response = await fetch('/api/imports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                maKho: maKho,
+                items: importItems
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire('Thành công', 'Đã lưu kho an toàn', 'success');
+            closeImportModal();
+            loadImportHistory();
+            // Nạp lại tab sản phẩm nếu đang mở
         } else {
             Swal.fire('Lỗi', result.message, 'error');
         }

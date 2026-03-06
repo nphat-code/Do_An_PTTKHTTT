@@ -40,7 +40,6 @@
                     <li><a href="#" data-tab="brands"><i class="fas fa-industry"></i> Hãng sản xuất</a></li>
                     <li><a href="#" data-tab="suppliers"><i class="fas fa-truck"></i> Nhà cung cấp</a></li>
                     <li><a href="#" data-tab="warehouses"><i class="fas fa-warehouse"></i> Quản lý kho</a></li>
-                    <li><a href="#" data-tab="branches"><i class="fas fa-code-branch"></i> Chi nhánh</a></li>
                 </ul>
 
                 <div class="nav-group-title">NHÂN SỰ</div>
@@ -130,6 +129,8 @@
             <section id="orders-content" class="tab-section" style="display: none;">
                 <header>
                     <h1>Quản lý đơn hàng</h1>
+                    <button class="btn-add" onclick="openPOSModal()"><i class="fas fa-plus"></i> Tạo đơn bán
+                        hàng</button>
                 </header>
 
                 <div class="table-container">
@@ -197,7 +198,6 @@
                                 <th>Email</th>
                                 <th>SĐT</th>
                                 <th>Chức vụ</th>
-                                <th>Chi nhánh</th>
                                 <th>Trạng thái</th>
                                 <th>Thao tác</th>
                             </tr>
@@ -346,36 +346,7 @@
                 </div>
             </section>
 
-            <section id="branches-content" class="tab-section" style="display: none;">
-                <header>
-                    <h1>Quản lý chi nhánh</h1>
-                    <button class="btn-add" onclick="openBranchModal()">
-                        <i class="fas fa-plus" style="margin-right: 8px;"></i> Thêm chi nhánh
-                    </button>
-                </header>
 
-                <div class="search-container">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchBranchInput" placeholder="Tìm kiếm chi nhánh..."
-                        oninput="loadBranches()">
-                </div>
-
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Mã CN</th>
-                                <th>Tên chi nhánh</th>
-                                <th>Địa chỉ</th>
-                                <th>Quản lý</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody id="branchTableBody">
-                        </tbody>
-                    </table>
-                </div>
-            </section>
 
             <section id="warehouses-content" class="tab-section" style="display: none;">
                 <header>
@@ -399,7 +370,6 @@
                                 <th>Tên kho</th>
                                 <th>Địa chỉ</th>
                                 <th>Loại kho</th>
-                                <th>Chi nhánh</th>
                                 <th>Trạng thái</th>
                                 <th>Thao tác</th>
                             </tr>
@@ -441,296 +411,430 @@
             </section>
         </main>
 
-        <div id="importModal" class="modal">
-            <div class="modal-content" style="max-width: 900px;">
+        <div id="productModal" class="modal">
+            <div class="modal-content" style="max-width: 750px;">
                 <div class="modal-header">
-                    <h2>Tạo Phiếu Nhập Hàng</h2>
-                    <span class="close-import-btn" style="cursor:pointer; font-size: 24px;">&times;</span>
+                    <h2>Thêm Laptop Mới</h2>
+                    <span class="close-btn">&times;</span>
                 </div>
-                <div style="padding: 20px;">
-                    <div class="form-group">
-                        <label>Ghi chú phiếu nhập:</label>
-                        <input type="text" id="importNote" placeholder="Ví dụ: Nhập hàng đợt 1 tháng 10...">
-                    </div>
+                <form id="productForm">
+                    <input type="hidden" id="productId">
 
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4>Thêm sản phẩm vào phiếu:</h4>
-                        <div
-                            style="display: grid; grid-template-columns: 2fr 1fr 1fr 0.5fr; gap: 10px; align-items: end;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Sản phẩm:</label>
-                                <select id="importProductSelect" style="width: 100%; padding: 10px;"></select>
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Số lượng:</label>
-                                <input type="number" id="importQuantity" min="1" value="1">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Giá nhập (đơn giá):</label>
-                                <input type="number" id="importPrice" min="0" value="0">
-                            </div>
-                            <button class="btn-primary" onclick="addImportItem()" style="height: 42px;">+</button>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-barcode"></i> Mã Model:</label>
+                            <input type="text" id="maModel" placeholder="VD: ASUS_ROG_001" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-tag"></i> Tên Model:</label>
+                            <input type="text" id="tenModel" placeholder="VD: Asus ROG Strix G16" required>
                         </div>
                     </div>
 
-                    <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-industry"></i> Hãng sản xuất:</label>
+                            <select id="maHang">
+                                <option value="">-- Chọn hãng --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-laptop"></i> Loại máy:</label>
+                            <select id="maLoai">
+                                <option value="">-- Chọn loại --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
+                    <h4 style="margin-bottom: 10px; color: #4f46e5;"><i class="fas fa-cogs"></i> Cấu hình</h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>CPU:</label>
+                            <input type="text" id="cpu" placeholder="VD: Intel Core i7-13700H">
+                        </div>
+                        <div class="form-group">
+                            <label>RAM:</label>
+                            <input type="text" id="ram" placeholder="VD: 16GB DDR5">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ổ cứng:</label>
+                            <input type="text" id="oCung" placeholder="VD: 512GB SSD NVMe">
+                        </div>
+                        <div class="form-group">
+                            <label>VGA:</label>
+                            <input type="text" id="vga" placeholder="VD: RTX 4060 8GB">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Màn hình:</label>
+                            <input type="text" id="manHinh" placeholder="VD: 16 inch 2K 165Hz">
+                        </div>
+                        <div class="form-group">
+                            <label>Pin:</label>
+                            <input type="text" id="pin" placeholder="VD: 90Wh">
+                        </div>
+                    </div>
+
+                    <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
+                    <h4 style="margin-bottom: 10px; color: #f59e0b;"><i class="fas fa-image"></i> Hình ảnh sản phẩm</h4>
+                    <div class="form-group">
+                        <input type="file" id="hinhAnh" accept="image/*" style="margin-bottom: 8px;">
+                        <div id="imagePreview" style="margin-top: 5px;">
+                            <img id="previewImg" src="" alt=""
+                                style="max-height: 120px; border-radius: 8px; display: none; border: 2px solid #e5e7eb;">
+                        </div>
+                    </div>
+
+                    <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
+                    <h4 style="margin-bottom: 10px; color: #10b981;"><i class="fas fa-money-bill-wave"></i> Giá &amp;
+                        Tồn
+                        kho</h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Giá nhập (VNĐ):</label>
+                            <input type="number" id="giaNhap" placeholder="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Giá bán (VNĐ):</label>
+                            <input type="number" id="giaBan" placeholder="0" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelBtn">Hủy</button>
+                        <button type="submit" class="btn-primary">Lưu sản phẩm</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div id="orderDetailModal" class="modal">
+            <div class="modal-content" style="max-width: 850px;">
+                <div class="modal-header"
+                    style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border-radius: 16px 16px 0 0;">
+                    <h2 style="color: white; font-size: 1.15rem;"><i class="fas fa-receipt"
+                            style="margin-right: 8px;"></i>Chi tiết đơn hàng <span id="displayOrderId"></span></h2>
+                    <span class="close-order-btn" style="cursor:pointer; font-size: 24px; color: white;">&times;</span>
+                </div>
+
+                <div style="padding: 24px;">
+                    <!-- Thông tin khách hàng & đơn hàng -->
+                    <div id="orderInfo"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;"></div>
+
+                    <!-- Bảng sản phẩm -->
+                    <h4 style="margin-bottom: 12px; color: #475569; font-size: 0.95rem;"><i class="fas fa-box"
+                            style="color: #6366f1; margin-right: 6px;"></i>Danh sách sản phẩm</h4>
+                    <div class="table-container" style="border-radius: 12px; overflow: hidden;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="padding: 14px 20px;">Sản phẩm</th>
+                                    <th style="padding: 14px 20px; text-align: right;">Đơn giá</th>
+                                    <th style="padding: 14px 20px; text-align: center;">Số lượng</th>
+                                    <th style="padding: 14px 20px; text-align: right;">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderItemsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Tổng cộng -->
+                    <div
+                        style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; padding: 16px 20px; background: #f8fafc; border-radius: 12px;">
+                        <span style="font-size: 1rem; color: #64748b; margin-right: 12px;">Tổng cộng:</span>
+                        <span id="orderTotalDetail"
+                            style="font-size: 1.4rem; font-weight: 800; color: #dc2626;">0đ</span>
+                    </div>
+                </div>
+
+                <div class="modal-footer"
+                    style="display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 16px 16px;">
+                    <button type="button" onclick="printInvoice()"
+                        style="background: #6366f1; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-print"></i> In Hóa Đơn
+                    </button>
+                    <button type="button" class="btn-secondary close-order-btn"
+                        style="padding: 10px 20px; border-radius: 8px;">Đóng</button>
+                </div>
+            </div>
+        </div>
+        <div id="viewImportDetailModal" class="modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h2>Chi tiết phiếu nhập <span id="displayImportId"></span></h2>
+                    <span class="close-view-import-btn" style="cursor:pointer; font-size: 24px;">&times;</span>
+                </div>
+                <div id="importInfo"
+                    style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Info will be populated by JS -->
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Giá nhập</th>
+                                <th>Số lượng</th>
+                                <th>Serials/IMEIs nhập</th>
+                                <th>Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody id="viewImportItemsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <h3>Tổng tiền: <span id="viewImportTotalDetail" style="color: #2563eb;">0đ</span></h3>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary close-view-import-btn">Đóng</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Modal -->
+        <div id="employeeModal" class="modal">
+            <div class="modal-content" style="max-width: 550px;">
+                <div class="modal-header">
+                    <h2>Thêm nhân viên mới</h2>
+                    <span class="close-btn" onclick="closeEmployeeModal()">&times;</span>
+                </div>
+                <form id="employeeForm">
+                    <input type="hidden" id="empEditId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-id-badge"></i> Mã NV:</label>
+                            <input type="text" id="empMaNv" placeholder="VD: NV002" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Họ tên:</label>
+                            <input type="text" id="empHoTen" placeholder="Nhập họ tên..." required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-envelope"></i> Email:</label>
+                            <input type="email" id="empEmail" placeholder="Nhập email..." required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-phone"></i> SĐT:</label>
+                            <input type="text" id="empSdt" placeholder="Nhập SĐT...">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Mật khẩu:</label>
+                        <input type="password" id="empPassword" placeholder="Nhập mật khẩu..." required minlength="6">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeEmployeeModal()">Hủy</button>
+                        <button type="submit" class="btn-primary">Lưu nhân viên</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Import Modal -->
+        <div id="importModal" class="modal">
+            <div class="modal-content" style="max-width: 850px;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                    <h2 style="color: white;"><i class="fas fa-file-import" style="margin-right: 8px;"></i> Tạo Phiếu
+                        Nhập
+                        Hàng Mới</h2>
+                    <span class="close-btn" onclick="closeImportModal()"
+                        style="color: white; opacity: 0.8;">&times;</span>
+                </div>
+                <div style="padding: 24px;">
+                    <div class="form-row" style="margin-bottom: 20px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label style="font-weight: 600;"><i class="fas fa-warehouse"></i> Nhập vào kho:</label>
+                            <select id="importKhoId"
+                                style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-size:1rem;"></select>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                        <h3 style="color: #334155; font-size: 1.1rem; margin: 0;"><i class="fas fa-box-open"
+                                style="margin-right:6px;"></i> Danh sách mã Serial/IMEI máy nhập</h3>
+                        <button class="btn-add" onclick="addImportItemUI()"
+                            style="background: #3b82f6; padding: 8px 16px;"><i class="fas fa-plus"></i> Chọn thêm Model
+                            &
+                            Serial</button>
+                    </div>
+
+                    <div class="table-container"
+                        style="border-radius: 8px; border: 1px solid #e2e8f0; overflow-y: auto; max-height: 350px;">
+                        <table>
+                            <thead style="position: sticky; top: 0; background-color: #f1f5f9; z-index: 1;">
+                                <tr>
+                                    <th style="padding: 12px; width: 35%;">Model Sản Phẩm</th>
+                                    <th style="padding: 12px; width: 10%; text-align: center;">SL</th>
+                                    <th style="padding: 12px; width: 15%; text-align: right;">Đơn giá nhập</th>
+                                    <th style="padding: 12px; width: 35%;">Serials / IMEIs</th>
+                                    <th style="padding: 12px; width: 5%; text-align: center;">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="importItemsTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align:center; padding: 30px; color: #64748b;">Chưa có
+                                        sản
+                                        phẩm nào được chọn.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 16px 16px;">
+                    <div style="font-size: 1.1rem; color: #475569;">Tổng tiền nhập: <span id="importTotalAmount"
+                            style="color:#ef4444; font-weight:700; font-size: 1.4rem;">0 ₫</span></div>
+                    <div style="display:flex; gap: 12px;">
+                        <button type="button" class="btn-secondary" onclick="closeImportModal()">Hủy bỏ</button>
+                        <button type="button" class="btn-primary" onclick="submitImport()"
+                            style="background: #10b981; padding: 10px 24px; font-weight: 600;"><i class="fas fa-check"
+                                style="margin-right:6px;"></i> Xác nhận lưu kho</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ====== POS Modal (Tạo Đơn Bán Hàng) ====== -->
+        <div id="posModal" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width: 1100px; height: 90vh; display:flex; flex-direction:column;">
+                <div class="modal-header"
+                    style="background: linear-gradient(135deg, #6366f1, #818cf8); color:white; flex-shrink:0;">
+                    <h2 style="color:white;"><i class="fas fa-cash-register" style="margin-right:8px;"></i> Tạo Đơn Bán
+                        Hàng Mới</h2>
+                    <span class="close-btn" onclick="closePOSModal()" style="color:white; opacity:0.8;">&times;</span>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 380px; gap:0; flex:1; overflow:hidden;">
+                    <!-- Bên trái: Chọn sản phẩm -->
+                    <div style="padding:20px; overflow-y:auto; border-right:1px solid #e2e8f0;">
+                        <h3 style="color:#334155; margin-bottom:12px; font-size:1rem;"><i class="fas fa-search"></i> Tìm
+                            &amp; Chọn Sản Phẩm</h3>
+                        <div style="position:relative; margin-bottom:14px;">
+                            <i class="fas fa-search"
+                                style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
+                            <input type="text" id="posSearchInput" placeholder="Tìm theo tên, mã model..."
+                                style="width:100%; padding:10px 10px 10px 34px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; box-sizing:border-box;"
+                                oninput="searchPOSProducts(this.value)">
+                        </div>
+                        <div id="posProductGrid"
+                            style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
+                            <p style="color:#94a3b8; grid-column:1/-1; text-align:center; padding:30px;">Đang tải sản
+                                phẩm...</p>
+                        </div>
+                    </div>
+                    <!-- Bên phải: Giỏ hàng + Thông tin KH -->
+                    <div style="display:flex; flex-direction:column; overflow:hidden;">
+                        <!-- Giỏ hàng -->
+                        <div style="padding:16px; border-bottom:1px solid #e2e8f0; flex-shrink:0;">
+                            <h3 style="font-size:1rem; color:#334155; margin-bottom:0;"><i
+                                    class="fas fa-shopping-cart"></i> Giỏ hàng (<span id="posCartCount">0</span> SP)
+                            </h3>
+                        </div>
+                        <div id="posCartList" style="flex:1; overflow-y:auto; padding:8px 16px; min-height:80px;">
+                            <p id="posCartEmpty"
+                                style="text-align:center; color:#94a3b8; padding:20px 0; font-size:0.9rem;">Chưa có sản
+                                phẩm nào</p>
+                        </div>
+                        <!-- Thông tin khách hàng -->
+                        <div
+                            style="padding:14px 16px; border-top:1px solid #e2e8f0; background:#f8fafc; flex-shrink:0;">
+                            <h4 style="font-size:0.9rem; color:#475569; margin-bottom:8px;"><i class="fas fa-user"></i>
+                                Thông tin khách hàng</h4>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                                <input type="text" id="posCustomerName" placeholder="Họ và tên *"
+                                    style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; width:100%; box-sizing:border-box;">
+                                <input type="text" id="posCustomerPhone" placeholder="Số điện thoại *"
+                                    style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; width:100%; box-sizing:border-box;">
+                            </div>
+                            <input type="text" id="posCustomerAddress" placeholder="Địa chỉ"
+                                style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box; margin-bottom:8px;">
+                            <select id="posPaymentMethod"
+                                style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; background:white;">
+                                <option value="">-- Đang tải... --</option>
+                            </select>
+                        </div>
+                        <!-- Tổng tiền + Xác nhận -->
+                        <div style="padding:14px 16px; background:#1e293b; flex-shrink:0;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <span style="color:#94a3b8; font-size:0.95rem;">Tổng cộng:</span>
+                                <span id="posTotalAmount" style="color:#4ade80; font-weight:700; font-size:1.4rem;">0
+                                    &#x20ab;</span>
+                            </div>
+                            <button onclick="submitPOSOrder()"
+                                style="width:100%; padding:12px; background:linear-gradient(135deg,#10b981,#059669); color:white; border:none; border-radius:8px; font-size:1rem; font-weight:700; cursor:pointer;">
+                                <i class="fas fa-check-circle" style="margin-right:6px;"></i> XÁC NHẬN &amp; LƯU ĐƠN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== Order Detail Modal ====== -->
+        <div id="orderDetailModal" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #0ea5e9, #38bdf8); color:white;">
+                    <h2 style="color:white;"><i class="fas fa-file-invoice" style="margin-right:8px;"></i> Chi Tiết Đơn
+                        Hàng <span id="orderDetailId"></span></h2>
+                    <span class="close-btn" onclick="closeOrderDetailModal()"
+                        style="color:white; opacity:0.8;">&times;</span>
+                </div>
+                <div style="padding:24px;">
+                    <div id="orderDetailInfo"
+                        style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; font-size:0.95rem;">
+                    </div>
+                    <h4 style="color:#334155; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+                        Sản phẩm trong đơn</h4>
+                    <div class="table-container" style="max-height:280px; overflow-y:auto; margin-bottom:16px;">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Sản phẩm</th>
-                                    <th>Số lượng</th>
-                                    <th>Giá nhập</th>
-                                    <th>Thành tiền</th>
-                                    <th>Xóa</th>
+                                    <th style="text-align:center;">SL</th>
+                                    <th style="text-align:right;">Đơn giá</th>
+                                    <th style="text-align:right;">Thành tiền</th>
+                                    <th>Serial/IMEI xuất</th>
                                 </tr>
                             </thead>
-                            <tbody id="importItemsBody">
-                            </tbody>
+                            <tbody id="orderDetailItemsBody"></tbody>
                         </table>
                     </div>
-                    <div style="text-align: right; margin-top: 20px;">
-                        <h3>Tổng tiền nhập: <span id="importTotalAmount" style="color: #2563eb;">0đ</span></h3>
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label style="font-size:0.9rem; color:#64748b;">Trạng thái:</label>
+                            <select id="orderDetailStatusSelect"
+                                style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                                <option>Chờ xử lý</option>
+                                <option>Đã xác nhận</option>
+                                <option>Đang giao</option>
+                                <option>Đã giao</option>
+                                <option>Đã hủy</option>
+                            </select>
+                            <button onclick="saveOrderStatus()"
+                                style="padding:6px 14px; background:#6366f1; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem;">Lưu</button>
+                        </div>
+                        <strong id="orderDetailTotal" style="font-size:1.3rem; color:#ef4444;"></strong>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary close-import-btn">Hủy</button>
-                    <button type="button" class="btn-primary" onclick="submitImportReceipt()">Lưu phiếu nhập</button>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="productModal" class="modal">
-        <div class="modal-content" style="max-width: 750px;">
-            <div class="modal-header">
-                <h2>Thêm Laptop Mới</h2>
-                <span class="close-btn">&times;</span>
-            </div>
-            <form id="productForm">
-                <input type="hidden" id="productId">
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label><i class="fas fa-barcode"></i> Mã Model:</label>
-                        <input type="text" id="maModel" placeholder="VD: ASUS_ROG_001" required>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-tag"></i> Tên Model:</label>
-                        <input type="text" id="tenModel" placeholder="VD: Asus ROG Strix G16" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label><i class="fas fa-industry"></i> Hãng sản xuất:</label>
-                        <select id="maHang">
-                            <option value="">-- Chọn hãng --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-laptop"></i> Loại máy:</label>
-                        <select id="maLoai">
-                            <option value="">-- Chọn loại --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
-                <h4 style="margin-bottom: 10px; color: #4f46e5;"><i class="fas fa-cogs"></i> Cấu hình</h4>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>CPU:</label>
-                        <input type="text" id="cpu" placeholder="VD: Intel Core i7-13700H">
-                    </div>
-                    <div class="form-group">
-                        <label>RAM:</label>
-                        <input type="text" id="ram" placeholder="VD: 16GB DDR5">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Ổ cứng:</label>
-                        <input type="text" id="oCung" placeholder="VD: 512GB SSD NVMe">
-                    </div>
-                    <div class="form-group">
-                        <label>VGA:</label>
-                        <input type="text" id="vga" placeholder="VD: RTX 4060 8GB">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Màn hình:</label>
-                        <input type="text" id="manHinh" placeholder="VD: 16 inch 2K 165Hz">
-                    </div>
-                    <div class="form-group">
-                        <label>Pin:</label>
-                        <input type="text" id="pin" placeholder="VD: 90Wh">
-                    </div>
-                </div>
-
-                <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
-                <h4 style="margin-bottom: 10px; color: #f59e0b;"><i class="fas fa-image"></i> Hình ảnh sản phẩm</h4>
-                <div class="form-group">
-                    <input type="file" id="hinhAnh" accept="image/*" style="margin-bottom: 8px;">
-                    <div id="imagePreview" style="margin-top: 5px;">
-                        <img id="previewImg" src="" alt=""
-                            style="max-height: 120px; border-radius: 8px; display: none; border: 2px solid #e5e7eb;">
-                    </div>
-                </div>
-
-                <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
-                <h4 style="margin-bottom: 10px; color: #10b981;"><i class="fas fa-money-bill-wave"></i> Giá &amp; Tồn
-                    kho</h4>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Giá nhập (VNĐ):</label>
-                        <input type="number" id="giaNhap" placeholder="0" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Giá bán (VNĐ):</label>
-                        <input type="number" id="giaBan" placeholder="0" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Số lượng tồn:</label>
-                        <input type="number" id="soLuongTon" placeholder="0" min="0">
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" id="cancelBtn">Hủy</button>
-                    <button type="submit" class="btn-primary">Lưu sản phẩm</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    <div id="orderDetailModal" class="modal">
-        <div class="modal-content" style="max-width: 850px;">
-            <div class="modal-header"
-                style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border-radius: 16px 16px 0 0;">
-                <h2 style="color: white; font-size: 1.15rem;"><i class="fas fa-receipt"
-                        style="margin-right: 8px;"></i>Chi tiết đơn hàng <span id="displayOrderId"></span></h2>
-                <span class="close-order-btn" style="cursor:pointer; font-size: 24px; color: white;">&times;</span>
-            </div>
-
-            <div style="padding: 24px;">
-                <!-- Thông tin khách hàng & đơn hàng -->
-                <div id="orderInfo"
-                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;"></div>
-
-                <!-- Bảng sản phẩm -->
-                <h4 style="margin-bottom: 12px; color: #475569; font-size: 0.95rem;"><i class="fas fa-box"
-                        style="color: #6366f1; margin-right: 6px;"></i>Danh sách sản phẩm</h4>
-                <div class="table-container" style="border-radius: 12px; overflow: hidden;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="padding: 14px 20px;">Sản phẩm</th>
-                                <th style="padding: 14px 20px; text-align: right;">Đơn giá</th>
-                                <th style="padding: 14px 20px; text-align: center;">Số lượng</th>
-                                <th style="padding: 14px 20px; text-align: right;">Thành tiền</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orderItemsTableBody">
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Tổng cộng -->
-                <div
-                    style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; padding: 16px 20px; background: #f8fafc; border-radius: 12px;">
-                    <span style="font-size: 1rem; color: #64748b; margin-right: 12px;">Tổng cộng:</span>
-                    <span id="orderTotalDetail" style="font-size: 1.4rem; font-weight: 800; color: #dc2626;">0đ</span>
-                </div>
-            </div>
-
-            <div class="modal-footer"
-                style="display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 16px 16px;">
-                <button type="button" onclick="printInvoice()"
-                    style="background: #6366f1; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-print"></i> In Hóa Đơn
-                </button>
-                <button type="button" class="btn-secondary close-order-btn"
-                    style="padding: 10px 20px; border-radius: 8px;">Đóng</button>
-            </div>
-        </div>
-    </div>
-    <div id="viewImportDetailModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h2>Chi tiết phiếu nhập <span id="displayImportId"></span></h2>
-                <span class="close-view-import-btn" style="cursor:pointer; font-size: 24px;">&times;</span>
-            </div>
-            <div id="importInfo" style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <!-- Info will be populated by JS -->
-            </div>
-
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th>Giá nhập</th>
-                            <th>Số lượng</th>
-                            <th>Thành tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody id="viewImportItemsTableBody">
-                    </tbody>
-                </table>
-            </div>
-            <div style="text-align: right; margin-top: 20px;">
-                <h3>Tổng tiền: <span id="viewImportTotalDetail" style="color: #2563eb;">0đ</span></h3>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-secondary close-view-import-btn">Đóng</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Employee Modal -->
-    <div id="employeeModal" class="modal">
-        <div class="modal-content" style="max-width: 550px;">
-            <div class="modal-header">
-                <h2>Thêm nhân viên mới</h2>
-                <span class="close-btn" onclick="closeEmployeeModal()">&times;</span>
-            </div>
-            <form id="employeeForm">
-                <input type="hidden" id="empEditId">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label><i class="fas fa-id-badge"></i> Mã NV:</label>
-                        <input type="text" id="empMaNv" placeholder="VD: NV002" required>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-user"></i> Họ tên:</label>
-                        <input type="text" id="empHoTen" placeholder="Nhập họ tên..." required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label><i class="fas fa-envelope"></i> Email:</label>
-                        <input type="email" id="empEmail" placeholder="Nhập email..." required>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-phone"></i> SĐT:</label>
-                        <input type="text" id="empSdt" placeholder="Nhập SĐT...">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-lock"></i> Mật khẩu:</label>
-                    <input type="password" id="empPassword" placeholder="Nhập mật khẩu..." required minlength="6">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" onclick="closeEmployeeModal()">Hủy</button>
-                    <button type="submit" class="btn-primary">Lưu nhân viên</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script src="js/main.js"></script>
+        <script src="js/pos.js"></script>
+        <script src="js/main.js"></script>
 </body>
 
 </html>

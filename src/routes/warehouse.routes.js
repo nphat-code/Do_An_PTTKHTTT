@@ -6,6 +6,5 @@ router.get('/', warehouseController.getAllWarehouses);
 router.post('/', warehouseController.createWarehouse);
 router.put('/:id', warehouseController.updateWarehouse);
 router.delete('/:id', warehouseController.deleteWarehouse);
-router.get('/branches', warehouseController.getBranchesForDropdown);
 
 module.exports = router;

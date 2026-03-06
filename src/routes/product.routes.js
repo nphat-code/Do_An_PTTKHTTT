@@ -41,6 +41,9 @@ router.get('/categories', productController.getCategories);
 // GET /api/products/:id - Lấy chi tiết sản phẩm
 router.get('/:id', productController.getProductById);
 
+// GET /api/products/:id/serials - Lấy danh sách serial trong kho
+router.get('/:id/serials', productController.getProductSerials);
+
 // POST /api/products - Thêm sản phẩm mới (có upload ảnh)
 router.post('/', upload.single('hinhAnh'), productController.createProduct);
 

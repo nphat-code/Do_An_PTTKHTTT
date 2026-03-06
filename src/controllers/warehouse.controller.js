@@ -1,4 +1,4 @@
-const { Kho, ChiNhanh } = require('../models');
+const { Kho } = require('../models');
 const { Op } = require('sequelize');
 
 // Lấy danh sách kho
@@ -14,11 +14,9 @@ const getAllWarehouses = async (req, res) => {
             ];
         }
 
-        // Include ChiNhanh
         const warehouses = await Kho.findAll({
             where,
-            order: [['maKho', 'ASC']],
-            include: [{ model: ChiNhanh, attributes: ['tenCn'] }]
+            order: [['maKho', 'ASC']]
         });
         res.json({ success: true, data: warehouses });
     } catch (error) {
@@ -39,7 +37,6 @@ const createWarehouse = async (req, res) => {
         }
 
         const warehouseData = { maKho, tenKho, diaChi, loaiKho };
-        if (maCn) warehouseData.maCn = maCn;
         if (trangThai !== undefined) warehouseData.trangThai = trangThai;
 
         const warehouse = await Kho.create(warehouseData);
@@ -53,14 +50,14 @@ const createWarehouse = async (req, res) => {
 const updateWarehouse = async (req, res) => {
     try {
         const { id } = req.params;
-        const { tenKho, diaChi, loaiKho, trangThai, maCn } = req.body;
+        const { tenKho, diaChi, loaiKho, trangThai } = req.body;
 
         const warehouse = await Kho.findByPk(id);
         if (!warehouse) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy kho' });
         }
 
-        await warehouse.update({ tenKho, diaChi, loaiKho, trangThai, maCn: maCn || null });
+        await warehouse.update({ tenKho, diaChi, loaiKho, trangThai });
         res.json({ success: true, message: 'Đã cập nhật kho', data: warehouse });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -91,17 +88,4 @@ const deleteWarehouse = async (req, res) => {
     }
 };
 
-// Lấy danh sách chi nhánh cho dropdown
-const getBranchesForDropdown = async (req, res) => {
-    try {
-        const branches = await ChiNhanh.findAll({
-            attributes: ['maCn', 'tenCn'],
-            order: [['tenCn', 'ASC']]
-        });
-        res.json({ success: true, data: branches });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-
-module.exports = { getAllWarehouses, createWarehouse, updateWarehouse, deleteWarehouse, getBranchesForDropdown };
+module.exports = { getAllWarehouses, createWarehouse, updateWarehouse, deleteWarehouse };

@@ -7,7 +7,6 @@ const Kho = sequelize.define('Kho', {
     diaChi: { type: DataTypes.TEXT },
     loaiKho: { type: DataTypes.ENUM('Kho lưu trữ', 'Kho trưng bày', 'Kho bảo hành') },
     trangThai: { type: DataTypes.BOOLEAN, defaultValue: true }
-    // maCn FK
 }, { tableName: 'KHO', timestamps: false });
 
 module.exports = Kho;
