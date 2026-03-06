@@ -1,4 +1,4 @@
-const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon } = require('../models/index');
+const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon, ChiTietMay } = require('../models/index');
 const { Op } = require('sequelize');
 
 const generateOrderCode = () => {
@@ -107,6 +107,32 @@ const createOrder = async (req, res) => {
         }));
 
         await CtHoaDon.bulkCreate(orderItemsWithId, { transaction: t });
+
+        // 6. Cập nhật bảng ChiTietMay (Xuất kho theo Serial) - Auto allocate
+        for (let item of cartItems) {
+            // Find available serials in ChiTietMay for this product
+            const availableSerials = await ChiTietMay.findAll({
+                where: {
+                    maModel: item.id,
+                    trangThai: 'Trong kho'
+                },
+                limit: item.quantity,
+                transaction: t
+            });
+
+            if (availableSerials.length < item.quantity) {
+                // Should theoretically not happen if soLuongTon is synced, but just in case
+                throw new Error(`Kho lỗi đồng bộ: Không đủ số lượng Serial còn trong kho cho sản phẩm ${item.id}`);
+            }
+
+            // Update each found serial
+            for (let serial of availableSerials) {
+                await serial.update({
+                    trangThai: 'Đã bán',
+                    maHd: order.maHd
+                }, { transaction: t });
+            }
+        }
 
         // Hoàn tất giao dịch
         await t.commit();

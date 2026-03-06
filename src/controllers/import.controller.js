@@ -1,4 +1,4 @@
-const { PhieuNhap, CtNhapMay, DongMay, sequelize } = require('../models/index');
+const { PhieuNhap, CtNhapMay, DongMay, ChiTietMay, Kho, sequelize } = require('../models/index');
 
 const generateImportCode = () => {
     const today = new Date();
@@ -11,12 +11,17 @@ const generateImportCode = () => {
 const createImportReceipt = async (req, res) => {
     const t = await sequelize.transaction();
     try {
-        // Assume note maps to nothing specifically currently except maybe we could add it to a log, but we will ignore it.
-        // Needs maNcc, maNv, maHttt. We will make them optional or fake them for now to keep the code working.
-        const { note, items, maNcc, maNv, maHttt } = req.body;
+        const { note, items, maNcc, maNv, maHttt, maKho } = req.body;
 
         if (!items || items.length === 0) {
             return res.status(400).json({ success: false, message: "Danh sách nhập hàng trống" });
+        }
+
+        // Kiểm tra kho
+        const selectedKho = maKho || 'KHO_TT'; // Mặc định Kho Trung Tâm
+        const khoExists = await Kho.findByPk(selectedKho);
+        if (!khoExists) {
+            return res.status(400).json({ success: false, message: "Mã kho không hợp lệ" });
         }
 
         let totalAmount = 0;
@@ -35,10 +40,9 @@ const createImportReceipt = async (req, res) => {
                 ngayNhap: new Date(),
                 tongTien: totalAmount,
                 maNcc: maNcc || null,
-                maNv: maNv || null, // from req.user maybe
+                maNv: maNv || null,
                 maHttt: maHttt || null,
             }, { transaction: t });
-
         } catch (err) {
             console.error("Error creating PhieuNhap:", err);
             throw err;
@@ -46,19 +50,32 @@ const createImportReceipt = async (req, res) => {
 
         // Tạo chi tiết phiếu nhập và cập nhật kho
         for (const item of items) {
-            try {
-                await CtNhapMay.create({
-                    maPn: receipt.maPn,
-                    maModel: item.productId, // treating productId as maModel
-                    soLuong: item.quantity,
-                    donGia: item.price
-                }, { transaction: t });
-            } catch (err) {
-                console.error("Error creating CtNhapMay:", err);
-                throw err;
+            await CtNhapMay.create({
+                maPn: receipt.maPn,
+                maModel: item.productId,
+                soLuong: item.quantity,
+                donGia: item.price
+            }, { transaction: t });
+
+            // Nếu có nhập mảng các model serial / IMEI
+            if (item.serials && Array.isArray(item.serials)) {
+                for (const serial of item.serials) {
+                    // Check duplicate serial
+                    const existingSerial = await ChiTietMay.findByPk(serial, { transaction: t });
+                    if (existingSerial) {
+                        throw new Error(`Số Serial/IMEI ${serial} đã tồn tại trong hệ thống`);
+                    }
+
+                    await ChiTietMay.create({
+                        soSerial: serial,
+                        trangThai: 'Trong kho',
+                        maModel: item.productId,
+                        maKho: selectedKho
+                    }, { transaction: t });
+                }
             }
 
-            // Cập nhật số lượng sản phẩm trong kho
+            // Cập nhật số lượng sản phẩm trong kho (Tổng)
             const product = await DongMay.findByPk(item.productId, { transaction: t });
             if (product) {
                 await product.update({

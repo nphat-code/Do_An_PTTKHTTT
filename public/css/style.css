@@ -103,7 +103,7 @@ ul {
 
 .sidebar h2 {
     text-align: center;
-    padding: 30px 20px;
+    padding: 30px 20px 20px;
     color: #60a5fa;
     /* Blue 400 */
     font-size: 1.5rem;
@@ -113,9 +113,18 @@ ul {
     margin-bottom: 10px;
 }
 
+.sidebar .nav-group-title {
+    padding: 15px 25px 5px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
 .sidebar ul {
     flex: 1;
-    padding: 10px 0;
+    padding: 5px 0;
 }
 
 .sidebar ul li a {
