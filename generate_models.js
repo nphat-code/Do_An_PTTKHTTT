@@ -92,7 +92,9 @@ const KhachHang = sequelize.define('KhachHang', {
     gioiTinh: { type: DataTypes.ENUM('Nam', 'Nữ', 'Khác') },
     sdt: { type: DataTypes.STRING(15) },
     email: { type: DataTypes.STRING },
-    diaChi: { type: DataTypes.TEXT }
+    diaChi: { type: DataTypes.TEXT },
+    matKhau: { type: DataTypes.STRING },
+    trangThai: { type: DataTypes.BOOLEAN, defaultValue: true }
 }, { tableName: 'KHACH_HANG', timestamps: false });
 
 module.exports = KhachHang;`,
@@ -115,7 +117,8 @@ const DongMay = sequelize.define('DongMay', {
     tenModel: { type: DataTypes.STRING, allowNull: false },
     giaNhap: { type: DataTypes.DECIMAL(15, 2) },
     giaBan: { type: DataTypes.DECIMAL(15, 2) },
-    soLuongTon: { type: DataTypes.INTEGER, defaultValue: 0 }
+    soLuongTon: { type: DataTypes.INTEGER, defaultValue: 0 },
+    hinhAnh: { type: DataTypes.TEXT }
     // maCh, maHang, maLoai FK
 }, { tableName: 'DONG_MAY', timestamps: false });
 
@@ -144,6 +147,7 @@ const Kho = sequelize.define('Kho', {
     maKho: { type: DataTypes.STRING(20), primaryKey: true },
     tenKho: { type: DataTypes.STRING, allowNull: false },
     diaChi: { type: DataTypes.TEXT },
+    sdt: { type: DataTypes.STRING(15) },
     loaiKho: { type: DataTypes.ENUM('Kho lưu trữ', 'Kho trưng bày', 'Kho bảo hành') },
     trangThai: { type: DataTypes.BOOLEAN, defaultValue: true }
     // maCn FK
@@ -192,7 +196,8 @@ const HoaDon = sequelize.define('HoaDon', {
     maHd: { type: DataTypes.STRING(20), primaryKey: true },
     ngayLap: { type: DataTypes.DATE },
     tongTien: { type: DataTypes.DECIMAL(15, 2) },
-    ghiChu: { type: DataTypes.TEXT }
+    ghiChu: { type: DataTypes.TEXT },
+    trangThai: { type: DataTypes.STRING }
     // maKh, maNv, maHttt, maKm FK
 }, { tableName: 'HOA_DON', timestamps: false });
 

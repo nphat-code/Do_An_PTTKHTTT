@@ -7,7 +7,7 @@ const DongMay = sequelize.define('DongMay', {
     giaNhap: { type: DataTypes.DECIMAL(15, 2) },
     giaBan: { type: DataTypes.DECIMAL(15, 2) },
     soLuongTon: { type: DataTypes.INTEGER, defaultValue: 0 },
-    hinhAnh: { type: DataTypes.STRING }
+    hinhAnh: { type: DataTypes.TEXT }
     // maCh, maHang, maLoai FK
 }, { tableName: 'DONG_MAY', timestamps: false });
 

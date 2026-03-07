@@ -2,6 +2,7 @@ const sequelize = require('../config/database');
 
 const NhaCungCap = require('./NhaCungCap.model');
 const HangSanXuat = require('./HangSanXuat.model');
+const ChiNhanh = require('./ChiNhanh.model');
 const NhanVien = require('./NhanVien.model');
 const ChucVu = require('./ChucVu.model');
 const KhachHang = require('./KhachHang.model');
@@ -28,7 +29,21 @@ const HinhThucThanhToan = require('./HinhThucThanhToan.model');
 
 // Relationships
 
+// ChiNhanh - NhanVien (người quản lý)
+NhanVien.hasOne(ChiNhanh, { foreignKey: 'maNvQuanLy', as: 'ChiNhanhQuanLy' });
+ChiNhanh.belongsTo(NhanVien, { foreignKey: 'maNvQuanLy', as: 'QuanLy' });
 
+// ChucVu - NhanVien
+ChucVu.hasMany(NhanVien, { foreignKey: 'maCv' });
+NhanVien.belongsTo(ChucVu, { foreignKey: 'maCv' });
+
+// ChiNhanh - NhanVien (nơi làm việc)
+ChiNhanh.hasMany(NhanVien, { foreignKey: 'maCn' });
+NhanVien.belongsTo(ChiNhanh, { foreignKey: 'maCn' });
+
+// ChiNhanh - Kho
+ChiNhanh.hasMany(Kho, { foreignKey: 'maCn' });
+Kho.belongsTo(ChiNhanh, { foreignKey: 'maCn' });
 
 // DongMay relationships
 CauHinh.hasMany(DongMay, { foreignKey: 'maCh' });
@@ -69,9 +84,6 @@ HoaDon.belongsTo(KhachHang, { foreignKey: 'maKh' });
 
 NhanVien.hasMany(HoaDon, { foreignKey: 'maNv' });
 HoaDon.belongsTo(NhanVien, { foreignKey: 'maNv' });
-
-ChucVu.hasMany(NhanVien, { foreignKey: 'maCv' });
-NhanVien.belongsTo(ChucVu, { foreignKey: 'maCv' });
 
 HinhThucThanhToan.hasMany(HoaDon, { foreignKey: 'maHttt' });
 HoaDon.belongsTo(HinhThucThanhToan, { foreignKey: 'maHttt' });
@@ -179,6 +191,7 @@ module.exports = {
     sequelize,
     NhaCungCap,
     HangSanXuat,
+    ChiNhanh,
     NhanVien,
     ChucVu,
     KhachHang,

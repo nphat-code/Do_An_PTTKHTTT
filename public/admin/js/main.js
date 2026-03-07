@@ -120,6 +120,7 @@ function renderTable(products) {
         tr.innerHTML = `
             <td><strong>${p.maModel}</strong></td>
             <td>${hang}</td>
+            <td>${p.hinhAnh ? `<img src="/${p.hinhAnh}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/50';">` : `<div style="width:50px; height:50px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; border-radius:4px; color:#94a3b8;"><i class="fas fa-image"></i></div>`}</td>
             <td><strong>${p.tenModel}</strong></td>
             <td>${configText}</td>
             <td>${Number(p.giaBan || 0).toLocaleString()}đ</td>
@@ -903,6 +904,9 @@ function renderCustomersTable(users) {
                     <button class="btn-delete" style="background:${status ? '#ef4444' : '#10b981'}" onclick="toggleUserLock('${user.maKh}')" title="${status ? 'Khóa' : 'Mở khóa'}">
                         <i class="fas ${status ? 'fa-lock' : 'fa-unlock'}"></i>
                     </button>
+                    <button class="btn-edit" onclick="resetCustomerPassword('${user.maKh}')" title="Đặt lại mật khẩu">
+                        <i class="fas fa-key"></i>
+                    </button>
                 </div>
             </td>
         `;
@@ -937,6 +941,41 @@ async function toggleUserLock(userId) {
             }
         } catch (error) {
             Swal.fire("Lỗi", "Không thể kết nối đến server", "error");
+        }
+    }
+}
+
+// Function to reset customer password
+async function resetCustomerPassword(userId) {
+    const { value: newPassword } = await Swal.fire({
+        title: 'Đặt lại mật khẩu KH',
+        input: 'password',
+        inputLabel: 'Nhập mật khẩu mới (ít nhất 6 ký tự)',
+        inputPlaceholder: 'Mật khẩu mới',
+        showCancelButton: true,
+        confirmButtonText: 'Lưu mật khẩu',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+            if (!value) return 'Vui lòng nhập mật khẩu mới!';
+            if (value.length < 6) return 'Mật khẩu phải từ 6 ký tự trở lên!';
+        }
+    });
+
+    if (newPassword) {
+        try {
+            const res = await fetch(`/api/users/${userId}/reset-password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newPassword })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire('Thành công', data.message, 'success');
+            } else {
+                Swal.fire('Lỗi', data.message, 'error');
+            }
+        } catch (e) {
+            Swal.fire('Lỗi', 'Không thể đổi mật khẩu, lỗi server', 'error');
         }
     }
 }
@@ -1834,6 +1873,7 @@ function renderWarehousesTable(warehouses) {
         <tr>
             <td><strong>${w.maKho}</strong></td>
             <td>${w.tenKho}</td>
+            <td>${w.sdt || '—'}</td>
             <td>${w.diaChi || '—'}</td>
             <td>${w.loaiKho || '—'}</td>
             <td>
@@ -1870,6 +1910,10 @@ async function openWarehouseModal(warehouse = null) {
                     <input id="swalTenKho" class="swal2-input" style="width:100%; margin:0;" value="${warehouse?.tenKho || ''}" placeholder="VD: Kho chính Quận 1">
                 </div>
                 <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Số điện thoại</label>
+                    <input id="swalSdtKho" class="swal2-input" style="width:100%; margin:0;" value="${warehouse?.sdt || ''}" placeholder="VD: 09xxxx">
+                </div>
+                <div style="margin-bottom:12px;">
                     <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Địa chỉ</label>
                     <input id="swalDiaChiKho" class="swal2-input" style="width:100%; margin:0;" value="${warehouse?.diaChi || ''}" placeholder="VD: 123 Lê Lợi...">
                 </div>
@@ -1904,6 +1948,7 @@ async function openWarehouseModal(warehouse = null) {
             return {
                 maKho,
                 tenKho,
+                sdt: document.getElementById('swalSdtKho').value.trim(),
                 diaChi: document.getElementById('swalDiaChiKho').value.trim(),
                 loaiKho: document.getElementById('swalLoaiKho').value,
                 trangThai: document.getElementById('swalTrangThaiKho').value === 'true'
@@ -2220,6 +2265,10 @@ async function openEmployeeModal(employee = null) {
                         </select>
                     </div>
                 </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-map-marker-alt" style="color:#6366f1;"></i> Địa chỉ</label>
+                    <input id="swalDiaChiNv" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${employee?.diaChi || ''}" placeholder="Số nhà, tên đường, phường/xã..." autocomplete="off">
+                </div>
             </div>
         `,
         showCancelButton: true,
@@ -2239,6 +2288,7 @@ async function openEmployeeModal(employee = null) {
             return {
                 maNv, hoTen, email, matKhau,
                 sdt: document.getElementById('swalSdt').value.trim(),
+                diaChi: document.getElementById('swalDiaChiNv').value.trim(),
                 maCv: document.getElementById('swalMaCv').value || null
             };
         }

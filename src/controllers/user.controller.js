@@ -28,9 +28,15 @@ const createCustomer = async (req, res) => {
 const getAllUsers = async (req, res) => {
     try {
         const users = await KhachHang.findAll();
+        const formattedUsers = users.map(user => {
+            const data = user.toJSON();
+            if (data.trangThai === null) data.trangThai = true;
+            return data;
+        });
+
         return res.status(200).json({
             success: true,
-            data: users
+            data: formattedUsers
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -58,9 +64,12 @@ const getUserDetails = async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy khách hàng" });
         }
 
+        const userData = user.toJSON();
+        if (userData.trangThai === null) userData.trangThai = true;
+
         return res.status(200).json({
             success: true,
-            data: user
+            data: userData
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -103,9 +112,15 @@ const searchUsers = async (req, res) => {
             }
         });
 
+        const formattedUsers = users.map(user => {
+            const data = user.toJSON();
+            if (data.trangThai === null) data.trangThai = true;
+            return data;
+        });
+
         return res.status(200).json({
             success: true,
-            data: users
+            data: formattedUsers
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -120,7 +135,8 @@ const toggleUserLock = async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy khách hàng" });
         }
 
-        const newStatus = !user.trangThai;
+        const currentStatus = user.trangThai === null ? true : user.trangThai;
+        const newStatus = !currentStatus;
         await user.update({ trangThai: newStatus });
 
         return res.status(200).json({
@@ -141,6 +157,28 @@ const deleteUser = async (req, res) => {
 
         await user.destroy();
         return res.status(200).json({ success: true, message: "Đã xóa khách hàng khỏi hệ thống" });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Cập nhật: Đặt lại mật khẩu khách hàng
+const resetUserPassword = async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: "Mật khẩu mới phải có ít nhất 6 ký tự" });
+        }
+
+        const user = await KhachHang.findByPk(req.params.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy khách hàng" });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await user.update({ matKhau: hashedPassword });
+
+        return res.status(200).json({ success: true, message: "Đã đặt lại mật khẩu thành công" });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -175,5 +213,6 @@ module.exports = {
     searchUsers,
     toggleUserLock,
     deleteUser,
+    resetUserPassword,
     getNextMaKh
 };

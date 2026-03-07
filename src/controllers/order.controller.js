@@ -351,7 +351,7 @@ const getDashboardStats = async (req, res) => {
             FROM "CT_HOA_DON" ct
             JOIN "HOA_DON" hd ON ct."maHd" = hd."maHd"
             JOIN "DONG_MAY" dm ON ct."maModel" = dm."maModel"
-            WHERE hd."trangThai" != N'Đã hủy'
+            WHERE hd."trangThai" != 'Đã hủy'
             GROUP BY dm."maModel", dm."tenModel"
             ORDER BY "totalSold" DESC
             LIMIT 5
@@ -359,8 +359,8 @@ const getDashboardStats = async (req, res) => {
 
         const processedTopProducts = topProductsData.map(item => ({
             name: item.name,
-            totalSold: parseInt(item.totalSold),
-            totalRevenue: parseFloat(item.totalRevenue)
+            totalSold: parseInt(item.totalSold) || 0,
+            totalRevenue: parseFloat(item.totalRevenue) || 0
         }));
 
         // 5. Tổng sản phẩm (DongMay) và Tổng doanh thu (HoaDon)

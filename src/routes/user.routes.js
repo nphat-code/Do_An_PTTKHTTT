@@ -21,5 +21,6 @@ router.get('/:id', userController.getUserDetails);
 router.put('/:id', userController.updateUser);
 router.delete('/:id', userController.deleteUser);
 router.put('/:id/lock', userController.toggleUserLock);
+router.put('/:id/reset-password', userController.resetUserPassword);
 
 module.exports = router;

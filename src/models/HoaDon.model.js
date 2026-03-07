@@ -6,7 +6,7 @@ const HoaDon = sequelize.define('HoaDon', {
     ngayLap: { type: DataTypes.DATE },
     tongTien: { type: DataTypes.DECIMAL(15, 2) },
     ghiChu: { type: DataTypes.TEXT },
-    trangThai: { type: DataTypes.STRING(50), defaultValue: 'Chờ xử lý' }
+    trangThai: { type: DataTypes.STRING }
     // maKh, maNv, maHttt, maKm FK
 }, { tableName: 'HOA_DON', timestamps: false });
 

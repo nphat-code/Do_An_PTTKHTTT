@@ -27,7 +27,7 @@ const getAllWarehouses = async (req, res) => {
 // Thêm kho
 const createWarehouse = async (req, res) => {
     try {
-        const { maKho, tenKho, diaChi, loaiKho, trangThai, maCn } = req.body;
+        const { maKho, tenKho, diaChi, sdt, loaiKho, trangThai, maCn } = req.body;
         if (!maKho || !tenKho) {
             return res.status(400).json({ success: false, message: 'Mã và tên kho là bắt buộc' });
         }
@@ -36,7 +36,7 @@ const createWarehouse = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Mã kho đã tồn tại' });
         }
 
-        const warehouseData = { maKho, tenKho, diaChi, loaiKho };
+        const warehouseData = { maKho, tenKho, diaChi, sdt, loaiKho };
         if (trangThai !== undefined) warehouseData.trangThai = trangThai;
 
         const warehouse = await Kho.create(warehouseData);
@@ -50,14 +50,14 @@ const createWarehouse = async (req, res) => {
 const updateWarehouse = async (req, res) => {
     try {
         const { id } = req.params;
-        const { tenKho, diaChi, loaiKho, trangThai } = req.body;
+        const { tenKho, diaChi, sdt, loaiKho, trangThai } = req.body;
 
         const warehouse = await Kho.findByPk(id);
         if (!warehouse) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy kho' });
         }
 
-        await warehouse.update({ tenKho, diaChi, loaiKho, trangThai });
+        await warehouse.update({ tenKho, diaChi, sdt, loaiKho, trangThai });
         res.json({ success: true, message: 'Đã cập nhật kho', data: warehouse });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

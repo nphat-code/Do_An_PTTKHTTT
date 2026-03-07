@@ -11,6 +11,6 @@ const KhachHang = sequelize.define('KhachHang', {
     diaChi: { type: DataTypes.TEXT },
     matKhau: { type: DataTypes.STRING },
     trangThai: { type: DataTypes.BOOLEAN, defaultValue: true }
-}, { tableName: 'KHACH_HANG', timestamps: true });
+}, { tableName: 'KHACH_HANG', timestamps: false });
 
 module.exports = KhachHang;

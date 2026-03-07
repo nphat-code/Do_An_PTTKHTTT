@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const getAllEmployees = async (req, res) => {
     try {
         const employees = await NhanVien.findAll({
-            attributes: ['maNv', 'hoTen', 'email', 'sdt', 'trangThai', 'maCv'],
+            attributes: ['maNv', 'hoTen', 'email', 'sdt', 'diaChi', 'trangThai', 'maCv'],
             order: [['maNv', 'ASC']],
             include: [
                 { model: ChucVu, attributes: ['tenCv'] }
@@ -48,6 +48,7 @@ const createEmployee = async (req, res) => {
             hoTen,
             email,
             sdt: sdt || null,
+            diaChi: req.body.diaChi || null,
             matKhau: hashedPassword,
             trangThai: true,
             maCv: maCv || null
@@ -61,6 +62,7 @@ const createEmployee = async (req, res) => {
                 hoTen: newEmployee.hoTen,
                 email: newEmployee.email,
                 sdt: newEmployee.sdt,
+                diaChi: newEmployee.diaChi,
                 trangThai: newEmployee.trangThai
             }
         });
@@ -112,10 +114,9 @@ const resetEmployeePassword = async (req, res) => {
     }
 };
 
-// Cập nhật thông tin cơ bản nhân viên (Chức vụ)
 const updateEmployee = async (req, res) => {
     try {
-        const { hoTen, sdt, maCv } = req.body;
+        const { hoTen, sdt, diaChi, maCv } = req.body;
 
         const employee = await NhanVien.findByPk(req.params.id);
         if (!employee) {
@@ -125,6 +126,7 @@ const updateEmployee = async (req, res) => {
         await employee.update({
             hoTen,
             sdt: sdt || null,
+            diaChi: diaChi || null,
             maCv: maCv || null
         });
 
