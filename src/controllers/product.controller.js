@@ -89,7 +89,7 @@ const createProduct = async (req, res) => {
 
         // 1. Create CauHinh if any config field is provided
         let maCh = null;
-        if (cpu || ram || oCung || vga || manHinh || pin) {
+        if (cpu || ram || oCung || vga || manHinh || pin || trongLuong) {
             maCh = 'CH_' + Date.now();
             await CauHinh.create({
                 maCh,
@@ -152,7 +152,7 @@ const updateProduct = async (req, res) => {
             cpu, ram, oCung, vga, manHinh, pin, trongLuong } = req.body;
 
         // Update CauHinh
-        if (cpu || ram || oCung || vga || manHinh || pin) {
+        if (cpu || ram || oCung || vga || manHinh || pin || trongLuong) {
             if (product.maCh && product.CauHinh) {
                 // Update existing
                 await product.CauHinh.update({

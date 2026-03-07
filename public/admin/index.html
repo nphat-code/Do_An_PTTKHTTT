@@ -499,6 +499,15 @@
                             <input type="text" id="pin" placeholder="VD: 90Wh">
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Trọng lượng (kg):</label>
+                            <input type="number" step="0.01" id="trongLuong" placeholder="VD: 2.5">
+                        </div>
+                        <div class="form-group">
+                            <!-- Empty block to maintain grid structure -->
+                        </div>
+                    </div>
 
                     <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
                     <h4 style="margin-bottom: 10px; color: #f59e0b;"><i class="fas fa-image"></i> Hình ảnh sản phẩm</h4>
@@ -775,9 +784,7 @@
                             <select id="orderDetailStatusSelect"
                                 style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
                                 <option>Chờ xử lý</option>
-                                <option>Đã xác nhận</option>
-                                <option>Đang giao</option>
-                                <option>Đã giao</option>
+                                <option>Đã hoàn thành</option>
                                 <option>Đã hủy</option>
                             </select>
                             <button onclick="saveOrderStatus()"

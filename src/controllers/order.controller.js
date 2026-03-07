@@ -234,7 +234,7 @@ const getOrderById = async (req, res) => {
     }
 };
 
-const ORDER_STATUSES = ['Chờ xử lý', 'Đã xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy'];
+const ORDER_STATUSES = ['Chờ xử lý', 'Đã hoàn thành', 'Đã hủy'];
 
 const updateOrderStatus = async (req, res) => {
     const t = await sequelize.transaction();
@@ -345,10 +345,23 @@ const getDashboardStats = async (req, res) => {
             raw: true
         });
 
-        // 4. Top 5 sản phẩm bán chạy (using CtHoaDon)
-        // Not implemented simply for now without a 'status' to consider only completed ones.
-        // Needs a slightly more complex raw query with GROUP BY.
-        const processedTopProducts = [];
+        // 4. Top 5 sản phẩm bán chạy
+        const topProductsData = await sequelize.query(`
+            SELECT dm."tenModel" as name, SUM(ct."soLuong") as "totalSold", SUM(ct."thanhTien") as "totalRevenue"
+            FROM "CT_HOA_DON" ct
+            JOIN "HOA_DON" hd ON ct."maHd" = hd."maHd"
+            JOIN "DONG_MAY" dm ON ct."maModel" = dm."maModel"
+            WHERE hd."trangThai" != N'Đã hủy'
+            GROUP BY dm."maModel", dm."tenModel"
+            ORDER BY "totalSold" DESC
+            LIMIT 5
+        `, { type: sequelize.QueryTypes.SELECT });
+
+        const processedTopProducts = topProductsData.map(item => ({
+            name: item.name,
+            totalSold: parseInt(item.totalSold),
+            totalRevenue: parseFloat(item.totalRevenue)
+        }));
 
         // 5. Tổng sản phẩm (DongMay) và Tổng doanh thu (HoaDon)
         const totalProductsCount = await DongMay.count();

@@ -113,9 +113,7 @@ async function loadMyOrders() {
         container.innerHTML = result.data.map(order => {
             const statusMap = {
                 'Chờ xử lý': { class: 'status-pending', icon: '⏳' },
-                'Đã xác nhận': { class: 'status-confirmed', icon: '✅' },
-                'Đang giao': { class: 'status-shipping', icon: '🚚' },
-                'Đã giao': { class: 'status-delivered', icon: '📦' },
+                'Đã hoàn thành': { class: 'status-delivered', icon: '✅' },
                 'Đã hủy': { class: 'status-cancelled', icon: '❌' }
             };
             const status = statusMap[order.trangThai] || { class: 'status-pending', icon: '⏳' };

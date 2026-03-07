@@ -232,6 +232,7 @@ window.openEditModal = async (maModel) => {
         document.getElementById("vga").value = ch.vga || '';
         document.getElementById("manHinh").value = ch.manHinh || '';
         document.getElementById("pin").value = ch.pin || '';
+        document.getElementById("trongLuong").value = ch.trongLuong || '';
         document.getElementById("giaNhap").value = p.giaNhap || 0;
         document.getElementById("giaBan").value = p.giaBan || 0;
 
@@ -282,6 +283,7 @@ productForm.onsubmit = async function (e) {
     formData.append('vga', document.getElementById("vga").value);
     formData.append('manHinh', document.getElementById("manHinh").value);
     formData.append('pin', document.getElementById("pin").value);
+    formData.append('trongLuong', document.getElementById("trongLuong").value);
     formData.append('giaNhap', document.getElementById("giaNhap").value);
     formData.append('giaBan', document.getElementById("giaBan").value);
 
@@ -363,19 +365,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-const ORDER_STATUSES = ['Chờ xử lý', 'Đã xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy'];
+const ORDER_STATUSES = ['Chờ xử lý', 'Đã hoàn thành', 'Đã hủy'];
 const ORDER_STATUS_COLORS = {
     'Chờ xử lý': { bg: '#fef3c7', color: '#d97706' },
-    'Đã xác nhận': { bg: '#dbeafe', color: '#2563eb' },
-    'Đang giao': { bg: '#e0e7ff', color: '#4f46e5' },
-    'Đã giao': { bg: '#dcfce7', color: '#16a34a' },
+    'Đã hoàn thành': { bg: '#dcfce7', color: '#16a34a' },
     'Đã hủy': { bg: '#fecaca', color: '#dc2626' }
 };
 const ORDER_STATUS_CLASS = {
     'Chờ xử lý': 'pending',
-    'Đã xác nhận': 'confirmed',
-    'Đang giao': 'shipping',
-    'Đã giao': 'delivered',
+    'Đã hoàn thành': 'delivered',
     'Đã hủy': 'cancelled'
 };
 
@@ -534,9 +532,7 @@ function renderCharts(data) {
 
         const statusColors = {
             'Chờ xử lý': '#fbbf24',
-            'Đã xác nhận': '#3b82f6',
-            'Đang giao': '#6366f1',
-            'Đã giao': '#10b981',
+            'Đã hoàn thành': '#10b981',
             'Đã hủy': '#ef4444'
         };
         const bgColors = statusLabels.map(l => statusColors[l] || '#cbd5e1');
@@ -574,28 +570,50 @@ function renderTopProducts(products) {
     const container = document.getElementById('topProductsTable');
     if (!container) return;
 
-    // Create a simple table HTML
+    if (!products || products.length === 0) {
+        container.innerHTML = '<p style="color:#64748b; text-align:center; padding: 20px;">Chưa có dữ liệu bán hàng.</p>';
+        return;
+    }
+
     let html = `
-        <table style="width:100%; text-align: left; border-collapse: collapse;">
-            <thead>
-                <tr style="border-bottom: 2px solid #eee;">
-                    <th style="padding: 10px;">Tên sản phẩm</th>
-                    <th style="padding: 10px; text-align: right;">Số lượng bán</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div class="table-container" style="margin: 0;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: left; padding: 12px 15px;">Sản phẩm</th>
+                        <th style="text-align: center; padding: 12px 15px;">Số lượng đã bán</th>
+                        <th style="text-align: right; padding: 12px 15px;">Doanh thu mang lại</th>
+                    </tr>
+                </thead>
+                <tbody>
     `;
 
-    products.forEach(p => {
+    products.forEach((p, index) => {
+        // Add a medal emoji for the top 3
+        let medal = '';
+        if (index === 0) medal = '🥇 ';
+        else if (index === 1) medal = '🥈 ';
+        else if (index === 2) medal = '🥉 ';
+        else medal = `<span style="color:#94a3b8; font-size:0.8rem; margin-right:4px;">#${index + 1}</span> `;
+
         html += `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 10px;">${p.name}</td>
-                <td style="padding: 10px; text-align: right; font-weight: bold;">${p.totalSold}</td>
+            <tr>
+                <td style="padding: 12px 15px; font-weight: 500;">
+                    ${medal}${p.name}
+                </td>
+                <td style="padding: 12px 15px; text-align: center;">
+                    <span style="background: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 12px; font-weight: 700;">
+                        ${p.totalSold}
+                    </span>
+                </td>
+                <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #10b981;">
+                    ${p.totalRevenue.toLocaleString()} ₫
+                </td>
             </tr>
         `;
     });
 
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 }
 
