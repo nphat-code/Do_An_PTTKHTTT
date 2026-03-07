@@ -103,14 +103,58 @@ ul {
 
 .sidebar h2 {
     text-align: center;
-    padding: 30px 20px 20px;
+    padding: 30px 20px 15px;
     color: #60a5fa;
     /* Blue 400 */
     font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: 0.05em;
-    border-bottom: 1px solid #334155;
+    margin-bottom: 0px;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    padding: 20px 25px;
     margin-bottom: 10px;
+    border-bottom: 1px solid #334155;
+    background: rgba(51, 65, 85, 0.3);
+}
+
+.user-avatar {
+    width: 45px;
+    height: 45px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    font-size: 1.5rem;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.3);
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .sidebar .nav-group-title {
@@ -423,6 +467,16 @@ button,
 .status-badge.cancelled {
     background: #fee2e2;
     color: #b91c1c;
+}
+
+.status-badge.status-active {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.status-badge.status-inactive {
+    background: #fee2e2;
+    color: #dc2626;
 }
 
 /* Modal */
@@ -865,9 +919,68 @@ button,
 .auth-container h2 {
     text-align: center;
     color: var(--primary-color);
-    margin-bottom: 30px;
+    margin-bottom: 10px;
     font-size: 1.8rem;
     font-weight: 800;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.auth-header p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.auth-card {
+    padding: 10px;
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: #f9fafb;
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background-color: white;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.form-group label i {
+    margin-right: 6px;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    width: 16px;
+    text-align: center;
+}
+
+.back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted) !important;
+    font-size: 0.9rem;
+    font-weight: 500 !important;
+    transition: color 0.2s;
+}
+
+.back-home:hover {
+    color: var(--primary-color) !important;
+    text-decoration: none !important;
 }
 
 .auth-footer {

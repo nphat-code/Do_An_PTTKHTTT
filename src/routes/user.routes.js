@@ -4,19 +4,22 @@ const userController = require('../controllers/user.controller');
 
 // Đường dẫn gốc: /api/users
 
-// 1. Tìm kiếm khách hàng (Phải đặt trước route /:id)
+// 1. Tạo khách hàng mới
+router.post('/', userController.createCustomer);
+
+// 2. Lấy mã khách hàng tiếp theo
+router.get('/next-id', userController.getNextMaKh);
+
+// 3. Tìm kiếm khách hàng (Phải đặt trước các route có tham số)
 router.get('/search', userController.searchUsers);
 
-// 2. Lấy danh sách toàn bộ khách hàng
+// 3. Lấy danh sách toàn bộ khách hàng
 router.get('/', userController.getAllUsers);
 
-// 3. Xem chi tiết một khách hàng (bao gồm lịch sử mua hàng)
+// 4. Xem chi tiết / Cập nhật / Xóa / Khóa
 router.get('/:id', userController.getUserDetails);
-
-// 4. Cập nhật thông tin khách hàng
 router.put('/:id', userController.updateUser);
-
-// 5. Khóa / Mở khóa tài khoản
+router.delete('/:id', userController.deleteUser);
 router.put('/:id/lock', userController.toggleUserLock);
 
 module.exports = router;

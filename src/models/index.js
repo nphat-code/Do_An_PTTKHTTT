@@ -70,6 +70,9 @@ HoaDon.belongsTo(KhachHang, { foreignKey: 'maKh' });
 NhanVien.hasMany(HoaDon, { foreignKey: 'maNv' });
 HoaDon.belongsTo(NhanVien, { foreignKey: 'maNv' });
 
+ChucVu.hasMany(NhanVien, { foreignKey: 'maCv' });
+NhanVien.belongsTo(ChucVu, { foreignKey: 'maCv' });
+
 HinhThucThanhToan.hasMany(HoaDon, { foreignKey: 'maHttt' });
 HoaDon.belongsTo(HinhThucThanhToan, { foreignKey: 'maHttt' });
 

@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const employeeController = require('../controllers/employee.controller');
 
+// GET /api/employees/next-id - Lấy mã nhân viên tiếp theo
+router.get('/next-id', employeeController.getNextMaNv);
+
 // GET /api/employees - Danh sách nhân viên
 router.get('/', employeeController.getAllEmployees);
 

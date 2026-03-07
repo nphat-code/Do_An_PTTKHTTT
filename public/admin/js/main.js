@@ -7,6 +7,14 @@ if (!token || !user || user.role !== 'employee') {
     window.location.href = '/admin/login.html';
 }
 
+// Hiển thị thông tin người dùng
+document.addEventListener('DOMContentLoaded', () => {
+    const adminNameEl = document.getElementById('adminName');
+    const adminRoleEl = document.getElementById('adminRole');
+    if (adminNameEl && user.fullName) adminNameEl.innerText = user.fullName;
+    if (adminRoleEl && user.role) adminRoleEl.innerText = (user.role === 'employee' ? 'Nhân viên' : user.role);
+});
+
 const productModal = document.getElementById("productModal");
 const btnAdd = document.querySelector(".btn-add");
 const closeBtn = document.querySelector(".close-btn");
@@ -110,7 +118,7 @@ function renderTable(products) {
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>#${p.maModel}</td>
+            <td><strong>${p.maModel}</strong></td>
             <td>${hang}</td>
             <td><strong>${p.tenModel}</strong></td>
             <td>${configText}</td>
@@ -329,7 +337,9 @@ if (searchInput) {
 // 1. Hàm tải danh sách đơn hàng
 async function loadOrders() {
     try {
-        const response = await fetch('http://localhost:3000/api/orders');
+        const searchInput = document.getElementById('searchOrderInput');
+        const search = searchInput ? searchInput.value.trim() : '';
+        const response = await fetch(`/api/orders?search=${encodeURIComponent(search)}`);
         const result = await response.json();
         if (result.success) {
             renderOrdersTable(result.data);
@@ -339,7 +349,28 @@ async function loadOrders() {
     }
 }
 
+// Add event listener for Order Search with debounce
+document.addEventListener('DOMContentLoaded', () => {
+    const searchOrderInput = document.getElementById("searchOrderInput");
+    let orderSearchTimeout = null;
+    if (searchOrderInput) {
+        searchOrderInput.oninput = () => {
+            clearTimeout(orderSearchTimeout);
+            orderSearchTimeout = setTimeout(() => {
+                loadOrders();
+            }, 300);
+        };
+    }
+});
+
 const ORDER_STATUSES = ['Chờ xử lý', 'Đã xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy'];
+const ORDER_STATUS_COLORS = {
+    'Chờ xử lý': { bg: '#fef3c7', color: '#d97706' },
+    'Đã xác nhận': { bg: '#dbeafe', color: '#2563eb' },
+    'Đang giao': { bg: '#e0e7ff', color: '#4f46e5' },
+    'Đã giao': { bg: '#dcfce7', color: '#16a34a' },
+    'Đã hủy': { bg: '#fecaca', color: '#dc2626' }
+};
 const ORDER_STATUS_CLASS = {
     'Chờ xử lý': 'pending',
     'Đã xác nhận': 'confirmed',
@@ -360,15 +391,15 @@ function renderOrdersTable(orders) {
         const statusClass = ORDER_STATUS_CLASS[status] || 'pending';
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>#${order.maHd}</td>
+            <td><strong>${order.maHd}</strong></td>
             <td>${order.KhachHang ? order.KhachHang.hoTen : 'N/A'}</td>
             <td>${order.KhachHang ? order.KhachHang.sdt : 'N/A'}</td>
             <td>${date}</td>
             <td><strong style="color: #2563eb;">${Number(order.tongTien || 0).toLocaleString()}đ</strong></td>
             <td>
-                <select class="status-select" data-order-id="${order.maHd}" onchange="changeOrderStatus('${order.maHd}', this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.85rem;">
-                    ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`).join('')}
-                </select>
+                <span style="display:inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${ORDER_STATUS_COLORS[status].bg}; color: ${ORDER_STATUS_COLORS[status].color};">
+                    ${status}
+                </span>
             </td>
             <td>
                 <button class="btn-edit" onclick="viewOrderDetails('${order.maHd}')">
@@ -396,6 +427,7 @@ async function changeOrderStatus(orderId, trangThai) {
                 viewOrderDetails(orderId);
             }
             loadOrders(); // Reload bảng
+            loadDashboardStats(); // Reload biểu đồ ở Dashboard
         } else {
             Swal.fire('Lỗi', result.message || 'Không thể cập nhật', 'error');
         }
@@ -453,11 +485,12 @@ async function loadDashboardStats() {
 }
 
 function renderCharts(data) {
-    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const revenueCtx = document.getElementById('revenueChart');
+    const statusCtx = document.getElementById('statusChart');
+    if (!revenueCtx || !statusCtx) return;
 
-    // 1. Biểu đồ doanh thu
-    const labels = Object.keys(data.revenueByMonth).reverse(); // Đảo ngược để hiện từ cũ đến mới
+    // 1. Biểu đồ doanh thu (Line)
+    const labels = Object.keys(data.revenueByMonth).reverse();
     const revenueData = Object.values(data.revenueByMonth).reverse();
 
     if (revenueChartInstance) revenueChartInstance.destroy();
@@ -477,6 +510,7 @@ function renderCharts(data) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'top' },
             },
@@ -493,7 +527,47 @@ function renderCharts(data) {
         }
     });
 
-    // 2. Biểu đồ trạng thái (Disabled because no status currently)
+    // 2. Biểu đồ trạng thái đơn hàng (Doughnut)
+    if (data.statusStats && data.statusStats.length > 0) {
+        const statusLabels = data.statusStats.map(s => s.trangThai);
+        const statusValues = data.statusStats.map(s => parseInt(s.count));
+
+        const statusColors = {
+            'Chờ xử lý': '#fbbf24',
+            'Đã xác nhận': '#3b82f6',
+            'Đang giao': '#6366f1',
+            'Đã giao': '#10b981',
+            'Đã hủy': '#ef4444'
+        };
+        const bgColors = statusLabels.map(l => statusColors[l] || '#cbd5e1');
+
+        if (statusChartInstance) statusChartInstance.destroy();
+
+        statusChartInstance = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusValues,
+                    backgroundColor: bgColors,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
 
 function renderTopProducts(products) {
@@ -555,19 +629,12 @@ async function viewOrderDetails(orderId) {
             currentViewingOrder = order;
 
             // 1. Mã đơn hàng
-            document.getElementById("displayOrderId").innerText = `#${order.maHd}`;
+            document.getElementById("displayOrderId").innerText = order.maHd;
 
             // 2. Thông tin khách hàng & đơn hàng (card style)
             const date = new Date(order.ngayLap || order.createdAt).toLocaleString('vi-VN');
             const status = order.trangThai || 'Chờ xử lý';
-            const statusColors = {
-                'Chờ xử lý': { bg: '#fef3c7', color: '#d97706' },
-                'Đã xác nhận': { bg: '#dbeafe', color: '#2563eb' },
-                'Đang giao': { bg: '#e0e7ff', color: '#4f46e5' },
-                'Đã giao': { bg: '#dcfce7', color: '#16a34a' },
-                'Đã hủy': { bg: '#fecaca', color: '#dc2626' }
-            };
-            const sc = statusColors[status] || { bg: '#f1f5f9', color: '#64748b' };
+            const sc = ORDER_STATUS_COLORS[status] || { bg: '#f1f5f9', color: '#64748b' };
 
             document.getElementById("orderInfo").innerHTML = `
                 <div style="background: #f8fafc; border-radius: 12px; padding: 16px;">
@@ -580,16 +647,16 @@ async function viewOrderDetails(orderId) {
                 <div style="background: #f8fafc; border-radius: 12px; padding: 16px;">
                     <h4 style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;"><i class="fas fa-info-circle" style="margin-right: 6px;"></i>Thông tin đơn</h4>
                     <p style="margin-bottom: 8px;"><strong>Ngày đặt:</strong> ${date}</p>
-                    <p style="margin-bottom: 8px;">
-                        <strong>Trạng thái:</strong> 
-                        <span style="display:inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${sc.bg}; color: ${sc.color};">${status}</span>
+                    <p style="margin-bottom: 12px;">
+                        <strong>Trạng thái hiện tại:</strong> 
+                        <span style="display:inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${sc.bg}; color: ${sc.color};">${status}</span>
                     </p>
-                    <p style="margin-bottom: 4px;">
-                        <strong>Cập nhật:</strong>
-                        <select class="status-select" onchange="changeOrderStatus('${order.maHd}', this.value)" style="padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; cursor: pointer;">
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0;">
+                        <label style="display:block; font-size: 0.8rem; color: #64748b; margin-bottom: 5px; font-weight:600;">Cập nhật trạng thái:</label>
+                        <select class="status-select" onchange="changeOrderStatus('${order.maHd}', this.value)" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; cursor: pointer; background: white;">
                             ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`).join('')}
                         </select>
-                    </p>
+                    </div>
                     ${order.ghiChu ? `<p style="margin-top: 8px; color: #64748b; font-size: 0.85rem;"><i class="fas fa-sticky-note" style="color:#f59e0b;"></i> ${order.ghiChu}</p>` : ''}
                 </div>
             `;
@@ -598,7 +665,7 @@ async function viewOrderDetails(orderId) {
             const itemsContainer = document.getElementById("orderItemsTableBody");
             const orderItems = order.DongMays || [];
             if (orderItems.length === 0) {
-                itemsContainer.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: #94a3b8;"><i class="fas fa-box-open" style="font-size:1.5rem; display:block; margin-bottom:8px;"></i>Chưa có sản phẩm</td></tr>';
+                itemsContainer.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: #94a3b8;"><i class="fas fa-box-open" style="font-size:1.5rem; display:block; margin-bottom:8px;"></i>Chưa có sản phẩm</td></tr>';
             } else {
                 itemsContainer.innerHTML = "";
                 orderItems.forEach(p => {
@@ -615,6 +682,11 @@ async function viewOrderDetails(orderId) {
                             : `<div style="width:40px; height:40px; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; color:white; font-size:0.8rem;"><i class="fas fa-laptop"></i></div>`
                         }
                                 <span style="font-weight:500;">${p.tenModel || '—'}</span>
+                            </div>
+                        </td>
+                        <td style="padding: 14px 20px;">
+                            <div style="font-family: monospace; font-size: 0.85em; color: #475569;">
+                                ${p.serials && p.serials.length > 0 ? p.serials.join('<br>') : '<span style="color:#94a3b8; font-style:italic;">Trống</span>'}
                             </div>
                         </td>
                         <td style="padding: 14px 20px; text-align: right;">${priceAtPurchase.toLocaleString()}đ</td>
@@ -673,7 +745,10 @@ function printInvoice() {
         const total = Number(ct.thanhTien || qty * price);
         itemsHtml += `
             <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 8px;">${p.tenModel || '—'}</td>
+                <td style="padding: 8px;">
+                    ${p.tenModel || '—'}
+                    ${p.serials && p.serials.length > 0 ? `<br><small style="color: #666; font-family: monospace;">S/N: ${p.serials.join(', ')}</small>` : ''}
+                </td>
                 <td style="padding: 8px; text-align: center;">${qty}</td>
                 <td style="padding: 8px; text-align: right;">${price.toLocaleString()}đ</td>
                 <td style="padding: 8px; text-align: right;">${total.toLocaleString()}đ</td>
@@ -685,7 +760,7 @@ function printInvoice() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Hóa Đơn #${order.maHd}</title>
+            <title>Hóa Đơn ${order.maHd}</title>
             <style>
                 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #333; }
                 .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
@@ -723,7 +798,7 @@ function printInvoice() {
                 </div>
                 <div class="info-box" style="text-align: right;">
                     <h4>Đơn hàng</h4>
-                    Đơn số: #${order.maHd}<br>
+                    Đơn số: <strong>${order.maHd}</strong><br>
                     Ngày đặt: ${date}<br>
                     Trạng thái: ${order.trangThai || 'Chờ xử lý'}
                 </div>
@@ -791,16 +866,27 @@ function renderCustomersTable(users) {
 
     users.forEach(user => {
         const date = new Date(user.createdAt || new Date()).toLocaleDateString('vi-VN');
+        const status = user.trangThai; // Boolean
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>#${user.maKh}</td>
-            <td><strong>${user.hoTen}</strong></td>
-            <td>${user.sdt}</td>
-            <td>${user.email || 'N/A'}</td>
-            <td>${user.diaChi || 'N/A'}</td>
+            <td><strong>${user.maKh}</strong></td>
+            <td style="font-size: 0.95rem;"><strong>${user.hoTen}</strong> ${user.email ? `<br><small style="color:#94a3b8; font-weight:400;">${user.email}</small>` : ''}</td>
+            <td style="font-size: 0.95rem;"><i class="fas fa-phone" style="font-size: 0.75rem; color: #64748b; margin-right: 6px;"></i>${user.sdt}</td>
+            <td style="font-size: 0.9rem; color: #475569;">${user.diaChi || '—'}</td>
             <td>${date}</td>
-            <td>-</td>
-            <td>-</td>
+            <td>
+                <span class="status-badge ${status ? 'status-active' : 'status-inactive'}">
+                    ${status ? 'Hoạt động' : 'Đã khóa'}
+                </span>
+            </td>
+            <td>
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button class="btn-edit" onclick='openCustomerModal(${JSON.stringify(user)})' title="Sửa"><i class="fas fa-edit"></i></button>
+                    <button class="btn-delete" style="background:${status ? '#ef4444' : '#10b981'}" onclick="toggleUserLock('${user.maKh}')" title="${status ? 'Khóa' : 'Mở khóa'}">
+                        <i class="fas ${status ? 'fa-lock' : 'fa-unlock'}"></i>
+                    </button>
+                </div>
+            </td>
         `;
         container.appendChild(tr);
     });
@@ -848,6 +934,153 @@ if (searchCustomerInput) {
     };
 }
 
+// Hàm mở modal Thêm/Sửa khách hàng
+// Hàm mở modal Thêm/Sửa khách hàng
+async function openCustomerModal(user = null) {
+    const isEdit = !!user;
+    let nextId = user?.maKh || '';
+
+    // Nếu là thêm mới, tự động lấy mã tiếp theo
+    if (!isEdit) {
+        try {
+            const res = await fetch('http://localhost:3000/api/users/next-id');
+            const result = await res.json();
+            if (result.success) {
+                nextId = result.nextId;
+            }
+        } catch (error) {
+            console.error("Lỗi lấy mã KH tiếp theo:", error);
+            nextId = 'KH' + Date.now().toString().slice(-3); // Fallback
+        }
+    }
+
+    Swal.fire({
+        title: isEdit ? 'Cập nhật khách hàng' : 'Thêm khách hàng mới',
+        width: 650,
+        html: `
+            <div style="text-align:left; padding: 10px;">
+                <!-- Section 1: Basic Info -->
+                <div style="margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px;">
+                    <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #4f46e5; display: flex; align-items: center;">
+                        <i class="fas fa-id-card" style="margin-right: 8px;"></i> Thông tin cơ bản
+                    </h4>
+                    <div style="display:grid; grid-template-columns: 1fr 2fr; gap:15px; margin-bottom:12px;">
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Mã khách hàng</label>
+                            <input id="swalMaKh" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem; background: #f8fafc;" value="${nextId}" disabled placeholder="Tự động tạo">
+                        </div>
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Họ và tên <span style="color:red;">*</span></label>
+                            <input id="swalHoTenKh" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${user?.hoTen || ''}" placeholder="Nguyễn Văn A" autocomplete="off">
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Giới tính</label>
+                            <select id="swalGioiTinhKh" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem; padding: 0 10px; appearance: auto;">
+                                <option value="Nam" ${user?.gioiTinh === 'Nam' ? 'selected' : ''}>Nam</option>
+                                <option value="Nữ" ${user?.gioiTinh === 'Nữ' ? 'selected' : ''}>Nữ</option>
+                                <option value="Khác" ${user?.gioiTinh === 'Khác' ? 'selected' : ''}>Khác</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Ngày sinh</label>
+                            <input id="swalNgaySinhKh" type="date" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${user?.ngaySinh || ''}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Contact -->
+                <div style="margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px;">
+                    <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #4f46e5; display: flex; align-items: center;">
+                        <i class="fas fa-address-book" style="margin-right: 8px;"></i> Thông tin liên hệ
+                    </h4>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:12px;">
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Email</label>
+                            <input id="swalEmailKh" type="email" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${user?.email || ''}" placeholder="khach@gmail.com" autocomplete="off">
+                        </div>
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Số điện thoại <span style="color:red;">*</span></label>
+                            <input id="swalSdtKh" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${user?.sdt || ''}" placeholder="09xxxxxx" autocomplete="off">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Địa chỉ thường trú</label>
+                        <div style="position:relative;">
+                            <i class="fas fa-map-marker-alt" style="position:absolute; left:12px; top:11px; color:#94a3b8; font-size:0.9rem;"></i>
+                            <input id="swalDiaChiKh" class="swal2-input" style="width:100%; margin:0; height:38px; font-size:0.9rem; padding-left:35px !important;" value="${user?.diaChi || ''}" placeholder="Số nhà, tên đường, phường/xã..." autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Account (Only for Create) -->
+                ${!isEdit ? `
+                <div>
+                    <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #4f46e5; display: flex; align-items: center;">
+                        <i class="fas fa-lock" style="margin-right: 8px;"></i> Tài khoản đăng nhập
+                    </h4>
+                    <div style="display:grid; grid-template-columns: 1fr; gap:15px;">
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Mật khẩu <span style="color:red;">*</span></label>
+                            <input id="swalMatKhauKh" type="password" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" placeholder="Mật khẩu đăng nhập" autocomplete="new-password">
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: isEdit ? 'Cập nhật' : 'Thêm mới',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#4f46e5',
+        preConfirm: () => {
+            const maKh = document.getElementById('swalMaKh').value.trim();
+            const hoTen = document.getElementById('swalHoTenKh').value.trim();
+            const sdt = document.getElementById('swalSdtKh').value.trim();
+            const matKhau = document.getElementById('swalMatKhauKh')?.value;
+
+            if (!maKh || !hoTen || !sdt || (!isEdit && !matKhau)) {
+                Swal.showValidationMessage('Vui lòng nhập đầy đủ các trường bắt buộc (*)');
+                return false;
+            }
+            return {
+                maKh, hoTen, sdt,
+                email: document.getElementById('swalEmailKh').value.trim(),
+                diaChi: document.getElementById('swalDiaChiKh').value.trim(),
+                ngaySinh: document.getElementById('swalNgaySinhKh').value || null,
+                gioiTinh: document.getElementById('swalGioiTinhKh').value,
+                matKhau
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await saveCustomer(result.value, isEdit);
+        }
+    });
+}
+
+async function saveCustomer(data, isEdit) {
+    try {
+        const url = isEdit ? `/api/users/${data.maKh}` : '/api/users';
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
+            loadCustomers();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối đến server', 'error');
+    }
+}
+
 // 5. Quản lý Kho Hàng (Import)
 // Lịch sử nhập hàng lấy bằng hàm loadImportHistory ở cuối file
 
@@ -863,7 +1096,7 @@ document.querySelectorAll(".close-view-import-btn").forEach(btn => {
 // Hàm xem chi tiết phiếu nhập
 async function viewImportDetails(receiptId) {
     try {
-        const response = await fetch(`http://localhost:3000/api/imports/${receiptId}`);
+        const response = await fetch(`/api/imports/${receiptId}`);
         const result = await response.json();
 
         if (result.success) {
@@ -871,13 +1104,14 @@ async function viewImportDetails(receiptId) {
             const date = new Date(receipt.ngayNhap || receipt.createdAt).toLocaleString('vi-VN');
 
             // 1. Hiển thị ID và thông tin chung
-            document.getElementById("displayImportId").innerText = `#${receipt.maPn}`;
+            document.getElementById("displayImportId").innerText = receipt.maPn;
             document.getElementById("importInfo").innerHTML = `
                 <div>
                     <p><strong>Ngày nhập:</strong> ${date}</p>
-                    <p><strong>Tổng số thùng/món:</strong> -</p>
+                    <p><strong>Nhà cung cấp:</strong> ${receipt.NhaCungCap ? receipt.NhaCungCap.tenNcc : '—'}</p>
                 </div>
                 <div>
+                     <p><strong>Nhân viên lập:</strong> ${receipt.NhanVien ? receipt.NhanVien.hoTen : '—'}</p>
                      <p><strong>Ghi chú:</strong> ${receipt.ghiChu || 'Không có'}</p>
                 </div>
             `;
@@ -976,7 +1210,7 @@ async function submitImportReceipt() {
     const note = document.getElementById("importNote").value;
 
     try {
-        const response = await fetch('http://localhost:3000/api/imports', {
+        const response = await fetch('/api/imports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1005,7 +1239,7 @@ async function loadStockData() {
     const keyword = document.getElementById("searchStockInput") ? document.getElementById("searchStockInput").value : '';
     try {
         // Fetch all products for stock view
-        const response = await fetch(`http://localhost:3000/api/products?limit=1000&search=${keyword}`);
+        const response = await fetch(`/api/products?limit=1000&search=${keyword}`);
         const result = await response.json();
 
         if (result.success) {
@@ -1055,7 +1289,7 @@ function renderStockTable(products) {
         tr.innerHTML = `
             <td>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <img src="http://localhost:3000/${p.hinhAnh}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/40'">
+                    <img src="/${p.hinhAnh}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/40'">
                     <strong>${p.tenModel}</strong>
                 </div>
             </td>
@@ -1137,153 +1371,7 @@ function logoutAdmin() {
     });
 }
 
-// ======================== QUẢN LÝ NHÂN VIÊN ========================
 
-async function loadEmployees() {
-    try {
-        const response = await fetch('/api/employees', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        const result = await response.json();
-        if (result.success) {
-            const tbody = document.getElementById('employeeTableBody');
-            tbody.innerHTML = result.data.map(emp => `
-                <tr>
-                    <td>${emp.maNv}</td>
-                    <td>${emp.hoTen}</td>
-                    <td>${emp.email}</td>
-                    <td>${emp.sdt || '-'}</td>
-                    <td>
-                        <span style="color: ${emp.trangThai ? 'green' : 'red'}; font-weight: 600;">
-                            ${emp.trangThai ? '✅ Hoạt động' : '🔒 Đã khóa'}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn-edit" onclick="toggleEmployee('${emp.maNv}', ${emp.trangThai})" title="${emp.trangThai ? 'Khóa' : 'Mở khóa'}">
-                            <i class="fas ${emp.trangThai ? 'fa-lock' : 'fa-unlock'}"></i>
-                        </button>
-                        <button class="btn-edit" onclick="resetEmpPassword('${emp.maNv}')" title="Đặt lại mật khẩu">
-                            <i class="fas fa-key"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-    } catch (error) {
-        console.error('Lỗi tải nhân viên:', error);
-    }
-}
-
-function openEmployeeModal() {
-    document.getElementById('employeeModal').style.display = 'flex';
-    document.getElementById('employeeForm').reset();
-    document.getElementById('empEditId').value = '';
-    document.getElementById('empMaNv').disabled = false;
-}
-
-function closeEmployeeModal() {
-    document.getElementById('employeeModal').style.display = 'none';
-}
-
-document.getElementById('employeeForm').onsubmit = async (e) => {
-    e.preventDefault();
-
-    const data = {
-        maNv: document.getElementById('empMaNv').value,
-        hoTen: document.getElementById('empHoTen').value,
-        email: document.getElementById('empEmail').value,
-        sdt: document.getElementById('empSdt').value,
-        matKhau: document.getElementById('empPassword').value
-    };
-
-    try {
-        const response = await fetch('/api/employees', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify(data)
-        });
-        const result = await response.json();
-
-        if (result.success) {
-            Swal.fire('Thành công', result.message, 'success');
-            closeEmployeeModal();
-            loadEmployees();
-        } else {
-            Swal.fire('Lỗi', result.message, 'error');
-        }
-    } catch (error) {
-        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
-    }
-};
-
-async function toggleEmployee(maNv, currentStatus) {
-    const action = currentStatus ? 'khóa' : 'mở khóa';
-    const confirm = await Swal.fire({
-        title: `${currentStatus ? 'Khóa' : 'Mở khóa'} nhân viên?`,
-        text: `Bạn có chắc muốn ${action} tài khoản ${maNv}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Xác nhận',
-        cancelButtonText: 'Hủy'
-    });
-
-    if (!confirm.isConfirmed) return;
-
-    try {
-        const response = await fetch(`/api/employees/${maNv}/toggle`, {
-            method: 'PUT',
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        const result = await response.json();
-        if (result.success) {
-            Swal.fire('Thành công', result.message, 'success');
-            loadEmployees();
-        } else {
-            Swal.fire('Lỗi', result.message, 'error');
-        }
-    } catch (error) {
-        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
-    }
-}
-
-async function resetEmpPassword(maNv) {
-    const { value: newPassword } = await Swal.fire({
-        title: 'Đặt lại mật khẩu',
-        text: `Nhập mật khẩu mới cho nhân viên ${maNv}:`,
-        input: 'password',
-        inputPlaceholder: 'Mật khẩu mới (tối thiểu 6 ký tự)',
-        showCancelButton: true,
-        confirmButtonText: 'Đặt lại',
-        cancelButtonText: 'Hủy',
-        inputValidator: (value) => {
-            if (!value || value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
-        }
-    });
-
-    if (!newPassword) return;
-
-    try {
-        const response = await fetch(`/api/employees/${maNv}/reset-password`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({ newPassword })
-        });
-        const result = await response.json();
-        if (result.success) {
-            Swal.fire('Thành công', result.message, 'success');
-        } else {
-            Swal.fire('Lỗi', result.message, 'error');
-        }
-    } catch (error) {
-        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
-    }
-}
 
 // ==================== QUẢN LÝ NHÀ CUNG CẤP ====================
 
@@ -1310,7 +1398,6 @@ function renderSuppliersTable(suppliers) {
             <td><strong>${s.maNcc}</strong></td>
             <td>${s.tenNcc}</td>
             <td>${s.sdt || '—'}</td>
-            <td>${s.email || '—'}</td>
             <td>${s.diaChi || '—'}</td>
             <td>
                 <span style="padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
@@ -1345,10 +1432,6 @@ function openSupplierModal(supplier = null) {
                     <input id="swalSdtNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.sdt || ''}" placeholder="0xxx xxx xxx">
                 </div>
                 <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Email</label>
-                    <input id="swalEmailNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.email || ''}" placeholder="email@example.com">
-                </div>
-                <div style="margin-bottom:12px;">
                     <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Địa chỉ</label>
                     <input id="swalDiaChiNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.diaChi || ''}" placeholder="Địa chỉ nhà cung cấp">
                 </div>
@@ -1369,7 +1452,6 @@ function openSupplierModal(supplier = null) {
                 maNcc,
                 tenNcc,
                 sdt: document.getElementById('swalSdtNcc').value.trim(),
-                email: document.getElementById('swalEmailNcc').value.trim(),
                 diaChi: document.getElementById('swalDiaChiNcc').value.trim()
             };
         }
@@ -2024,8 +2106,10 @@ function renderEmployeesTable(employees) {
     tbody.innerHTML = employees.map(e => `
         <tr>
             <td><strong>${e.maNv}</strong></td>
-            <td>${e.hoTen}</td>
-            <td>${e.email}</td>
+            <td>
+                <div style="font-weight: 600;">${e.hoTen}</div>
+                <div style="font-size: 0.8rem; color: #64748b;">${e.email}</div>
+            </td>
             <td>${e.sdt || '—'}</td>
             <td>${e.ChucVu ? e.ChucVu.tenCv : '—'}</td>
             <td>
@@ -2034,10 +2118,17 @@ function renderEmployeesTable(employees) {
                 </span>
             </td>
             <td>
-                <button class="btn-edit" onclick='editEmployee(${JSON.stringify(e)})'><i class="fas fa-edit"></i></button>
-                <button class="btn-delete" style="background:${e.trangThai ? '#ef4444' : '#10b981'}" onclick="toggleEmployee('${e.maNv}', ${e.trangThai})">
-                    <i class="fas ${e.trangThai ? 'fa-lock' : 'fa-unlock'}"></i>
-                </button>
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn-edit" onclick='editEmployee(${JSON.stringify(e)})' title="Sửa thông tin">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-delete" style="background:${e.trangThai ? '#ef4444' : '#10b981'}" onclick="toggleEmployee('${e.maNv}', ${e.trangThai})" title="${e.trangThai ? 'Khóa' : 'Mở khóa'}">
+                        <i class="fas ${e.trangThai ? 'fa-lock' : 'fa-unlock'}"></i>
+                    </button>
+                    <button class="btn-edit" onclick="resetEmpPassword('${e.maNv}')" title="Đặt lại mật khẩu">
+                        <i class="fas fa-key"></i>
+                    </button>
+                </div>
             </td>
         </tr>
     `).join('');
@@ -2045,6 +2136,21 @@ function renderEmployeesTable(employees) {
 
 async function openEmployeeModal(employee = null) {
     editingEmployee = employee;
+    const isEdit = !!employee;
+    let nextMaNv = employee?.maNv || '';
+
+    if (!isEdit) {
+        try {
+            const res = await fetch('/api/employees/next-id');
+            const resData = await res.json();
+            if (resData.success) {
+                nextMaNv = resData.nextId;
+            }
+        } catch (err) {
+            console.error("Lỗi lấy mã NV:", err);
+            nextMaNv = 'NV' + Date.now().toString().slice(-3);
+        }
+    }
 
     // Fetch roles for dropdown
     let roles = [];
@@ -2059,40 +2165,38 @@ async function openEmployeeModal(employee = null) {
     const roleOptions = roles.map(r => `<option value="${r.maCv}" ${employee?.maCv === r.maCv ? 'selected' : ''}>${r.tenCv}</option>`).join('');
 
     Swal.fire({
-        title: employee ? 'Cập nhật nhân viên' : 'Thêm nhân viên mới',
+        title: isEdit ? 'Cập nhật nhân viên' : 'Thêm nhân viên mới',
         width: 600,
         html: `
             <div style="text-align:left;">
                 <div style="display:flex; gap:10px; margin-bottom:12px;">
                     <div style="flex:1;">
-                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mã NV <span style="color:red;">*</span></label>
-                        <input id="swalMaNv" class="swal2-input" style="width:100%; margin:0;" value="${employee?.maNv || ''}" ${employee ? 'disabled' : ''} placeholder="VD: NV01">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;">Mã NV <span style="color:red;">*</span></label>
+                        <input id="swalMaNv" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem; background: #f8fafc;" value="${nextMaNv}" disabled readonly placeholder="Tự động tạo">
                     </div>
                     <div style="flex:2;">
-                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Họ và tên <span style="color:red;">*</span></label>
-                        <input id="swalHoTen" class="swal2-input" style="width:100%; margin:0;" value="${employee?.hoTen || ''}" placeholder="Nguyễn Văn A">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-user" style="color:#6366f1;"></i> Họ và tên <span style="color:red;">*</span></label>
+                        <input id="swalHoTen" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${employee?.hoTen || ''}" placeholder="Nguyễn Văn A" autocomplete="off">
                     </div>
                 </div>
                 <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Email <span style="color:red;">*</span></label>
-                    <input id="swalEmail" type="email" class="swal2-input" style="width:100%; margin:0;" value="${employee?.email || ''}" ${employee ? 'disabled' : ''} placeholder="nv@gmail.com">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-envelope" style="color:#6366f1;"></i> Email <span style="color:red;">*</span></label>
+                    <input id="swalEmail" type="email" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${employee?.email || ''}" ${isEdit ? 'disabled' : ''} placeholder="nv@gmail.com" autocomplete="off">
                 </div>
-                ${!employee ? `
+                ${!isEdit ? `
                 <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mật khẩu <span style="color:red;">*</span></label>
-                    <input id="swalMatKhau" type="password" class="swal2-input" style="width:100%; margin:0;" placeholder="Nhập mật khẩu">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-key" style="color:#6366f1;"></i> Mật khẩu <span style="color:red;">*</span></label>
+                    <input id="swalMatKhau" type="password" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" placeholder="Nhập mật khẩu" autocomplete="new-password">
                 </div>
                 ` : ''}
                 <div style="display:flex; gap:10px; margin-bottom:12px;">
                     <div style="flex:1;">
-                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Số điện thoại</label>
-                        <input id="swalSdt" class="swal2-input" style="width:100%; margin:0;" value="${employee?.sdt || ''}" placeholder="09xxxx">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-phone" style="color:#6366f1;"></i> Số điện thoại</label>
+                        <input id="swalSdt" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${employee?.sdt || ''}" placeholder="09xxxx" autocomplete="off">
                     </div>
-                </div>
-                <div style="display:flex; gap:10px; margin-bottom:12px;">
                     <div style="flex:1;">
-                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Chức vụ</label>
-                        <select id="swalMaCv" class="swal2-select" style="width:100%; margin:0; padding:10px; border:1px solid #d9d9d9; border-radius:4px; font-size:1rem;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-user-tag" style="color:#6366f1;"></i> Chức vụ</label>
+                        <select id="swalMaCv" class="swal2-select" style="width:100%; margin:0; padding:4px 10px; border:1px solid #dcdcdc; border-radius:4px; font-size:0.9rem; height: 38px;">
                             <option value="">-- Chọn chức vụ --</option>
                             ${roleOptions}
                         </select>
@@ -2205,7 +2309,15 @@ function renderImportHistoryTable(receipts) {
                 <td>${new Date(r.ngayNhap).toLocaleString('vi-VN')}</td>
                 <td>${totalQty}</td>
                 <td style="color:#ef4444; font-weight:700;">${r.tongTien.toLocaleString()} đ</td>
-                <td>Nhập kho</td>
+                <td>
+                    <div style="font-size:0.85rem; color:#64748b;">NCC: <strong>${r.NhaCungCap ? r.NhaCungCap.tenNcc : '—'}</strong></div>
+                    <div style="font-size:0.8rem; color:#94a3b8;">NV: ${r.NhanVien ? r.NhanVien.hoTen : '—'}</div>
+                </td>
+                <td>
+                    <button class="btn-edit" onclick="viewImportDetails('${r.maPn}')" title="Xem chi tiết">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
             </tr>
         `;
     }).join('');
@@ -2217,14 +2329,26 @@ async function openImportModal() {
     document.getElementById('importModal').style.display = 'flex';
 
     try {
-        const res = await fetch('/api/warehouses');
-        const result = await res.json();
-        if (result.success) {
+        const [resKho, resNcc] = await Promise.all([
+            fetch('/api/warehouses'),
+            fetch('/api/suppliers')
+        ]);
+
+        const resultKho = await resKho.json();
+        if (resultKho.success) {
             const select = document.getElementById('importKhoId');
-            select.innerHTML = result.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
+            select.innerHTML = resultKho.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
+        }
+
+        const resultNcc = await resNcc.json();
+        if (resultNcc.success) {
+            const selectNcc = document.getElementById('importNccId');
+            // Keep the default option and append others
+            selectNcc.innerHTML = '<option value="">-- Chọn Nhà Cung Cấp (Tùy chọn) --</option>' +
+                resultNcc.data.map(n => `<option value="${n.maNcc}">${n.tenNcc}</option>`).join('');
         }
     } catch (e) {
-        console.error('Lỗi tải kho', e);
+        console.error('Lỗi tải Data', e);
     }
 }
 
@@ -2244,7 +2368,7 @@ async function addImportItemUI() {
         return Swal.fire('Lỗi', 'Không thể tải ds sản phẩm', 'error');
     }
 
-    const options = products.map(p => `<option value="${p.maModel}" data-price="${p.giaBan || 0}">${p.maModel} - ${p.tenModel}</option>`).join('');
+    const options = products.map(p => `<option value="${p.maModel}" data-price="${p.giaNhap || 0}">${p.maModel} - ${p.tenModel}</option>`).join('');
 
     const { value: formValues } = await Swal.fire({
         title: 'Thêm Model vào phiếu nhập',
@@ -2252,7 +2376,10 @@ async function addImportItemUI() {
         html: `
             <div style="text-align:left;">
                 <label style="font-weight:bold; margin-bottom:5px; display:block;">Chọn sản phẩm:</label>
-                <select id="swalImpProductId" class="swal2-select" style="width:100%; margin:0 0 15px 0;">${options}</select>
+                <select id="swalImpProductId" class="swal2-select" style="width:100%; margin:0 0 15px 0;">
+                    <option value="">-- Chọn sản phẩm --</option>
+                    ${options}
+                </select>
                 
                 <label style="font-weight:bold; margin-bottom:5px; display:block;">Đơn giá nhập (1 máy):</label>
                 <input id="swalImpPrice" type="number" class="swal2-input" style="width:100%; margin:0 0 15px 0;" placeholder="VD: 15000000">
@@ -2264,6 +2391,18 @@ async function addImportItemUI() {
         `,
         didOpen: () => {
             const input = document.getElementById('swalImpSerials');
+            const selectEl = document.getElementById('swalImpProductId');
+            const priceEl = document.getElementById('swalImpPrice');
+
+            selectEl.addEventListener('change', (e) => {
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                if (selectedOption && selectedOption.dataset.price && selectedOption.dataset.price !== '0') {
+                    priceEl.value = selectedOption.dataset.price;
+                } else {
+                    priceEl.value = '';
+                }
+            });
+
             input.focus();
             // Người dùng có thể quét hoặc nhập thủ công, cắt dán hàng loạt.
             // Textarea tự động hỗ trợ Enter để xuống dòng.
@@ -2368,11 +2507,15 @@ async function submitImport() {
     if (!confirm.isConfirmed) return;
 
     try {
+        const maNcc = document.getElementById('importNccId').value;
+
         const response = await fetch('/api/imports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 maKho: maKho,
+                maNcc: maNcc || null,
+                maNv: user.id, // Lấy ID nhân viên đang đăng nhập
                 items: importItems
             })
         });

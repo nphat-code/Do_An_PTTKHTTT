@@ -2,17 +2,6 @@ const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 
 if (loginForm) {
-    // Tự động điền nếu vừa đăng ký thành công
-    const autoFillEmail = sessionStorage.getItem('autoFillEmail');
-    const autoFillPassword = sessionStorage.getItem('autoFillPassword');
-
-    if (autoFillEmail && autoFillPassword) {
-        document.getElementById('email').value = autoFillEmail;
-        document.getElementById('password').value = autoFillPassword;
-        sessionStorage.removeItem('autoFillEmail');
-        sessionStorage.removeItem('autoFillPassword');
-    }
-
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value;
@@ -67,14 +56,25 @@ if (registerForm) {
         const fullName = document.getElementById('fullName').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
         const phone = document.getElementById('phone').value;
         const address = document.getElementById('address').value;
+        const gioiTinh = document.getElementById('gender').value;
+        const ngaySinh = document.getElementById('birthdate').value;
+
+        if (password !== confirmPassword) {
+            Swal.fire('Lỗi', 'Mật khẩu xác nhận không khớp!', 'error');
+            return;
+        }
 
         try {
             const response = await fetch('http://localhost:3000/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fullName, email, password, phone, address })
+                body: JSON.stringify({
+                    fullName, email, password, phone, address,
+                    gioiTinh, ngaySinh: ngaySinh || null
+                })
             });
             const result = await response.json();
 
@@ -82,10 +82,8 @@ if (registerForm) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Đăng ký thành công',
-                    text: 'Vui lòng đăng nhập',
+                    text: 'Chào mừng bạn đến với Laptop Store! Vui lòng đăng nhập.',
                 }).then(() => {
-                    sessionStorage.setItem('autoFillEmail', email);
-                    sessionStorage.setItem('autoFillPassword', password);
                     window.location.href = 'login.html';
                 });
             } else {

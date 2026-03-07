@@ -6,7 +6,6 @@ const NhaCungCap = sequelize.define('NhaCungCap', {
     tenNcc: { type: DataTypes.STRING, allowNull: false },
     diaChi: { type: DataTypes.TEXT },
     sdt: { type: DataTypes.STRING(15) },
-    email: { type: DataTypes.STRING },
     trangThai: { type: DataTypes.BOOLEAN, defaultValue: true }
 }, { tableName: 'NHA_CUNG_CAP', timestamps: false });
 

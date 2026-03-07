@@ -6,7 +6,7 @@ const { Op } = require('sequelize');
 
 const register = async (req, res) => {
     try {
-        const { fullName, email, password, phone, address } = req.body;
+        const { fullName, email, password, phone, address, ngaySinh, gioiTinh } = req.body;
 
         if (!fullName || !email || !password) {
             return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ họ tên, email và mật khẩu" });
@@ -18,8 +18,15 @@ const register = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email đã tồn tại" });
         }
 
-        // Auto generate maKh
-        const maKh = 'KH_' + Date.now();
+        // Sequential maKh generation
+        const lastUser = await KhachHang.findOne({ order: [['maKh', 'DESC']] });
+        let maKh = 'KH001';
+        if (lastUser && lastUser.maKh.startsWith('KH')) {
+            const lastNum = parseInt(lastUser.maKh.substring(2));
+            if (!isNaN(lastNum)) {
+                maKh = `KH${(lastNum + 1).toString().padStart(3, '0')}`;
+            }
+        }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -31,7 +38,10 @@ const register = async (req, res) => {
             sdt: phone || null,
             email,
             diaChi: address || null,
-            matKhau: hashedPassword
+            ngaySinh: ngaySinh || null,
+            gioiTinh: gioiTinh || 'Khác',
+            matKhau: hashedPassword,
+            trangThai: true
         });
 
         res.status(201).json({ success: true, message: "Đăng ký thành công!" });

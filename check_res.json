@@ -1,0 +1,24 @@
+[
+  {
+    "maModel": "ASUS_ROG_STRIX_G15",
+    "tenModel": "Asus ROG Strix G15",
+    "giaNhap": "22000000.00",
+    "giaBan": "26500000.00",
+    "soLuongTon": 0,
+    "hinhAnh": "uploads/products/rog.png",
+    "maCh": "CH_1772819603307343",
+    "maHang": "ASUS",
+    "maLoai": "GAMING"
+  },
+  {
+    "maModel": "LENOVO_THINKPAD_E14",
+    "tenModel": "Lenovo ThinkPad E14 Gen 4",
+    "giaNhap": "17500000.00",
+    "giaBan": "20990000.00",
+    "soLuongTon": 0,
+    "hinhAnh": "uploads/products/thinkpad.png",
+    "maCh": "CH_1772819603352813",
+    "maHang": "LENOVO",
+    "maLoai": "VAN_PHONG"
+  }
+]

@@ -1,12 +1,7 @@
 // ==================== QUAN LY DON HANG (ORDERS) ====================
 
-async function loadOrders() {
-    try {
-        const res = await fetch('/api/orders');
-        const result = await res.json();
-        if (result.success) renderOrdersTable(result.data);
-    } catch (e) { console.error('Loi tai don hang:', e); }
-}
+// loadOrders function removed - now centralized in main.js
+
 
 function getStatusBadge(status) {
     const map = {
@@ -111,7 +106,7 @@ function renderPOSProductGrid(products) {
             onmouseover="${oos ? '' : `this.style.borderColor='#6366f1';this.style.boxShadow='0 4px 12px rgba(99,102,241,0.15)'`}"
             onmouseout="this.style.borderColor='${border}';this.style.boxShadow='none'">
             ${qty > 0 ? `<div style="position:absolute;top:-8px;right:-8px;background:#6366f1;color:white;border-radius:50%;width:22px;height:22px;font-size:0.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;">${qty}</div>` : ''}
-            <div style="font-size:0.7rem;color:#94a3b8;margin-bottom:4px;">${p.maModel}</div>
+            <div style="font-size:0.7rem;color:#94a3b8;margin-bottom:4px; font-weight:700;">${p.maModel}</div>
             <div style="font-weight:600;font-size:0.9rem;color:#1e293b;margin-bottom:6px;line-height:1.3;">${p.tenModel}</div>
             <div style="color:#6366f1;font-weight:700;font-size:1rem;">${Number(p.giaBan || 0).toLocaleString()} &#8363;</div>
             <div style="font-size:0.75rem;color:${p.soLuongTon > 5 ? '#16a34a' : p.soLuongTon > 0 ? '#d97706' : '#dc2626'};margin-top:4px;">
@@ -241,7 +236,7 @@ async function submitPOSOrder() {
 // ==================== ORDER DETAIL ====================
 async function viewOrderDetail(maHd) {
     currentOrderDetailId = maHd;
-    document.getElementById('orderDetailId').textContent = `#${maHd}`;
+    document.getElementById('orderDetailId').textContent = maHd;
     document.getElementById('orderDetailItemsBody').innerHTML =
         '<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8;">\u0110ang t\u1ea3i...</td></tr>';
     document.getElementById('orderDetailModal').style.display = 'flex';

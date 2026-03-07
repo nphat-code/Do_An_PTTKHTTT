@@ -13,14 +13,16 @@ const getAllEmployees = async (req, res) => {
         });
         res.status(200).json({ success: true, data: employees });
     } catch (error) {
+        console.error("Lỗi getAllEmployees:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 // Tạo nhân viên mới
 const createEmployee = async (req, res) => {
+    console.log("Creating employee with data:", req.body);
     try {
-        const { maNv, hoTen, email, sdt, matKhau, maCv, maCn } = req.body;
+        const { maNv, hoTen, email, sdt, matKhau, maCv } = req.body;
 
         if (!maNv || !hoTen || !email || !matKhau) {
             return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ: Mã NV, Họ tên, Email, Mật khẩu" });
@@ -63,7 +65,8 @@ const createEmployee = async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
+        console.error("Lỗi createEmployee:", error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -131,10 +134,35 @@ const updateEmployee = async (req, res) => {
     }
 };
 
+// Lấy mã nhân viên tiếp theo
+const getNextMaNv = async (req, res) => {
+    try {
+        const lastUser = await NhanVien.findOne({
+            order: [['maNv', 'DESC']]
+        });
+
+        if (!lastUser) {
+            return res.status(200).json({ success: true, nextId: 'NV001' });
+        }
+
+        const lastId = lastUser.maNv; // e.g., "NV005"
+        const numberPart = parseInt(lastId.substring(2));
+        if (isNaN(numberPart)) {
+            return res.status(200).json({ success: true, nextId: 'NV001' });
+        }
+        const nextId = `NV${(numberPart + 1).toString().padStart(3, '0')}`;
+
+        return res.status(200).json({ success: true, nextId });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllEmployees,
     createEmployee,
     updateEmployee,
     toggleEmployeeStatus,
-    resetEmployeePassword
+    resetEmployeePassword,
+    getNextMaNv
 };

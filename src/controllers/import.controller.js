@@ -1,4 +1,4 @@
-const { PhieuNhap, CtNhapMay, DongMay, ChiTietMay, Kho, sequelize } = require('../models/index');
+const { PhieuNhap, CtNhapMay, DongMay, ChiTietMay, Kho, NhanVien, NhaCungCap, sequelize } = require('../models/index');
 
 const generateImportCode = () => {
     const today = new Date();
@@ -102,7 +102,9 @@ const getImportHistory = async (req, res) => {
                 {
                     model: DongMay,
                     through: { attributes: ['soLuong', 'donGia'] }
-                }
+                },
+                { model: NhanVien, attributes: ['hoTen'] },
+                { model: NhaCungCap, attributes: ['tenNcc'] }
             ],
             order: [['ngayNhap', 'DESC']]
         });
@@ -123,7 +125,9 @@ const getImportReceiptById = async (req, res) => {
                 {
                     model: DongMay,
                     through: { attributes: ['soLuong', 'donGia'] }
-                }
+                },
+                { model: NhanVien, attributes: ['hoTen'] },
+                { model: NhaCungCap, attributes: ['tenNcc'] }
             ]
         });
 

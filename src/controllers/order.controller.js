@@ -42,13 +42,26 @@ const createOrder = async (req, res) => {
                 email: customerInfo.email
             }, { transaction: t });
         } else {
-            // Nếu chưa có thì tạo mới, fake ID for now if not provided
+            // Sequential ID generation for new customer
+            const lastUser = await KhachHang.findOne({
+                order: [['maKh', 'DESC']],
+                transaction: t
+            });
+            let nextMaKh = 'KH001';
+            if (lastUser && lastUser.maKh.startsWith('KH')) {
+                const lastNum = parseInt(lastUser.maKh.substring(2));
+                if (!isNaN(lastNum)) {
+                    nextMaKh = `KH${(lastNum + 1).toString().padStart(3, '0')}`;
+                }
+            }
+
             customer = await KhachHang.create({
-                maKh: `KH_${Date.now()}`,
+                maKh: nextMaKh,
                 hoTen: customerInfo.fullName,
-                email: customerInfo.email,
+                email: customerInfo.email || null,
                 sdt: customerInfo.phone,
-                diaChi: customerInfo.address,
+                diaChi: customerInfo.address || null,
+                trangThai: true // Ensure new customers from POS are active
             }, { transaction: t });
         }
 
@@ -160,9 +173,26 @@ const createOrder = async (req, res) => {
 // Hàm lấy danh sách hóa đơn cho trang Admin
 const getAllOrders = async (req, res) => {
     try {
+        const { search } = req.query;
+        let where = {};
+        let customerWhere = {};
+
+        if (search) {
+            where = {
+                [Op.or]: [
+                    { maHd: { [Op.like]: `%${search}%` } },
+                    { '$KhachHang.sdt$': { [Op.like]: `%${search}%` } }
+                ]
+            };
+        }
+
         const orders = await HoaDon.findAll({
+            where,
             include: [
-                { model: KhachHang, attributes: ['hoTen', 'sdt'] },
+                {
+                    model: KhachHang,
+                    attributes: ['hoTen', 'sdt']
+                },
                 { model: DongMay, through: { attributes: ['soLuong', 'donGia', 'thanhTien'] } }
             ],
             order: [['ngayLap', 'DESC']]
@@ -186,7 +216,19 @@ const getOrderById = async (req, res) => {
             ]
         });
         if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy hóa đơn" });
-        res.status(200).json({ success: true, data: order });
+
+        const orderData = order.toJSON();
+
+        // Fetch serial IDs for each device in the order
+        for (let product of orderData.DongMays) {
+            const serials = await ChiTietMay.findAll({
+                where: { maHd: order.maHd, maModel: product.maModel, trangThai: 'Đã bán' },
+                attributes: ['soSerial']
+            });
+            product.serials = serials.map(s => s.soSerial);
+        }
+
+        res.status(200).json({ success: true, data: orderData });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -293,12 +335,22 @@ const getDashboardStats = async (req, res) => {
             }
         });
 
-        // 3. Top 5 sản phẩm bán chạy (using CtHoaDon)
+        // 3. Thống kê trạng thái đơn hàng (Doughnut chart)
+        const statusStats = await HoaDon.findAll({
+            attributes: [
+                'trangThai',
+                [sequelize.fn('COUNT', sequelize.col('maHd')), 'count']
+            ],
+            group: ['trangThai'],
+            raw: true
+        });
+
+        // 4. Top 5 sản phẩm bán chạy (using CtHoaDon)
         // Not implemented simply for now without a 'status' to consider only completed ones.
         // Needs a slightly more complex raw query with GROUP BY.
         const processedTopProducts = [];
 
-        // 4. Tổng sản phẩm (DongMay) và Tổng doanh thu (HoaDon)
+        // 5. Tổng sản phẩm (DongMay) và Tổng doanh thu (HoaDon)
         const totalProductsCount = await DongMay.count();
 
         let totalRevenue = 0;
@@ -308,7 +360,7 @@ const getDashboardStats = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            statusStats: [], // No status currently
+            statusStats,
             revenueByMonth,
             topProducts: processedTopProducts,
             totalProducts: totalProductsCount,

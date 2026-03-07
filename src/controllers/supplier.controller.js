@@ -10,8 +10,7 @@ const getAllSuppliers = async (req, res) => {
             where[Op.or] = [
                 { tenNcc: { [Op.like]: `%${search}%` } },
                 { maNcc: { [Op.like]: `%${search}%` } },
-                { sdt: { [Op.like]: `%${search}%` } },
-                { email: { [Op.like]: `%${search}%` } }
+                { sdt: { [Op.like]: `%${search}%` } }
             ];
         }
         const suppliers = await NhaCungCap.findAll({ where, order: [['maNcc', 'ASC']] });
@@ -24,7 +23,7 @@ const getAllSuppliers = async (req, res) => {
 // Thêm nhà cung cấp
 const createSupplier = async (req, res) => {
     try {
-        const { maNcc, tenNcc, diaChi, sdt, email } = req.body;
+        const { maNcc, tenNcc, diaChi, sdt } = req.body;
         if (!maNcc || !tenNcc) {
             return res.status(400).json({ success: false, message: 'Mã và tên nhà cung cấp là bắt buộc' });
         }
@@ -34,7 +33,7 @@ const createSupplier = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Mã nhà cung cấp đã tồn tại' });
         }
 
-        const supplier = await NhaCungCap.create({ maNcc, tenNcc, diaChi, sdt, email, trangThai: true });
+        const supplier = await NhaCungCap.create({ maNcc, tenNcc, diaChi, sdt, trangThai: true });
         res.status(201).json({ success: true, message: 'Đã thêm nhà cung cấp', data: supplier });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -45,14 +44,14 @@ const createSupplier = async (req, res) => {
 const updateSupplier = async (req, res) => {
     try {
         const { id } = req.params;
-        const { tenNcc, diaChi, sdt, email, trangThai } = req.body;
+        const { tenNcc, diaChi, sdt, trangThai } = req.body;
 
         const supplier = await NhaCungCap.findByPk(id);
         if (!supplier) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy nhà cung cấp' });
         }
 
-        await supplier.update({ tenNcc, diaChi, sdt, email, trangThai });
+        await supplier.update({ tenNcc, diaChi, sdt, trangThai });
         res.json({ success: true, message: 'Đã cập nhật nhà cung cấp', data: supplier });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
