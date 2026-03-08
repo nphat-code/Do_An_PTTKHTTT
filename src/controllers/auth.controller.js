@@ -130,11 +130,72 @@ const login = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-    res.status(501).json({ success: false, message: "Tính năng quên mật khẩu đang được cấu hình lại cho Database mới" });
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ success: false, message: "Vui lòng nhập email" });
+
+        const employee = await NhanVien.findOne({ where: { email } });
+        if (employee) {
+            const newPassword = Math.random().toString(36).slice(-6); // 6 character random
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await employee.update({ matKhau: hashedPassword });
+            return res.status(200).json({ success: true, message: "Mật khẩu nhân viên đã được cấp lại", newPassword });
+        }
+
+        const customer = await KhachHang.findOne({ where: { email } });
+        if (customer) {
+            // Generate a reset token (valid for 1 hour)
+            const token = jwt.sign(
+                { id: customer.maKh, role: 'customer', action: 'reset_password' },
+                process.env.JWT_SECRET || 'secretkey123',
+                { expiresIn: '1h' }
+            );
+
+            // The frontend URL would be where reset-password.html is located
+            const resetLink = `http://${req.headers.host}/reset-password.html?token=${token}`;
+
+            return res.status(200).json({
+                success: true,
+                message: "Đã tạo link khôi phục mật khẩu",
+                resetLink
+            });
+        }
+
+        return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản với email này" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 const resetPassword = async (req, res) => {
-    res.status(501).json({ success: false, message: "Tính năng này đang được bảo trì" });
+    try {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) {
+            return res.status(400).json({ success: false, message: "Thông tin không đủ để đặt lại mật khẩu" });
+        }
+
+        // Verify token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey123');
+        if (decoded.action !== 'reset_password' || decoded.role !== 'customer') {
+            return res.status(400).json({ success: false, message: "Token không hợp lệ" });
+        }
+
+        const customer = await KhachHang.findByPk(decoded.id);
+        if (!customer) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await customer.update({ matKhau: hashedPassword });
+
+        return res.status(200).json({ success: true, message: "Mật khẩu đã được đặt lại thành công" });
+    } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+            return res.status(400).json({ success: false, message: "Link đặt lại mật khẩu đã hết hạn" });
+        }
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 const getMe = async (req, res) => {

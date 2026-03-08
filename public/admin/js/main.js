@@ -684,7 +684,7 @@ async function viewOrderDetails(orderId) {
             const itemsContainer = document.getElementById("orderItemsTableBody");
             const orderItems = order.DongMays || [];
             if (orderItems.length === 0) {
-                itemsContainer.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: #94a3b8;"><i class="fas fa-box-open" style="font-size:1.5rem; display:block; margin-bottom:8px;"></i>Chưa có sản phẩm</td></tr>';
+                itemsContainer.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: #94a3b8;"><i class="fas fa-box-open" style="font-size:1.5rem; display:block; margin-bottom:8px;"></i>Chưa có sản phẩm</td></tr>';
             } else {
                 itemsContainer.innerHTML = "";
                 orderItems.forEach(p => {
@@ -692,20 +692,24 @@ async function viewOrderDetails(orderId) {
                     const qty = ct.soLuong || 0;
                     const priceAtPurchase = Number(ct.donGia || 0);
                     const thanhTien = Number(ct.thanhTien || priceAtPurchase * qty);
+                    const serialsHtml = p.serials && p.serials.length > 0
+                        ? p.serials.map(s => `<span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; display: inline-block; margin: 2px 4px 0 0;">${s}</span>`).join('')
+                        : '<span style="color:#94a3b8; font-style:italic;">Trống</span>';
+
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td style="padding: 14px 20px;">
-                            <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="display:flex; align-items:flex-start; gap:12px;">
                                 ${p.hinhAnh
                             ? `<img src="/${p.hinhAnh}" style="width:40px; height:40px; border-radius:8px; object-fit:cover;">`
                             : `<div style="width:40px; height:40px; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; color:white; font-size:0.8rem;"><i class="fas fa-laptop"></i></div>`
                         }
-                                <span style="font-weight:500;">${p.tenModel || '—'}</span>
-                            </div>
-                        </td>
-                        <td style="padding: 14px 20px;">
-                            <div style="font-family: monospace; font-size: 0.85em; color: #475569;">
-                                ${p.serials && p.serials.length > 0 ? p.serials.join('<br>') : '<span style="color:#94a3b8; font-style:italic;">Trống</span>'}
+                                <div>
+                                    <div style="font-weight:600; color: #1e293b; margin-bottom: 4px;">${p.tenModel || '—'}</div>
+                                    <div style="font-family: monospace; font-size: 0.8rem; color: #64748b;">
+                                        SN: ${serialsHtml}
+                                    </div>
+                                </div>
                             </div>
                         </td>
                         <td style="padding: 14px 20px; text-align: right;">${priceAtPurchase.toLocaleString()}đ</td>
@@ -952,6 +956,9 @@ async function resetCustomerPassword(userId) {
         input: 'password',
         inputLabel: 'Nhập mật khẩu mới (ít nhất 6 ký tự)',
         inputPlaceholder: 'Mật khẩu mới',
+        inputAttributes: {
+            autocomplete: 'new-password'
+        },
         showCancelButton: true,
         confirmButtonText: 'Lưu mật khẩu',
         cancelButtonText: 'Hủy',
@@ -963,7 +970,7 @@ async function resetCustomerPassword(userId) {
 
     if (newPassword) {
         try {
-            const res = await fetch(`/api/users/${userId}/reset-password`, {
+            const res = await fetch(`http://localhost:3000/api/users/${userId}/reset-password`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newPassword })
@@ -1052,15 +1059,9 @@ async function openCustomerModal(user = null) {
                     <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #4f46e5; display: flex; align-items: center;">
                         <i class="fas fa-address-book" style="margin-right: 8px;"></i> Thông tin liên hệ
                     </h4>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:12px;">
-                        <div>
-                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Email</label>
-                            <input id="swalEmailKh" type="email" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${user?.email || ''}" placeholder="khach@gmail.com" autocomplete="off">
-                        </div>
-                        <div>
-                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Số điện thoại <span style="color:red;">*</span></label>
-                            <input id="swalSdtKh" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${user?.sdt || ''}" placeholder="09xxxxxx" autocomplete="off">
-                        </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Số điện thoại <span style="color:red;">*</span></label>
+                        <input id="swalSdtKh" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${user?.sdt || ''}" placeholder="09xxxxxx" autocomplete="off">
                     </div>
                     <div>
                         <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Địa chỉ thường trú</label>
@@ -1071,20 +1072,24 @@ async function openCustomerModal(user = null) {
                     </div>
                 </div>
 
-                <!-- Section 3: Account (Only for Create) -->
-                ${!isEdit ? `
+                <!-- Section 3: Account -->
                 <div>
                     <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #4f46e5; display: flex; align-items: center;">
                         <i class="fas fa-lock" style="margin-right: 8px;"></i> Tài khoản đăng nhập
                     </h4>
-                    <div style="display:grid; grid-template-columns: 1fr; gap:15px;">
+                    <div style="display:grid; grid-template-columns: ${!isEdit ? '1fr 1fr' : '1fr'}; gap:15px;">
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Email <span style="color:red;">*</span></label>
+                            <input id="swalEmailKh" type="email" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${user?.email || ''}" placeholder="khach@gmail.com" autocomplete="off" ${isEdit ? 'disabled' : ''}>
+                        </div>
+                        ${!isEdit ? `
                         <div>
                             <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:5px; color: #64748b;">Mật khẩu <span style="color:red;">*</span></label>
                             <input id="swalMatKhauKh" type="password" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" placeholder="Mật khẩu đăng nhập" autocomplete="new-password">
                         </div>
+                        ` : ''}
                     </div>
                 </div>
-                ` : ''}
             </div>
         `,
         showCancelButton: true,
@@ -1095,15 +1100,16 @@ async function openCustomerModal(user = null) {
             const maKh = document.getElementById('swalMaKh').value.trim();
             const hoTen = document.getElementById('swalHoTenKh').value.trim();
             const sdt = document.getElementById('swalSdtKh').value.trim();
+            const email = document.getElementById('swalEmailKh').value.trim();
             const matKhau = document.getElementById('swalMatKhauKh')?.value;
 
-            if (!maKh || !hoTen || !sdt || (!isEdit && !matKhau)) {
+            if (!maKh || !hoTen || !sdt || (!isEdit && !matKhau) || !email) {
                 Swal.showValidationMessage('Vui lòng nhập đầy đủ các trường bắt buộc (*)');
                 return false;
             }
             return {
                 maKh, hoTen, sdt,
-                email: document.getElementById('swalEmailKh').value.trim(),
+                email,
                 diaChi: document.getElementById('swalDiaChiKh').value.trim(),
                 ngaySinh: document.getElementById('swalNgaySinhKh').value || null,
                 gioiTinh: document.getElementById('swalGioiTinhKh').value,
@@ -2348,6 +2354,40 @@ async function toggleEmployee(maNv, currentStatus) {
         }
     } catch (error) {
         Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+async function resetEmpPassword(maNv) {
+    const { value: newPassword } = await Swal.fire({
+        title: 'Đặt lại mật khẩu',
+        input: 'password',
+        inputLabel: `Nhập mật khẩu mới cho nhân viên ${maNv}`,
+        inputPlaceholder: 'Ít nhất 6 ký tự...',
+        showCancelButton: true,
+        confirmButtonText: 'Cập nhật',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+            if (!value || value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự!';
+        }
+    });
+
+    if (newPassword) {
+        try {
+            const response = await fetch(`http://localhost:3000/api/employees/${maNv}/reset-password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newPassword })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire('Thành công', result.message, 'success');
+            } else {
+                Swal.fire('Lỗi', result.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Lỗi', 'Không thể kết nối đến server', 'error');
+        }
     }
 }
 

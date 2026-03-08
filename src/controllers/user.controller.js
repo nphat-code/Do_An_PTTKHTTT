@@ -7,9 +7,17 @@ const createCustomer = async (req, res) => {
     try {
         const { maKh, hoTen, sdt, email, diaChi, matKhau, ngaySinh, gioiTinh } = req.body;
 
+        if (!email) {
+            return res.status(400).json({ success: false, message: "Email là trường bắt buộc để tạo tài khoản đăng nhập" });
+        }
+
         // Check if ID exists
         const existingId = await KhachHang.findByPk(maKh);
         if (existingId) return res.status(400).json({ success: false, message: "Mã khách hàng đã tồn tại" });
+
+        // Check if Email exists
+        const existingEmail = await KhachHang.findOne({ where: { email } });
+        if (existingEmail) return res.status(400).json({ success: false, message: "Email đã được sử dụng, vui lòng chọn email khác" });
 
         const hashedPassword = matKhau ? await bcrypt.hash(matKhau, 10) : await bcrypt.hash('123456', 10);
 
@@ -27,7 +35,9 @@ const createCustomer = async (req, res) => {
 // 1. Lấy danh sách toàn bộ khách hàng (Dành cho Admin)
 const getAllUsers = async (req, res) => {
     try {
-        const users = await KhachHang.findAll();
+        const users = await KhachHang.findAll({
+            order: [['maKh', 'ASC']]
+        });
         const formattedUsers = users.map(user => {
             const data = user.toJSON();
             if (data.trangThai === null) data.trangThai = true;
@@ -109,7 +119,8 @@ const searchUsers = async (req, res) => {
                     { hoTen: { [Op.iLike]: `%${query}%` } },
                     { sdt: { [Op.iLike]: `%${query}%` } }
                 ]
-            }
+            },
+            order: [['maKh', 'ASC']]
         });
 
         const formattedUsers = users.map(user => {
