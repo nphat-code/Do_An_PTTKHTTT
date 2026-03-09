@@ -27,7 +27,7 @@ const getAllWarehouses = async (req, res) => {
 // Thêm kho
 const createWarehouse = async (req, res) => {
     try {
-        const { maKho, tenKho, diaChi, sdt, loaiKho, trangThai, maCn } = req.body;
+        const { maKho, tenKho, diaChi, sdt, loaiKho, trangThai } = req.body;
         if (!maKho || !tenKho) {
             return res.status(400).json({ success: false, message: 'Mã và tên kho là bắt buộc' });
         }

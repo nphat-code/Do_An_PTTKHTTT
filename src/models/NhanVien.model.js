@@ -11,7 +11,7 @@ const NhanVien = sequelize.define('NhanVien', {
     diaChi: { type: DataTypes.TEXT },
     trangThai: { type: DataTypes.BOOLEAN, defaultValue: true },
     matKhau: { type: DataTypes.STRING }
-    // maCv, maCn FK
+    // maCv FK
 }, { tableName: 'NHAN_VIEN', timestamps: false });
 
 module.exports = NhanVien;

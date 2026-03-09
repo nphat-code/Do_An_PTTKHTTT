@@ -82,4 +82,28 @@ const deleteSupplier = async (req, res) => {
     }
 };
 
-module.exports = { getAllSuppliers, createSupplier, updateSupplier, deleteSupplier };
+// Lấy mã nhà cung cấp tiếp theo
+const getNextMaNcc = async (req, res) => {
+    try {
+        const lastSupplier = await NhaCungCap.findOne({
+            order: [['maNcc', 'DESC']]
+        });
+
+        if (!lastSupplier) {
+            return res.status(200).json({ success: true, nextId: 'NCC001' });
+        }
+
+        const lastId = lastSupplier.maNcc; // e.g. "NCC001"
+        const numberPart = parseInt(lastId.substring(3));
+        if (isNaN(numberPart)) {
+            return res.status(200).json({ success: true, nextId: 'NCC001' });
+        }
+        const nextId = `NCC${(numberPart + 1).toString().padStart(3, '0')}`;
+
+        return res.status(200).json({ success: true, nextId });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+module.exports = { getAllSuppliers, createSupplier, updateSupplier, deleteSupplier, getNextMaNcc };

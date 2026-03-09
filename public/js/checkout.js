@@ -21,6 +21,7 @@ function initCheckout() {
     }
 
     renderOrderSummary();
+    loadPaymentMethods();
 }
 
 function setVal(id, val) {
@@ -64,6 +65,49 @@ function renderOrderSummary() {
     if (itemCountEl) itemCountEl.innerText = totalQty;
 }
 
+// Tải phương thức thanh toán từ API
+async function loadPaymentMethods() {
+    const container = document.getElementById('paymentMethodsContainer');
+    try {
+        const response = await fetch('/api/orders/payment-methods');
+        const result = await response.json();
+        if (result.success && result.data.length > 0) {
+            // Icon mapping dựa trên tên phương thức
+            const iconMap = {
+                'tiền mặt': 'fa-money-bill-wave',
+                'cod': 'fa-truck',
+                'chuyển khoản': 'fa-university',
+                'ngân hàng': 'fa-university',
+                'thẻ': 'fa-credit-card',
+                'ví điện tử': 'fa-wallet',
+                'momo': 'fa-wallet',
+                'vnpay': 'fa-qrcode',
+            };
+
+            function getIcon(name) {
+                const lower = name.toLowerCase();
+                for (const [key, icon] of Object.entries(iconMap)) {
+                    if (lower.includes(key)) return icon;
+                }
+                return 'fa-credit-card';
+            }
+
+            container.innerHTML = result.data.map((method, index) => `
+                <label class="payment-option ${index === 0 ? 'selected' : ''}" onclick="selectPayment(this)">
+                    <input type="radio" name="payment" value="${method.maHttt}" ${index === 0 ? 'checked' : ''}>
+                    <i class="fas ${getIcon(method.tenHttt)}"></i>
+                    <span>${method.tenHttt}</span>
+                </label>
+            `).join('');
+        } else {
+            container.innerHTML = '<p style="color:#ef4444; text-align:center;">Không có phương thức thanh toán nào.</p>';
+        }
+    } catch (error) {
+        console.error('Lỗi tải phương thức thanh toán:', error);
+        container.innerHTML = '<p style="color:#ef4444; text-align:center;">Lỗi tải phương thức thanh toán.</p>';
+    }
+}
+
 // Chọn phương thức thanh toán
 function selectPayment(el) {
     document.querySelectorAll('.payment-option').forEach(opt => {
@@ -88,7 +132,7 @@ async function submitOrder() {
         return;
     }
 
-    const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value || 'COD';
+    const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value || null;
 
     const orderData = {
         customerInfo: {

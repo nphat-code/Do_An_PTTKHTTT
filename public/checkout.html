@@ -415,17 +415,8 @@
 
                 <div class="checkout-card">
                     <h3><i class="fas fa-wallet"></i> Phương thức thanh toán</h3>
-                    <div class="payment-methods">
-                        <label class="payment-option selected" onclick="selectPayment(this)">
-                            <input type="radio" name="payment" value="COD" checked>
-                            <i class="fas fa-truck"></i>
-                            <span>Thanh toán khi nhận hàng (COD)</span>
-                        </label>
-                        <label class="payment-option" onclick="selectPayment(this)">
-                            <input type="radio" name="payment" value="BANK">
-                            <i class="fas fa-university"></i>
-                            <span>Chuyển khoản ngân hàng</span>
-                        </label>
+                    <div class="payment-methods" id="paymentMethodsContainer">
+                        <p style="color: #94a3b8; text-align:center;">Đang tải phương thức thanh toán...</p>
                     </div>
                 </div>
             </div>

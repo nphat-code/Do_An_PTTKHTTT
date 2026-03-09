@@ -1476,15 +1476,29 @@ function renderSuppliersTable(suppliers) {
     `).join('');
 }
 
-function openSupplierModal(supplier = null) {
+async function openSupplierModal(supplier = null) {
     editingSupplier = supplier;
+
+    let defaultMaNcc = supplier?.maNcc || '';
+    if (!supplier) {
+        try {
+            const res = await fetch('/api/suppliers/next-id');
+            const data = await res.json();
+            if (data.success) {
+                defaultMaNcc = data.nextId;
+            }
+        } catch (e) {
+            console.error('Lỗi lấy mã NCC:', e);
+        }
+    }
+
     Swal.fire({
         title: supplier ? 'Cập nhật nhà cung cấp' : 'Thêm nhà cung cấp mới',
         html: `
             <div style="text-align:left;">
                 <div style="margin-bottom:12px;">
                     <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mã NCC <span style="color:red;">*</span></label>
-                    <input id="swalMaNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.maNcc || ''}" ${supplier ? 'disabled' : ''} placeholder="VD: NCC001">
+                    <input id="swalMaNcc" class="swal2-input" style="width:100%; margin:0; background-color: #f3f4f6;" value="${defaultMaNcc}" readonly disabled>
                 </div>
                 <div style="margin-bottom:12px;">
                     <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Tên NCC <span style="color:red;">*</span></label>
@@ -1498,6 +1512,15 @@ function openSupplierModal(supplier = null) {
                     <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Địa chỉ</label>
                     <input id="swalDiaChiNcc" class="swal2-input" style="width:100%; margin:0;" value="${supplier?.diaChi || ''}" placeholder="Địa chỉ nhà cung cấp">
                 </div>
+                ${supplier ? `
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Trạng thái</label>
+                    <select id="swalTrangThaiNcc" class="swal2-input" style="width:100%; margin:0; appearance:auto; -webkit-appearance:auto; height: 44px; padding: 10px;">
+                        <option value="true" ${supplier.trangThai ? 'selected' : ''}>Hoạt động</option>
+                        <option value="false" ${!supplier.trangThai ? 'selected' : ''}>Ngừng hoạt động</option>
+                    </select>
+                </div>
+                ` : ''}
             </div>
         `,
         showCancelButton: true,
@@ -1511,11 +1534,18 @@ function openSupplierModal(supplier = null) {
                 Swal.showValidationMessage('Vui lòng nhập mã và tên NCC');
                 return false;
             }
+
+            let trangThai = true;
+            if (document.getElementById('swalTrangThaiNcc')) {
+                trangThai = document.getElementById('swalTrangThaiNcc').value === 'true';
+            }
+
             return {
                 maNcc,
                 tenNcc,
                 sdt: document.getElementById('swalSdtNcc').value.trim(),
-                diaChi: document.getElementById('swalDiaChiNcc').value.trim()
+                diaChi: document.getElementById('swalDiaChiNcc').value.trim(),
+                trangThai
             };
         }
     }).then(async (result) => {
@@ -1696,157 +1726,6 @@ async function deleteBrand(maHang) {
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
             loadBrands();
-        } else {
-            Swal.fire('Lỗi', result.message, 'error');
-        }
-    } catch (error) {
-        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
-    }
-}
-
-// ==================== QUẢN LÝ CHI NHÁNH ====================
-
-let editingBranch = null;
-
-async function loadBranches() {
-    try {
-        const search = document.getElementById('searchBranchInput')?.value || '';
-        const response = await fetch(`/api/branches?search=${encodeURIComponent(search)}`);
-        const result = await response.json();
-        if (result.success) {
-            renderBranchesTable(result.data);
-        }
-    } catch (error) {
-        console.error('Lỗi tải Chi Nhánh:', error);
-    }
-}
-
-function renderBranchesTable(branches) {
-    const tbody = document.getElementById('branchTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = branches.map(b => `
-        <tr>
-            <td><strong>${b.maCn}</strong></td>
-            <td>${b.tenCn}</td>
-            <td>${b.diaChi || '—'}</td>
-            <td>${b.QuanLy ? `<i class="fas fa-user-tie" style="color: #6366f1; margin-right: 4px;"></i> ${b.QuanLy.hoTen}` : '—'}</td>
-            <td>
-                <button class="btn-edit" onclick='editBranch(${JSON.stringify(b)})'><i class="fas fa-edit"></i></button>
-                <button class="btn-delete" onclick="deleteBranch('${b.maCn}')"><i class="fas fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-async function openBranchModal(branch = null) {
-    editingBranch = branch;
-
-    // Fetch employees for dropdown
-    let options = '<option value="">-- Chọn quản lý --</option>';
-    try {
-        const res = await fetch('/api/branches/employees');
-        const result = await res.json();
-        if (result.success) {
-            options += result.data.map(emp =>
-                `<option value="${emp.maNv}" ${branch?.maNvQuanLy === emp.maNv ? 'selected' : ''}>${emp.hoTen} (${emp.maNv})</option>`
-            ).join('');
-        }
-    } catch (e) {
-        console.error('Lỗi lấy danh sách nhân viên', e);
-    }
-
-    Swal.fire({
-        title: branch ? 'Cập nhật chi nhánh' : 'Thêm chi nhánh',
-        html: `
-            <div style="text-align:left;">
-                <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Mã CN <span style="color:red;">*</span></label>
-                    <input id="swalMaCn" class="swal2-input" style="width:100%; margin:0;" value="${branch?.maCn || ''}" ${branch ? 'disabled' : ''} placeholder="VD: CN01">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Tên chi nhánh <span style="color:red;">*</span></label>
-                    <input id="swalTenCn" class="swal2-input" style="width:100%; margin:0;" value="${branch?.tenCn || ''}" placeholder="VD: Chi nhánh Quận 1">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Địa chỉ</label>
-                    <input id="swalDiaChiCn" class="swal2-input" style="width:100%; margin:0;" value="${branch?.diaChi || ''}" placeholder="VD: 123 Lê Lợi...">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">Người quản lý</label>
-                    <select id="swalMaNvQuanLy" class="swal2-input" style="width:100%; margin:0; appearance:auto !important; -webkit-appearance:auto !important; -moz-appearance:auto !important;">
-                        ${options}
-                    </select>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: branch ? 'Cập nhật' : 'Thêm mới',
-        cancelButtonText: 'Hủy',
-        confirmButtonColor: '#6366f1',
-        preConfirm: () => {
-            const maCn = document.getElementById('swalMaCn').value.trim();
-            const tenCn = document.getElementById('swalTenCn').value.trim();
-            if (!maCn || !tenCn) {
-                Swal.showValidationMessage('Vui lòng nhập mã và tên chi nhánh');
-                return false;
-            }
-            return {
-                maCn,
-                tenCn,
-                diaChi: document.getElementById('swalDiaChiCn').value.trim(),
-                maNvQuanLy: document.getElementById('swalMaNvQuanLy').value || null
-            };
-        }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            await saveBranch(result.value, !!branch);
-        }
-    });
-}
-
-function editBranch(branch) {
-    openBranchModal(branch);
-}
-
-async function saveBranch(data, isEdit) {
-    try {
-        const url = isEdit ? `/api/branches/${data.maCn}` : '/api/branches';
-        const method = isEdit ? 'PUT' : 'POST';
-        const response = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        const result = await response.json();
-        if (result.success) {
-            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
-            loadBranches();
-        } else {
-            Swal.fire('Lỗi', result.message, 'error');
-        }
-    } catch (error) {
-        Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
-    }
-}
-
-async function deleteBranch(maCn) {
-    const confirm = await Swal.fire({
-        title: 'Xóa chi nhánh?',
-        text: `Bạn có chắc muốn xóa chi nhánh: ${maCn}? LƯU Ý: Không thể xóa nếu chi nhánh đang có nhân viên hoặc kho.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Xóa',
-        cancelButtonText: 'Hủy',
-        confirmButtonColor: '#ef4444'
-    });
-    if (!confirm.isConfirmed) return;
-
-    try {
-        const response = await fetch(`/ api / branches / ${maCn}`, { method: 'DELETE' });
-        const result = await response.json();
-        if (result.success) {
-            Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
-            loadBranches();
         } else {
             Swal.fire('Lỗi', result.message, 'error');
         }
@@ -2437,9 +2316,10 @@ async function openImportModal() {
     document.getElementById('importModal').style.display = 'flex';
 
     try {
-        const [resKho, resNcc] = await Promise.all([
+        const [resKho, resNcc, resHttt] = await Promise.all([
             fetch('/api/warehouses'),
-            fetch('/api/suppliers')
+            fetch('/api/suppliers'),
+            fetch('/api/orders/payment-methods')
         ]);
 
         const resultKho = await resKho.json();
@@ -2451,9 +2331,15 @@ async function openImportModal() {
         const resultNcc = await resNcc.json();
         if (resultNcc.success) {
             const selectNcc = document.getElementById('importNccId');
-            // Keep the default option and append others
             selectNcc.innerHTML = '<option value="">-- Chọn Nhà Cung Cấp (Tùy chọn) --</option>' +
                 resultNcc.data.map(n => `<option value="${n.maNcc}">${n.tenNcc}</option>`).join('');
+        }
+
+        const resultHttt = await resHttt.json();
+        if (resultHttt.success) {
+            const selectHttt = document.getElementById('importHtttId');
+            selectHttt.innerHTML = '<option value="">-- Chọn HTTT (Tùy chọn) --</option>' +
+                resultHttt.data.map(h => `<option value="${h.maHttt}">${h.tenHttt}</option>`).join('');
         }
     } catch (e) {
         console.error('Lỗi tải Data', e);
@@ -2616,6 +2502,7 @@ async function submitImport() {
 
     try {
         const maNcc = document.getElementById('importNccId').value;
+        const maHttt = document.getElementById('importHtttId').value;
 
         const response = await fetch('/api/imports', {
             method: 'POST',
@@ -2623,7 +2510,8 @@ async function submitImport() {
             body: JSON.stringify({
                 maKho: maKho,
                 maNcc: maNcc || null,
-                maNv: user.id, // Lấy ID nhân viên đang đăng nhập
+                maNv: user.id,
+                maHttt: maHttt || null,
                 items: importItems
             })
         });
