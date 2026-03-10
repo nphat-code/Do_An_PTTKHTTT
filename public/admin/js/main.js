@@ -1777,7 +1777,7 @@ function renderWarehousesTable(warehouses) {
 async function openWarehouseModal(warehouse = null) {
     editingWarehouse = warehouse;
 
-    const loaiKhoOptions = ['Kho lưu trữ', 'Kho trưng bày', 'Kho bảo hành'];
+    const loaiKhoOptions = ['Kho tổng', 'Kho bán lẻ', 'Kho bảo hành', 'Kho online'];
     const typeOptionsHtml = loaiKhoOptions.map(loai =>
         `<option value="${loai}" ${warehouse?.loaiKho === loai ? 'selected' : ''}>${loai}</option>`
     ).join('');

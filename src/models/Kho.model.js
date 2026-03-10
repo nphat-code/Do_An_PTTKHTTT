@@ -6,7 +6,7 @@ const Kho = sequelize.define('Kho', {
     tenKho: { type: DataTypes.STRING, allowNull: false },
     diaChi: { type: DataTypes.TEXT },
     sdt: { type: DataTypes.STRING(15) },
-    loaiKho: { type: DataTypes.ENUM('Kho lưu trữ', 'Kho trưng bày', 'Kho bảo hành') },
+    loaiKho: { type: DataTypes.ENUM('Kho tổng', 'Kho bán lẻ', 'Kho bảo hành', 'Kho online') },
     trangThai: { type: DataTypes.BOOLEAN, defaultValue: true }
 }, { tableName: 'KHO', timestamps: false });
 
