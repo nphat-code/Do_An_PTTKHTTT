@@ -5,6 +5,7 @@ const warehouseController = require('../controllers/warehouse.controller');
 router.get('/', warehouseController.getAllWarehouses);
 router.post('/', warehouseController.createWarehouse);
 router.put('/:id', warehouseController.updateWarehouse);
+router.get('/linhkien', warehouseController.getLinhKien);
 router.delete('/:id', warehouseController.deleteWarehouse);
 
 module.exports = router;

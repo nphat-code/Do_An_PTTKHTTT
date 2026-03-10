@@ -180,8 +180,8 @@ const getAllOrders = async (req, res) => {
         if (search) {
             where = {
                 [Op.or]: [
-                    { maHd: { [Op.like]: `%${search}%` } },
-                    { '$KhachHang.sdt$': { [Op.like]: `%${search}%` } }
+                    { maHd: { [Op.iLike]: `%${search}%` } },
+                    { '$KhachHang.sdt$': { [Op.iLike]: `%${search}%` } }
                 ]
             };
         }

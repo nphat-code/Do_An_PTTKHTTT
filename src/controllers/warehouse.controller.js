@@ -1,4 +1,4 @@
-const { Kho } = require('../models');
+const { Kho, LinhKien } = require('../models/index');
 const { Op } = require('sequelize');
 
 // Lấy danh sách kho
@@ -8,9 +8,9 @@ const getAllWarehouses = async (req, res) => {
         const where = {};
         if (search) {
             where[Op.or] = [
-                { tenKho: { [Op.like]: `%${search}%` } },
-                { maKho: { [Op.like]: `%${search}%` } },
-                { diaChi: { [Op.like]: `%${search}%` } }
+                { tenKho: { [Op.iLike]: `%${search}%` } },
+                { maKho: { [Op.iLike]: `%${search}%` } },
+                { diaChi: { [Op.iLike]: `%${search}%` } }
             ];
         }
 
@@ -88,4 +88,13 @@ const deleteWarehouse = async (req, res) => {
     }
 };
 
-module.exports = { getAllWarehouses, createWarehouse, updateWarehouse, deleteWarehouse };
+const getLinhKien = async (req, res) => {
+    try {
+        const parts = await LinhKien.findAll();
+        res.json({ success: true, data: parts });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+module.exports = { getAllWarehouses, createWarehouse, updateWarehouse, deleteWarehouse, getLinhKien };

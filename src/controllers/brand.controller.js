@@ -8,9 +8,9 @@ const getAllBrands = async (req, res) => {
         const where = {};
         if (search) {
             where[Op.or] = [
-                { tenHang: { [Op.like]: `%${search}%` } },
-                { maHang: { [Op.like]: `%${search}%` } },
-                { quocGia: { [Op.like]: `%${search}%` } }
+                { tenHang: { [Op.iLike]: `%${search}%` } },
+                { maHang: { [Op.iLike]: `%${search}%` } },
+                { quocGia: { [Op.iLike]: `%${search}%` } }
             ];
         }
         const brands = await HangSanXuat.findAll({ where, order: [['maHang', 'ASC']] });

@@ -53,4 +53,9 @@ router.put('/:id', upload.single('hinhAnh'), productController.updateProduct);
 // DELETE /api/products/:id - Xóa sản phẩm
 router.delete('/:id', productController.deleteProduct);
 
+// Compatibility routes
+router.get('/:id/compatible-parts', productController.getCompatibleParts);
+router.post('/:id/compatible-parts', productController.addCompatiblePart);
+router.delete('/:id/compatible-parts/:maLk', productController.removeCompatiblePart);
+
 module.exports = router;

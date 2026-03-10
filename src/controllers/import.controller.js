@@ -1,4 +1,4 @@
-const { PhieuNhap, CtNhapMay, DongMay, ChiTietMay, Kho, NhanVien, NhaCungCap, sequelize } = require('../models/index');
+const { PhieuNhap, CtNhapMay, DongMay, ChiTietMay, Kho, NhanVien, NhaCungCap, LinhKien, CtNhapLk, sequelize } = require('../models/index');
 
 const generateImportCode = () => {
     const today = new Date();
@@ -51,37 +51,55 @@ const createImportReceipt = async (req, res) => {
 
         // Tạo chi tiết phiếu nhập và cập nhật kho
         for (const item of items) {
-            await CtNhapMay.create({
-                maPn: receipt.maPn,
-                maModel: item.productId,
-                soLuong: item.quantity,
-                donGia: item.price
-            }, { transaction: t });
+            if (item.type === 'sparepart') {
+                // Nhập linh kiện
+                await CtNhapLk.create({
+                    maPn: receipt.maPn,
+                    maLk: item.productId,
+                    soLuong: item.quantity,
+                    donGia: item.price
+                }, { transaction: t });
 
-            // Nếu có nhập mảng các model serial / IMEI
-            if (item.serials && Array.isArray(item.serials)) {
-                for (const serial of item.serials) {
-                    // Check duplicate serial
-                    const existingSerial = await ChiTietMay.findByPk(serial, { transaction: t });
-                    if (existingSerial) {
-                        throw new Error(`Số Serial/IMEI ${serial} đã tồn tại trong hệ thống`);
-                    }
-
-                    await ChiTietMay.create({
-                        soSerial: serial,
-                        trangThai: 'Trong kho',
-                        maModel: item.productId,
-                        maKho: selectedKho
+                // Cập nhật tồn kho linh kiện
+                const part = await LinhKien.findByPk(item.productId, { transaction: t });
+                if (part) {
+                    await part.update({
+                        soLuongTon: Number(part.soLuongTon || 0) + Number(item.quantity)
                     }, { transaction: t });
                 }
-            }
-
-            // Cập nhật số lượng sản phẩm trong kho (Tổng)
-            const product = await DongMay.findByPk(item.productId, { transaction: t });
-            if (product) {
-                await product.update({
-                    soLuongTon: product.soLuongTon + Number(item.quantity)
+            } else {
+                // Nhập máy (mặc định hoặc item.type === 'laptop')
+                await CtNhapMay.create({
+                    maPn: receipt.maPn,
+                    maModel: item.productId,
+                    soLuong: item.quantity,
+                    donGia: item.price
                 }, { transaction: t });
+
+                // Nếu có nhập mảng các model serial / IMEI
+                if (item.serials && Array.isArray(item.serials)) {
+                    for (const serial of item.serials) {
+                        const existingSerial = await ChiTietMay.findByPk(serial, { transaction: t });
+                        if (existingSerial) {
+                            throw new Error(`Số Serial/IMEI ${serial} đã tồn tại trong hệ thống`);
+                        }
+
+                        await ChiTietMay.create({
+                            soSerial: serial,
+                            trangThai: 'Trong kho',
+                            maModel: item.productId,
+                            maKho: selectedKho
+                        }, { transaction: t });
+                    }
+                }
+
+                // Cập nhật số lượng sản phẩm trong kho (Tổng)
+                const product = await DongMay.findByPk(item.productId, { transaction: t });
+                if (product) {
+                    await product.update({
+                        soLuongTon: product.soLuongTon + Number(item.quantity)
+                    }, { transaction: t });
+                }
             }
         }
 
@@ -102,6 +120,10 @@ const getImportHistory = async (req, res) => {
             include: [
                 {
                     model: DongMay,
+                    through: { attributes: ['soLuong', 'donGia'] }
+                },
+                {
+                    model: LinhKien,
                     through: { attributes: ['soLuong', 'donGia'] }
                 },
                 { model: NhanVien, attributes: ['hoTen'] },
@@ -125,6 +147,10 @@ const getImportReceiptById = async (req, res) => {
             include: [
                 {
                     model: DongMay,
+                    through: { attributes: ['soLuong', 'donGia'] }
+                },
+                {
+                    model: LinhKien,
                     through: { attributes: ['soLuong', 'donGia'] }
                 },
                 { model: NhanVien, attributes: ['hoTen'] },

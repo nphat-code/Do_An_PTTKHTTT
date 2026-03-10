@@ -15,27 +15,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminRoleEl && user.role) adminRoleEl.innerText = (user.role === 'employee' ? 'Nhân viên' : user.role);
 });
 
+
+let isEditMode = false;
 const productModal = document.getElementById("productModal");
-const btnAdd = document.querySelector(".btn-add");
-const closeBtn = document.querySelector(".close-btn");
-const cancelBtn = document.getElementById("cancelBtn");
 const productForm = document.getElementById("productForm");
 const previewContainer = document.getElementById("previewContainer");
 
-btnAdd.onclick = async () => {
+window.openProductModal = async () => {
     isEditMode = false;
     productForm.reset();
     document.getElementById("productId").value = "";
     document.getElementById("maModel").disabled = false;
-    document.querySelector(".modal-header h2").innerText = "Thêm Laptop Mới";
+    document.querySelector("#productModal .modal-header h2").innerText = "Thêm Laptop Mới";
+    document.getElementById('previewImg').style.display = 'none';
+    document.getElementById('compatibilitySection').style.display = 'none';
     await loadDropdowns();
     productModal.style.display = "flex";
 };
-closeBtn.onclick = () => productModal.style.display = "none";
-cancelBtn.onclick = () => productModal.style.display = "none";
-window.onclick = (event) => {
-    if (event.target == productModal) productModal.style.display = "none";
-}
+
+window.closeProductModal = () => {
+    productModal.style.display = "none";
+};
+window.addEventListener('click', (event) => {
+    if (event.target == productModal) closeProductModal();
+    const spModal = document.getElementById('sparePartModal');
+    if (event.target == spModal) closeSparePartModal();
+});
 
 const sidebarLinks = document.querySelectorAll('.sidebar ul li a');
 const sections = document.querySelectorAll('.tab-section');
@@ -64,15 +69,20 @@ function showTab(tabName) {
 
     // Call load functions based on tab
     if (tabName === 'overview') loadDashboardStats();
-    if (tabName === 'products') loadProducts();
-    if (tabName === 'orders') loadOrders();
-    if (tabName === 'customers') loadCustomers();
-    if (tabName === 'employees') loadEmployees();
-    if (tabName === 'inventory') loadImportHistory();
-    if (tabName === 'stock') loadStockData();
+    else if (tabName === 'products') loadProducts();
+    else if (tabName === 'orders') loadOrders();
+    else if (tabName === 'customers') loadCustomers();
+    else if (tabName === 'employees') loadEmployees();
+    else if (tabName === 'inventory') loadImportHistory();
+    else if (tabName === 'stock') loadStockData();
+    else if (tabName === 'suppliers') loadSuppliers();
+    else if (tabName === 'brands') loadBrands();
+    else if (tabName === 'warehouses') loadWarehouses();
+    else if (tabName === 'roles') loadRoles();
+    else if (tabName === 'warranty') loadWarranties();
+    else if (tabName === 'spareparts') loadSpareParts();
 }
 
-let isEditMode = false;
 let currentPage = 1;
 const limit = 5;
 async function loadProducts(page = 1) {
@@ -80,7 +90,7 @@ async function loadProducts(page = 1) {
     localStorage.setItem('currentPage', page);
     const keyword = document.getElementById("searchInput").value;
     try {
-        const response = await fetch(`http://localhost:3000/api/products?page=${page}&limit=${limit}&search=${keyword}`);
+        const response = await fetch(`/api/products?page=${page}&limit=${limit}&search=${keyword}`);
         const result = await response.json();
         if (result.success) {
             renderTable(result.data);
@@ -161,7 +171,7 @@ async function deleteProduct(event, id) {
     });
     if (result.isConfirmed) {
         try {
-            const response = await fetch(`http://localhost:3000/api/products/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
             if (response.ok) {
                 Swal.fire({
                     icon: 'success',
@@ -182,8 +192,8 @@ async function deleteProduct(event, id) {
 async function loadDropdowns() {
     try {
         const [brandsRes, catsRes] = await Promise.all([
-            fetch('http://localhost:3000/api/products/brands'),
-            fetch('http://localhost:3000/api/products/categories')
+            fetch('/api/products/brands'),
+            fetch('/api/products/categories')
         ]);
         const brandsData = await brandsRes.json();
         const catsData = await catsRes.json();
@@ -211,10 +221,10 @@ async function loadDropdowns() {
 window.openEditModal = async (maModel) => {
     isEditMode = true;
     await loadDropdowns();
-    document.querySelector(".modal-header h2").innerText = "Chỉnh sửa sản phẩm";
+    document.querySelector("#productModal .modal-header h2").innerText = "Chỉnh sửa sản phẩm";
 
     try {
-        const res = await fetch(`http://localhost:3000/api/products/${maModel}`);
+        const res = await fetch(`/api/products/${maModel}`);
         const result = await res.json();
         if (!result.success) return Swal.fire('Lỗi', result.message, 'error');
 
@@ -240,16 +250,93 @@ window.openEditModal = async (maModel) => {
         // Hiển ảnh hiện tại
         const previewImg = document.getElementById('previewImg');
         if (p.hinhAnh) {
-            previewImg.src = `/${p.hinhAnh}`;
+            previewImg.src = p.hinhAnh;
             previewImg.style.display = 'block';
         } else {
             previewImg.style.display = 'none';
         }
-    } catch (err) {
-        console.error(err);
-    }
 
-    productModal.style.display = "flex";
+        // Compatibility section
+        document.getElementById('compatibilitySection').style.display = 'block';
+        await loadCompMaLkDropdown();
+        await loadCompatibility(maModel);
+
+        productModal.style.display = "flex";
+    } catch (err) {
+        console.error("Lỗi openEditModal:", err);
+    }
+};
+
+async function loadCompMaLkDropdown() {
+    try {
+        const res = await fetch('/api/spareparts');
+        const result = await res.json();
+        if (result.success) {
+            const select = document.getElementById('compMaLk');
+            select.innerHTML = '<option value="">-- Chọn linh kiện --</option>' +
+                result.data.map(lk => `<option value="${lk.maLk}">${lk.tenLk}</option>`).join('');
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function loadCompatibility(maModel) {
+    try {
+        const res = await fetch(`/api/products/${maModel}/compatible-parts`);
+        const result = await res.json();
+        const tbody = document.getElementById('compTableBody');
+        tbody.innerHTML = '';
+        if (result.success && result.data) {
+            result.data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 10px;">${item.tenLk}</td>
+                    <td style="padding: 10px;">${item.LinhKienTuongThich?.ghiChu || ''}</td>
+                    <td style="padding: 10px; text-align: center;">
+                        <button type="button" class="btn-delete" onclick="removeCompatibility('${item.maLk}')" style="padding: 5px 10px;">&times;</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (err) { console.error(err); }
+}
+
+window.addCompatibility = async () => {
+    const maModel = document.getElementById('productId').value;
+    const maLk = document.getElementById('compMaLk').value;
+    const ghiChu = document.getElementById('compGhiChu').value;
+
+    if (!maLk) return Swal.fire('Thông báo', 'Vui lòng chọn linh kiện', 'warning');
+
+    try {
+        const res = await fetch(`/api/products/${maModel}/compatible-parts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ maLk, ghiChu })
+        });
+        const result = await res.json();
+        if (result.success) {
+            await loadCompatibility(maModel);
+            document.getElementById('compGhiChu').value = '';
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (err) { console.error(err); }
+};
+
+window.removeCompatibility = async (maLk) => {
+    const maModel = document.getElementById('productId').value;
+    if (!confirm('Bạn có chắc muốn xóa tương thích này?')) return;
+
+    try {
+        const res = await fetch(`/api/products/${maModel}/compatible-parts/${maLk}`, {
+            method: 'DELETE'
+        });
+        const result = await res.json();
+        if (result.success) {
+            await loadCompatibility(maModel);
+        }
+    } catch (err) { console.error(err); }
 };
 
 // Preview ảnh khi chọn file
@@ -294,13 +381,13 @@ productForm.onsubmit = async function (e) {
         formData.append('hinhAnh', fileInput.files[0]);
     }
 
-    const url = isEditMode ? `http://localhost:3000/api/products/${id}` : 'http://localhost:3000/api/products';
+    const url = isEditMode ? `/api/products/${id}` : '/api/products';
     const method = isEditMode ? 'PUT' : 'POST';
 
     try {
         const response = await fetch(url, {
             method: method,
-            body: formData  // Không set Content-Type, browser sẽ tự set multipart/form-data
+            body: formData
         });
 
         if (response.ok) {
@@ -412,7 +499,7 @@ function renderOrdersTable(orders) {
 
 async function changeOrderStatus(orderId, trangThai) {
     try {
-        const res = await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+        const res = await fetch(`/api/orders/${orderId}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ trangThai })
@@ -436,41 +523,13 @@ async function changeOrderStatus(orderId, trangThai) {
     }
 }
 
-// 3. Cập nhật hàm showTab để tự động tải dữ liệu khi nhấn vào tab Đơn hàng
-const originalShowTab = showTab; // Giữ lại hàm cũ
-showTab = function (tabName) {
-    originalShowTab(tabName); // Gọi hàm chuyển tab cũ
-    if (tabName === 'orders') {
-        loadOrders();
-    } else if (tabName === 'products') {
-        loadProducts(currentPage);
-    } else if (tabName === 'customers') {
-        loadCustomers();
-    } else if (tabName === 'inventory') {
-        loadImportHistory();
-    } else if (tabName === 'suppliers') {
-        loadSuppliers();
-    } else if (tabName === 'brands') {
-        loadBrands();
-    } else if (tabName === 'branches') {
-        loadBranches();
-    } else if (tabName === 'warehouses') {
-        loadWarehouses();
-    } else if (tabName === 'roles') {
-        loadRoles();
-    } else if (tabName === 'employees') {
-        loadEmployees();
-    } else if (tabName === 'overview') {
-        loadDashboardStats();
-    }
-};
 
 let revenueChartInstance = null;
 let statusChartInstance = null;
 
 async function loadDashboardStats() {
     try {
-        const response = await fetch('http://localhost:3000/api/orders/stats');
+        const response = await fetch('/api/orders/stats');
         const result = await response.json();
 
         if (result.success) {
@@ -1187,7 +1246,17 @@ async function viewImportDetails(receiptId) {
 
             // 2. Hiển thị danh sách sản phẩm
             const itemsContainer = document.getElementById("viewImportItemsTableBody");
+            const detailTitle = document.getElementById("viewImportDetailTitle");
             itemsContainer.innerHTML = "";
+
+            const hasLaptops = receipt.DongMays && receipt.DongMays.length > 0;
+            const hasSpareParts = receipt.LinhKiens && receipt.LinhKiens.length > 0;
+
+            if (detailTitle) {
+                if (hasLaptops && hasSpareParts) detailTitle.innerText = "Danh sách máy & linh kiện nhập";
+                else if (hasSpareParts) detailTitle.innerText = "Danh sách linh kiện nhập";
+                else detailTitle.innerText = "Danh sách máy nhập";
+            }
 
             if (receipt.DongMays) {
                 receipt.DongMays.forEach(p => {
@@ -1195,7 +1264,22 @@ async function viewImportDetails(receiptId) {
                     const price = p.CtNhapMay ? Number(p.CtNhapMay.donGia) : 0;
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-                        <td>${p.tenModel}</td>
+                        <td>${p.tenModel} <br><small style="color:#64748b;">(Máy tính)</small></td>
+                        <td>${Number(price).toLocaleString()}đ</td>
+                        <td>${qty}</td>
+                        <td>${(price * qty).toLocaleString()}đ</td>
+                    `;
+                    itemsContainer.appendChild(tr);
+                });
+            }
+
+            if (receipt.LinhKiens) {
+                receipt.LinhKiens.forEach(lk => {
+                    const qty = lk.CtNhapLk ? lk.CtNhapLk.soLuong : 0;
+                    const price = lk.CtNhapLk ? Number(lk.CtNhapLk.donGia) : 0;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${lk.tenLk} <br><small style="color:#92400e;">(Linh kiện)</small></td>
                         <td>${Number(price).toLocaleString()}đ</td>
                         <td>${qty}</td>
                         <td>${(price * qty).toLocaleString()}đ</td>
@@ -2295,7 +2379,8 @@ function renderImportHistoryTable(receipts) {
     const tbody = document.getElementById('importHistoryTableBody');
     if (!tbody) return;
     tbody.innerHTML = receipts.map(r => {
-        let totalQty = r.DongMays ? r.DongMays.reduce((sum, item) => sum + item.CtNhapMay.soLuong, 0) : 0;
+        let totalQty = (r.DongMays ? r.DongMays.reduce((sum, item) => sum + item.CtNhapMay.soLuong, 0) : 0) +
+            (r.LinhKiens ? r.LinhKiens.reduce((sum, item) => sum + item.CtNhapLk.soLuong, 0) : 0);
         return `
             <tr>
                 <td><strong>${r.maPn}</strong></td>
@@ -2451,6 +2536,76 @@ async function addImportItemUI() {
     });
 
     if (formValues) {
+        importItems.push({ ...formValues, type: 'laptop' });
+        renderImportItemsTable();
+    }
+}
+
+async function addImportSparePartUI() {
+    const res = await fetch('/api/spareparts');
+    const result = await res.json();
+    if (!result.success) return Swal.fire('Lỗi', 'Không thể tải danh sách linh kiện', 'error');
+
+    const options = result.data.map(p => `<option value="${p.maLk}" data-price="${p.giaNhap || 0}">${p.tenLk} (${p.maLk})</option>`).join('');
+
+    const { value: formValues } = await Swal.fire({
+        title: 'Nhập Linh Kiện Mới',
+        html: `
+            <div style="text-align:left;">
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">Chọn linh kiện:</label>
+                <select id="swalImpPartId" class="swal2-select" style="width:100%; margin:0 0 15px 0;">
+                    <option value="">-- Chọn linh kiện --</option>
+                    ${options}
+                </select>
+                
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">Đơn giá nhập (1 đơn vị):</label>
+                <input id="swalImpPartPrice" type="number" class="swal2-input" style="width:100%; margin:0 0 15px 0;" placeholder="VD: 500000">
+
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">Số lượng nhập:</label>
+                <input id="swalImpPartQty" type="number" class="swal2-input" style="width:100%; margin:0;" placeholder="VD: 10" min="1" value="1">
+            </div>
+        `,
+        didOpen: () => {
+            const selectEl = document.getElementById('swalImpPartId');
+            const priceEl = document.getElementById('swalImpPartPrice');
+
+            selectEl.addEventListener('change', (e) => {
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                if (selectedOption && selectedOption.dataset.price && selectedOption.dataset.price !== '0') {
+                    priceEl.value = selectedOption.dataset.price;
+                } else {
+                    priceEl.value = '';
+                }
+            });
+        },
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Thêm vào danh sách',
+        cancelButtonText: 'Hủy',
+        preConfirm: () => {
+            const selectEl = document.getElementById('swalImpPartId');
+            const productId = selectEl.value;
+            const productName = selectEl.options.length > 0 && selectEl.selectedIndex >= 0 ? selectEl.options[selectEl.selectedIndex].text : '';
+            const price = document.getElementById('swalImpPartPrice').value;
+            const quantity = document.getElementById('swalImpPartQty').value;
+
+            if (!productId || !price || !quantity || Number(quantity) <= 0) {
+                Swal.showValidationMessage('Vui lòng nhập đầy đủ thông tin hợp lệ!');
+                return false;
+            }
+
+            return {
+                type: 'sparepart',
+                productId,
+                productName,
+                price: Number(price),
+                quantity: Number(quantity),
+                serials: [] // No serials for spare parts
+            };
+        }
+    });
+
+    if (formValues) {
         importItems.push(formValues);
         renderImportItemsTable();
     }
@@ -2474,12 +2629,20 @@ function renderImportItemsTable() {
     tbody.innerHTML = importItems.map((item, index) => {
         const itemTotal = item.quantity * item.price;
         total += itemTotal;
+        const displayType = item.type === 'sparepart' ? '<span class="badge" style="background:#fef3c7; color:#92400e;">Linh kiện</span>' : '<span class="badge" style="background:#e0f2fe; color:#0369a1;">Máy tính</span>';
+        const serialDisplay = item.type === 'sparepart'
+            ? '<i style="color:#94a3b8;">Không áp dụng Serial</i>'
+            : `<div style="max-height: 60px; overflow-y: auto; font-family: monospace; font-size: 0.85em; background: #f8fafc; padding: 6px; border-radius: 4px;">${item.serials.join('<br>')}</div>`;
+
         return `
             <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 12px;"><strong>${item.productName}</strong></td>
+                <td style="padding: 12px;">
+                    <div style="font-weight:600;">${item.productName}</div>
+                    <div style="margin-top:4px;">${displayType}</div>
+                </td>
                 <td style="padding: 12px; text-align: center;"><strong>${item.quantity}</strong></td>
                 <td style="padding: 12px; text-align: right;">${item.price.toLocaleString()} ₫</td>
-                <td style="padding: 12px;"><div style="max-height: 60px; overflow-y: auto; font-family: monospace; font-size: 0.85em; background: #f8fafc; padding: 6px; border-radius: 4px;">${item.serials.join('<br>')}</div></td>
+                <td style="padding: 12px;">${serialDisplay}</td>
                 <td style="padding: 12px; text-align: center;">
                     <button class="btn-delete" onclick="removeImportItem(${index})" style="background:none; color:#ef4444; padding:5px;"><i class="fas fa-trash"></i></button>
                 </td>
@@ -2538,5 +2701,504 @@ async function submitImport() {
         }
     } catch (error) {
         Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+    }
+}
+
+// ==========================================
+// QUẢN LÝ BẢO HÀNH
+// ==========================================
+
+async function loadWarranties() {
+    try {
+        const searchInput = document.getElementById('searchWarrantyInput');
+        const search = searchInput ? searchInput.value.trim() : '';
+        const res = await fetch(`/api/warranties?search=${encodeURIComponent(search)}`);
+        const result = await res.json();
+        if (result.success) {
+            renderWarrantyTable(result.data);
+        }
+    } catch (err) {
+        console.error("Lỗi tải bảo hành:", err);
+    }
+}
+
+function renderWarrantyTable(data) {
+    const tbody = document.getElementById('warrantyTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Không có dữ liệu bảo hành</td></tr>';
+        return;
+    }
+
+    data.forEach(item => {
+        const tr = document.createElement('tr');
+        const ngayLap = new Date(item.ngayLap).toLocaleDateString('vi-VN');
+        const ngayTra = item.ngayTraMay ? new Date(item.ngayTraMay).toLocaleDateString('vi-VN') : '—';
+
+        // Status colors
+        let statusColor = '#d97706'; // Pending
+        if (item.trangThai === 'Đã trả máy') statusColor = '#16a34a';
+        else if (item.trangThai === 'Đã xong') statusColor = '#2563eb';
+        else if (item.trangThai === 'Đang sửa') statusColor = '#7c3aed';
+
+        tr.innerHTML = `
+            <td><strong style="color: #4f46e5;">${item.maPbh}</strong></td>
+            <td><code style="background:#f1f5f9; padding:4px 8px; border-radius:6px; color: #1e293b; font-weight: 600;">${item.soSerial}</code></td>
+            <td>${item.ChiTietMay?.DongMay?.tenModel || '—'}</td>
+            <td>${ngayLap}</td>
+            <td>${ngayTra}</td>
+            <td><span class="status-badge" style="background: ${statusColor}15; color: ${statusColor}; border: 1px solid ${statusColor}30; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.8rem;">${item.trangThai}</span></td>
+            <td>
+                <button class="btn-edit" onclick="viewWarrantyDetail('${item.maPbh}')" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Global initialization for Warranty
+document.addEventListener('DOMContentLoaded', () => {
+    // Search listener
+    const searchInput = document.getElementById('searchWarrantyInput');
+    if (searchInput) {
+        searchInput.oninput = () => {
+            clearTimeout(window.warrantySearchTimeout);
+            window.warrantySearchTimeout = setTimeout(loadWarranties, 300);
+        };
+    }
+
+    // Form Submissions
+    const wForm = document.getElementById('warrantyForm');
+    if (wForm) {
+        wForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                soSerial: document.getElementById('warrantySerial').value,
+                moTaLoi: document.getElementById('warrantyError').value,
+                maNvTiepNhan: document.getElementById('warrantyEmployee').value
+            };
+
+            try {
+                const res = await fetch('/api/warranties', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã tạo phiếu bảo hành mới', timer: 2000 });
+                    closeWarrantyModal();
+                    loadWarranties();
+                } else {
+                    Swal.fire('Lỗi', result.message, 'error');
+                }
+            } catch (err) { console.error(err); }
+        };
+    }
+
+    const updateWForm = document.getElementById('updateWarrantyForm');
+    if (updateWForm) {
+        updateWForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('displayWId').innerText;
+            const data = {
+                ketLuanKyThuat: document.getElementById('ketLuanKyThuat').value,
+                maNvKyThuat: document.getElementById('maNvKyThuat').value,
+                trangThai: document.getElementById('trangThaiPbh').value,
+                ngayTraMay: document.getElementById('ngayTraMay').value || null,
+                maHttt: document.getElementById('maHtttPbh').value || null
+            };
+
+            try {
+                const res = await fetch(`/api/warranties/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã cập nhật tình trạng phiếu', timer: 2000 });
+                    loadWarranties();
+                    // Keep modal open or refresh details?
+                    viewWarrantyDetail(id);
+                } else {
+                    Swal.fire('Lỗi', result.message, 'error');
+                }
+            } catch (err) { console.error(err); }
+        };
+    }
+
+    const addRepairForm = document.getElementById('addRepairForm');
+    if (addRepairForm) {
+        addRepairForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const maPbh = document.getElementById('displayWId').innerText;
+            const data = {
+                maPbh,
+                maLk: document.getElementById('repairLk').value,
+                maKhoXuat: document.getElementById('repairKho').value,
+                soLuong: parseInt(document.getElementById('repairQty').value),
+                donGia: parseFloat(document.getElementById('repairPrice').value)
+            };
+
+            try {
+                const res = await fetch('/api/warranties/repair-detail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã thêm linh kiện/vật tư', timer: 1500 });
+                    closeAddRepairDetail();
+                    viewWarrantyDetail(maPbh); // Refresh details
+                } else {
+                    Swal.fire('Lỗi', result.message, 'error');
+                }
+            } catch (err) { console.error(err); }
+        };
+    }
+});
+
+function openWarrantyModal() {
+    const modal = document.getElementById('warrantyModal');
+    if (!modal) return;
+    const form = document.getElementById('warrantyForm');
+    if (form) form.reset();
+    document.getElementById('machineInfo').style.display = 'none';
+    loadWarrantyEmployees();
+    modal.style.display = 'flex';
+}
+
+function closeWarrantyModal() {
+    document.getElementById('warrantyModal').style.display = 'none';
+}
+
+async function loadWarrantyEmployees() {
+    try {
+        const res = await fetch('/api/employees');
+        const result = await res.json();
+        if (result.success) {
+            const select = document.getElementById('warrantyEmployee');
+            const selectTech = document.getElementById('maNvKyThuat');
+
+            const options = result.data.map(e => `<option value="${e.maNv}">${e.hoTen} (${e.ChucVu?.tenCv || 'NV'})</option>`).join('');
+            if (select) select.innerHTML = '<option value="">-- Chọn nhân viên --</option>' + options;
+            if (selectTech) selectTech.innerHTML = '<option value="">-- Chọn kỹ thuật viên --</option>' + options;
+        }
+    } catch (err) { console.error("Lỗi tải nhân viên:", err); }
+}
+
+async function checkSerial() {
+    const serial = document.getElementById('warrantySerial').value.trim();
+    if (!serial) return Swal.fire('Thông báo', 'Vui lòng nhập số Serial', 'info');
+
+    try {
+        const res = await fetch(`/api/warranties/check/${serial}`);
+        const result = await res.json();
+        const infoDiv = document.getElementById('machineInfo');
+        if (result.success) {
+            document.getElementById('infoMachineName').innerText = result.data.DongMay?.tenModel || 'Thiết bị không định danh';
+            document.getElementById('infoCustomerName').innerText = result.data.maHd || 'Không rõ hóa đơn';
+            infoDiv.style.display = 'block';
+            infoDiv.style.borderLeftColor = '#3b82f6';
+        } else {
+            Swal.fire('Chú ý', result.message || 'Không tìm thấy máy này trên hệ thống bán hàng.', 'warning');
+            infoDiv.style.display = 'none';
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function viewWarrantyDetail(id) {
+    try {
+        const res = await fetch(`/api/warranties/${id}`);
+        const result = await res.json();
+        if (result.success) {
+            const w = result.data;
+            document.getElementById('displayWId').innerText = w.maPbh;
+            document.getElementById('displayWId').dataset.maModel = w.ChiTietMay?.maModel || '';
+
+            const info = document.getElementById('warrantyGeneralInfo');
+            const ngayLap = new Date(w.ngayLap).toLocaleString('vi-VN');
+            info.innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size: 0.95rem;">
+                    <p><strong>Sản phẩm:</strong><br>${w.ChiTietMay?.DongMay?.tenModel || '—'}</p>
+                    <p><strong>Số Serial:</strong><br><code>${w.soSerial}</code></p>
+                    <p><strong>Ngày tiếp nhận:</strong><br>${ngayLap}</p>
+                    <p><strong>NV tiếp nhận:</strong><br>${w.NvTiepNhan?.hoTen || '—'}</p>
+                </div>
+                <div style="background:#fff7ed; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #ffedd5;">
+                    <strong style="color: #9a3412;"><i class="fas fa-exclamation-triangle"></i> Mô tả lỗi khách báo:</strong>
+                    <p style="margin-top:5px; white-space: pre-wrap;">${w.moTaLoi}</p>
+                </div>
+            `;
+
+            // Set form values
+            document.getElementById('ketLuanKyThuat').value = w.ketLuanKyThuat || '';
+            document.getElementById('trangThaiPbh').value = w.trangThai;
+            document.getElementById('ngayTraMay').value = w.ngayTraMay ? w.ngayTraMay.split('T')[0] : '';
+
+            await loadWarrantyEmployees();
+            await loadHtttPbh();
+
+            document.getElementById('maNvKyThuat').value = w.maNvKyThuat || '';
+            document.getElementById('maHtttPbh').value = w.maHttt || '';
+
+            renderRepairDetails(w.ChiTietSuaChuas, w.chiPhiSuaChua);
+
+            document.getElementById('warrantyDetailModal').style.display = 'flex';
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function loadHtttPbh() {
+    try {
+        const res = await fetch('/api/orders/payment-methods');
+        const result = await res.json();
+        if (result.success) {
+            const select = document.getElementById('maHtttPbh');
+            if (select) {
+                select.innerHTML = '<option value="">-- Miễn phí --</option>' +
+                    result.data.map(h => `<option value="${h.maHttt}">${h.tenHttt}</option>`).join('');
+            }
+        }
+    } catch (err) { console.error(err); }
+}
+
+function renderRepairDetails(details, total) {
+    const tbody = document.getElementById('repairDetailTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!details || details.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Chưa có linh kiện thay thế</td></tr>';
+    } else {
+        details.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${d.LinhKien?.tenLk || '—'}</td>
+                <td>${d.soLuong}</td>
+                <td>${Number(d.donGia).toLocaleString()}đ</td>
+                <td style="font-weight:600;">${(d.soLuong * d.donGia).toLocaleString()}đ</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    document.getElementById('totalRepairCost').innerText = Number(total || 0).toLocaleString() + 'đ';
+}
+
+function closeWarrantyDetailModal() {
+    document.getElementById('warrantyDetailModal').style.display = 'none';
+}
+
+async function openAddRepairDetail() {
+    const id = document.getElementById('displayWId').innerText;
+    if (!id) return;
+
+    try {
+        const [lkRes, khoRes] = await Promise.all([
+            fetch('/api/warehouses/linhkien'),
+            fetch('/api/warehouses')
+        ]);
+        const lks = await lkRes.json();
+        const khos = await khoRes.json();
+
+        const selectLk = document.getElementById('repairLk');
+        const selectKho = document.getElementById('repairKho');
+
+        if (selectLk) {
+            selectLk.innerHTML = '<option value="">-- Chọn linh kiện --</option>' +
+                lks.data.map(l => `<option value="${l.maLk}">${l.tenLk}</option>`).join('');
+        }
+        if (selectKho) {
+            selectKho.innerHTML = '<option value="">-- Chọn kho --</option>' +
+                khos.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
+        }
+
+        document.getElementById('repairQty').value = 1;
+        document.getElementById('repairPrice').value = 0;
+
+        // Suggestions
+        const maModel = document.getElementById('displayWId').dataset.maModel;
+        const suggestionBox = document.getElementById('compatibilitySuggestions');
+        const suggestionList = document.getElementById('suggestionList');
+        suggestionList.innerHTML = '';
+        suggestionBox.style.display = 'none';
+
+        if (maModel) {
+            const sugRes = await fetch(`/api/products/${maModel}/compatible-parts`);
+            const sugResult = await sugRes.json();
+            if (sugResult.success && sugResult.data.length > 0) {
+                suggestionBox.style.display = 'block';
+                sugResult.data.forEach(item => {
+                    const span = document.createElement('span');
+                    span.className = 'suggestion-badge';
+                    span.style = 'background:#4338ca; color:white; padding:5px 12px; border-radius:15px; font-size:0.85rem; cursor:pointer; hover:opacity:0.8;';
+                    span.innerHTML = `<i class="fas fa-check-circle"></i> ${item.tenLk}`;
+                    span.onclick = () => {
+                        document.getElementById('repairLk').value = item.maLk;
+                    };
+                    suggestionList.appendChild(span);
+                });
+            }
+        }
+
+        document.getElementById('addRepairDetailModal').style.display = 'flex';
+    } catch (err) { console.error(err); }
+}
+
+
+function closeAddRepairDetail() {
+    document.getElementById('addRepairDetailModal').style.display = 'none';
+}
+
+// ==========================================
+// QUẢN LÝ LINH KIỆN
+// ==========================================
+
+async function loadSpareParts() {
+    try {
+        const keyword = document.getElementById('searchSparePartInput').value;
+        const res = await fetch(`/api/spareparts?search=${encodeURIComponent(keyword)}`);
+        const result = await res.json();
+        if (result.success) {
+            renderSparePartTable(result.data);
+        }
+    } catch (error) {
+        console.error("Lỗi tải linh kiện:", error);
+    }
+}
+
+function renderSparePartTable(data) {
+    const tbody = document.getElementById('sparePartTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Không tìm thấy linh kiện</td></tr>';
+        return;
+    }
+
+    data.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${p.maLk}</strong></td>
+            <td>${p.tenLk}</td>
+            <td><strong style="color: ${p.soLuongTon > 0 ? '#10b981' : '#ef4444'};">${p.soLuongTon || 0}</strong></td>
+            <td><span class="badge" style="background:#e0f2fe; color:#0369a1;">${p.loaiLk || '-'}</span></td>
+            <td>${p.HangSanXuat?.tenHang || '-'}</td>
+            <td><strong>${Number(p.giaNhap || 0).toLocaleString()}đ</strong></td>
+            <td style="display: flex; gap: 8px;">
+                <button class="btn-edit" onclick="editSparePart('${p.maLk}')"><i class="fas fa-edit"></i></button>
+                <button class="btn-delete" onclick="deleteSparePart('${p.maLk}')"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openSparePartModal() {
+    const form = document.getElementById('sparePartForm');
+    if (form) form.reset();
+    document.getElementById('sparePartId').value = '';
+    document.getElementById('sparePartMa').disabled = false;
+    document.querySelector('#sparePartModal h2').innerHTML = '<i class="fas fa-plus-circle" style="margin-right:12px; color:#60a5fa;"></i>Thêm Linh Kiện Mới';
+    loadSparePartBrands();
+    document.getElementById('sparePartModal').style.display = 'flex';
+}
+
+function closeSparePartModal() {
+    document.getElementById('sparePartModal').style.display = 'none';
+}
+
+async function loadSparePartBrands() {
+    try {
+        const res = await fetch('/api/products/brands');
+        const result = await res.json();
+        if (result.success) {
+            const select = document.getElementById('sparePartHang');
+            select.innerHTML = '<option value="">-- Chọn hãng --</option>' +
+                result.data.map(b => `<option value="${b.maHang}">${b.tenHang}</option>`).join('');
+        }
+    } catch (err) { console.error(err); }
+}
+
+document.getElementById('sparePartForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('sparePartId').value;
+    const body = {
+        maLk: document.getElementById('sparePartMa').value,
+        tenLk: document.getElementById('sparePartTen').value,
+        loaiLk: document.getElementById('sparePartLoai').value,
+        maHang: document.getElementById('sparePartHang').value,
+        giaNhap: document.getElementById('sparePartGia').value
+    };
+
+    const url = id ? `/api/spareparts/${id}` : '/api/spareparts';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (result.success) {
+            Swal.fire('Thành công', result.message, 'success');
+            closeSparePartModal();
+            loadSpareParts();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (err) { console.error(err); }
+};
+
+async function editSparePart(id) {
+    try {
+        const res = await fetch(`/api/spareparts/${id}`);
+        const result = await res.json();
+        if (result.success) {
+            const p = result.data;
+            document.getElementById('sparePartId').value = p.maLk;
+            document.getElementById('sparePartMa').value = p.maLk;
+            document.getElementById('sparePartMa').disabled = true;
+            document.getElementById('sparePartTen').value = p.tenLk;
+            document.getElementById('sparePartLoai').value = p.loaiLk || '';
+            document.getElementById('sparePartGia').value = p.giaNhap || 0;
+
+            await loadSparePartBrands();
+            document.getElementById('sparePartHang').value = p.maHang || '';
+
+            document.querySelector('#sparePartModal h2').innerHTML = '<i class="fas fa-edit" style="margin-right:12px; color:#60a5fa;"></i>Chỉnh Sửa Linh Kiện';
+            document.getElementById('sparePartModal').style.display = 'flex';
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function deleteSparePart(id) {
+    const confirm = await Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: "Linh kiện sẽ bị xóa khỏi danh sách quản lý!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Xóa ngay',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (confirm.isConfirmed) {
+        try {
+            const res = await fetch(`/api/spareparts/${id}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.success) {
+                Swal.fire('Đã xóa', result.message, 'success');
+                loadSpareParts();
+            } else {
+                Swal.fire('Lỗi', result.message, 'error');
+            }
+        } catch (err) { console.error(err); }
     }
 }

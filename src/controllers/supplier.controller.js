@@ -8,9 +8,9 @@ const getAllSuppliers = async (req, res) => {
         const where = {};
         if (search) {
             where[Op.or] = [
-                { tenNcc: { [Op.like]: `%${search}%` } },
-                { maNcc: { [Op.like]: `%${search}%` } },
-                { sdt: { [Op.like]: `%${search}%` } }
+                { tenNcc: { [Op.iLike]: `%${search}%` } },
+                { maNcc: { [Op.iLike]: `%${search}%` } },
+                { sdt: { [Op.iLike]: `%${search}%` } }
             ];
         }
         const suppliers = await NhaCungCap.findAll({ where, order: [['maNcc', 'ASC']] });

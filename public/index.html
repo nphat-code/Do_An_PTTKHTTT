@@ -222,6 +222,8 @@
                             sách đổi trả</a></li>
                     <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Hướng
                             dẫn mua hàng</a></li>
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="openWarrantyCheck()"
+                            style="color: #9ca3af; text-decoration: none;">Tra cứu bảo hành</a></li>
                     <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Tra cứu
                             đơn hàng</a></li>
                 </ul>
@@ -251,10 +253,108 @@
         <div
             style="border-top: 1px solid #374151; margin-top: 40px; padding-top: 20px; text-align: center; color: #6b7280; font-size: 0.9rem;">
             &copy; 2024 Phát Laptop. All rights reserved. Designed for PTTKHTTT Project.
-        </div>
     </footer>
 
+    <!-- Warranty Modal -->
+    <div id="warrantyCheckModal" class="modal">
+        <div class="modal-content" style="max-width: 500px; border-radius: 20px; overflow: hidden;">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, var(--primary-color), #6366f1); color: white; padding: 25px;">
+                <h2 style="color: white; margin: 0; font-size: 1.5rem;"><i class="fas fa-shield-alt"
+                        style="margin-right: 10px;"></i>Tra cứu bảo hành</h2>
+                <span class="close-btn" onclick="closeWarrantyCheck()"
+                    style="color: white; opacity: 0.8;">&times;</span>
+            </div>
+            <div style="padding: 30px;">
+                <p style="margin-bottom: 20px; color: var(--text-muted); font-size: 1rem;">Nhập số Serial/IMEI máy để
+                    kiểm tra thông tin bảo hành và tình trạng sửa chữa.</p>
+                <div class="search-container" style="margin-bottom: 20px; max-width: 100%;">
+                    <i class="fas fa-barcode" style="font-size: 1.2rem; left: 20px;"></i>
+                    <input type="text" id="checkSerialInput" placeholder="Số Serial (VD: SN123456)"
+                        style="width: 100%; padding: 15px 15px 15px 55px; border-radius: 12px; border: 2px solid #e5e7eb; font-size: 1rem; transition: all 0.3s; background: #f8fafc;">
+                </div>
+                <button class="btn-primary"
+                    style="width: 100%; padding: 15px; border-radius: 12px; font-size: 1.1rem; letter-spacing: 0.5px; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);"
+                    onclick="submitWarrantyCheck()">
+                    <i class="fas fa-search" style="margin-right: 8px;"></i>Kiểm tra ngay
+                </button>
+
+                <div id="warrantyResult"
+                    style="margin-top: 25px; display: none; padding: 20px; background: #ffffff; border-radius: 16px; border: 1px solid #eef2ff; box-shadow: var(--shadow-sm);">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/shop.js"></script>
+    <script>
+        function openWarrantyCheck() {
+            document.getElementById('warrantyCheckModal').style.display = 'flex';
+        }
+        function closeWarrantyCheck() {
+            document.getElementById('warrantyCheckModal').style.display = 'none';
+        }
+        async function submitWarrantyCheck() {
+            const serial = document.getElementById('checkSerialInput').value.trim();
+            if (!serial) return;
+
+            try {
+                const res = await fetch(`/api/warranties/check/${serial}`);
+                const result = await res.json();
+                const resultDiv = document.getElementById('warrantyResult');
+                resultDiv.style.display = 'block';
+                resultDiv.style.animation = 'modalSlideIn 0.3s ease-out';
+
+                if (result.success) {
+                    // Fallback for association name (Plural or Singular)
+                    const pbhList = result.data.PhieuBaoHanhs || result.data.PhieuBaoHanh || [];
+                    const w = Array.isArray(pbhList) ? pbhList[0] : pbhList;
+
+                    const status = w ? w.trangThai : 'Chưa có lịch sử sửa chữa';
+                    const machine = result.data.DongMay?.tenModel || 'Thiết bị không định danh';
+                    const brand = result.data.DongMay?.HangSanXuat?.tenHang || '';
+
+                    let statusColor = '#2563eb';
+                    if (status === 'Đã trả máy' || status === 'Đã xong') statusColor = '#16a34a';
+                    if (status === 'Đang sửa') statusColor = '#7c3aed';
+
+                    resultDiv.innerHTML = `
+                        <div style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <div style="color: #16a34a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                                <i class="fas fa-check-circle"></i> Thông tin thiết bị
+                            </div>
+                            <h3 style="margin: 0; color: #1e293b; font-size: 1.1rem;">${brand} ${machine}</h3>
+                            <p style="margin: 5px 0 0; color: #64748b; font-size: 0.9rem;">Số Serial: <code style="font-weight: 600; color: #334155;">${serial}</code></p>
+                        </div>
+                        
+                        <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+                            <div style="color: #64748b; font-weight: 600; font-size: 0.85rem; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
+                                TÌNH TRẠNG BẢO HÀNH
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 700; font-size: 1.1rem; color: ${statusColor};">${status}</span>
+                                ${w ? `<span style="font-size: 0.8rem; color: #94a3b8;">Cập nhật: ${new Date(w.ngayLap).toLocaleDateString('vi-VN')}</span>` : ''}
+                            </div>
+                            <p style="margin-top: 10px; font-size: 0.85rem; color: #94a3b8; font-style: italic;">
+                                * Vui lòng mang máy đến trung tâm gần nhất nếu gặp sự cố.
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="text-align: center; padding: 10px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 2.5rem; color: #f59e0b; margin-bottom: 15px;"></i>
+                            <div style="color: #9a3412; font-weight: 700; margin-bottom: 5px;">Không tìm thấy thông tin</div>
+                            <p style="color: #c2410c; font-size: 0.9rem; margin: 0;">${result.message || 'Vui lòng kiểm tra lại số Serial máy.'}</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ tra cứu.', 'error');
+            }
+        }
+    </script>
 </body>
 
 </html>

@@ -1,4 +1,4 @@
-const { sequelize, DongMay, CauHinh, HangSanXuat, LoaiMay } = require('../models/index');
+const { sequelize, DongMay, CauHinh, HangSanXuat, LoaiMay, LinhKienTuongThich, LinhKien } = require('../models/index');
 const { Op } = require('sequelize');
 
 const getAllProducts = async (req, res) => {
@@ -248,6 +248,54 @@ const getProductSerials = async (req, res) => {
     }
 };
 
+const getCompatibleParts = async (req, res) => {
+    try {
+        const parts = await LinhKien.findAll({
+            include: [{
+                model: LinhKienTuongThich,
+                where: { maModel: req.params.id },
+                attributes: ['ghiChu']
+            }],
+            order: [['tenLk', 'ASC']]
+        });
+        res.json({ success: true, data: parts });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const addCompatiblePart = async (req, res) => {
+    try {
+        const { maLk, ghiChu } = req.body;
+        const maModel = req.params.id;
+
+        const [compatibility, created] = await LinhKienTuongThich.findOrCreate({
+            where: { maModel, maLk },
+            defaults: { ghiChu }
+        });
+
+        if (!created) {
+            await compatibility.update({ ghiChu });
+        }
+
+        res.json({ success: true, message: 'Đã cập nhật tương thích linh kiện' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const removeCompatiblePart = async (req, res) => {
+    try {
+        const { id, maLk } = req.params;
+        await LinhKienTuongThich.destroy({
+            where: { maModel: id, maLk }
+        });
+        res.json({ success: true, message: 'Đã xóa tương thích linh kiện' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllProducts,
     getProductById,
@@ -256,5 +304,8 @@ module.exports = {
     deleteProduct,
     getBrands,
     getCategories,
-    getProductSerials
+    getProductSerials,
+    getCompatibleParts,
+    addCompatiblePart,
+    removeCompatiblePart
 };

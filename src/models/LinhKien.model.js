@@ -5,7 +5,8 @@ const LinhKien = sequelize.define('LinhKien', {
     maLk: { type: DataTypes.STRING(20), primaryKey: true },
     tenLk: { type: DataTypes.STRING, allowNull: false },
     loaiLk: { type: DataTypes.STRING },
-    giaNhap: { type: DataTypes.DECIMAL(15, 2) }
+    giaNhap: { type: DataTypes.DECIMAL(15, 2) },
+    soLuongTon: { type: DataTypes.INTEGER, defaultValue: 0 }
     // maHang FK
 }, { tableName: 'LINH_KIEN', timestamps: false });
 
