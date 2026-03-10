@@ -139,7 +139,8 @@ async function submitOrder() {
             fullName: document.getElementById('cusName').value.trim(),
             email: document.getElementById('cusEmail').value.trim(),
             phone: phone,
-            address: document.getElementById('cusAddress').value.trim()
+            address: document.getElementById('cusAddress').value.trim(),
+            ghiChu: document.getElementById('cusNote').value.trim()
         },
         cartItems: cart.map(item => ({ id: item.id, quantity: item.quantity })),
         maHttt: paymentMethod

@@ -44,7 +44,7 @@ let currentOrderDetailId = null;
 async function openPOSModal() {
     posCart = {};
     renderPOSCart();
-    ['posCustomerName', 'posCustomerPhone', 'posCustomerAddress', 'posSearchInput'].forEach(id => {
+    ['posCustomerName', 'posCustomerPhone', 'posCustomerAddress', 'posSearchInput', 'posOrderNote'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -208,7 +208,8 @@ async function submitPOSOrder() {
                     fullName: name,
                     phone: phone,
                     address: (document.getElementById('posCustomerAddress').value || '').trim(),
-                    email: ''
+                    email: '',
+                    ghiChu: (document.getElementById('posOrderNote').value || '').trim()
                 },
                 cartItems: items.map(({ product: p, qty }) => ({
                     id: p.maModel, quantity: qty, price: Number(p.giaBan || 0)

@@ -676,7 +676,13 @@ async function viewOrderDetails(orderId) {
                             ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`).join('')}
                         </select>
                     </div>
-                    ${order.ghiChu ? `<p style="margin-top: 8px; color: #64748b; font-size: 0.85rem;"><i class="fas fa-sticky-note" style="color:#f59e0b;"></i> ${order.ghiChu}</p>` : ''}
+                    ${order.ghiChu ? `
+                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                        <span style="display:block; font-size: 0.8rem; color: #64748b; margin-bottom: 4px; font-weight:600;">Ghi chú từ khách hàng:</span>
+                        <p style="color: #1e293b; font-size: 0.9rem; font-style: italic; background: #fffbeb; padding: 8px; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                            <i class="fas fa-sticky-note" style="color:#f59e0b; margin-right: 6px;"></i>${order.ghiChu}
+                        </p>
+                    </div>` : ''}
                 </div>
             `;
 
@@ -2299,6 +2305,7 @@ function renderImportHistoryTable(receipts) {
                 <td>
                     <div style="font-size:0.85rem; color:#64748b;">NCC: <strong>${r.NhaCungCap ? r.NhaCungCap.tenNcc : '—'}</strong></div>
                     <div style="font-size:0.8rem; color:#94a3b8;">NV: ${r.NhanVien ? r.NhanVien.hoTen : '—'}</div>
+                    ${r.ghiChu ? `<div style="font-size:0.8rem; color:#f59e0b; margin-top:4px;"><i class="fas fa-sticky-note"></i> ${r.ghiChu}</div>` : ''}
                 </td>
                 <td>
                     <button class="btn-edit" onclick="viewImportDetails('${r.maPn}')" title="Xem chi tiết">
@@ -2313,6 +2320,9 @@ function renderImportHistoryTable(receipts) {
 async function openImportModal() {
     importItems = [];
     renderImportItemsTable();
+    if (document.getElementById('importNote')) {
+        document.getElementById('importNote').value = '';
+    }
     document.getElementById('importModal').style.display = 'flex';
 
     try {
@@ -2510,8 +2520,9 @@ async function submitImport() {
             body: JSON.stringify({
                 maKho: maKho,
                 maNcc: maNcc || null,
-                maNv: user.id,
+                maNv: user.id || user.maNv,
                 maHttt: maHttt || null,
+                note: document.getElementById('importNote')?.value.trim() || '',
                 items: importItems
             })
         });

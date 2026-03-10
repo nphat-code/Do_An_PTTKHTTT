@@ -635,6 +635,12 @@
                         </div>
                     </div>
 
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="font-weight: 600;"><i class="fas fa-sticky-note"></i> Ghi chú phiếu nhập:</label>
+                        <input type="text" id="importNote" placeholder="Nhập ghi chú cho phiếu nhập này (nếu có)..."
+                            style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; background:#ffffff; font-size:1rem; box-sizing:border-box;">
+                    </div>
+
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
                         <h3 style="color: #334155; font-size: 1.1rem; margin: 0;"><i class="fas fa-box-open"
                                 style="margin-right:6px;"></i> Danh sách mã Serial/IMEI máy nhập</h3>
@@ -739,6 +745,8 @@
                                 style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; background:white;">
                                 <option value="">-- Đang tải... --</option>
                             </select>
+                            <textarea id="posOrderNote" placeholder="Ghi chú đơn hàng (Giao hàng, yêu cầu đặc biệt...)"
+                                style="width:100%; height:60px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box; margin-top:8px; resize:none; font-family:inherit;"></textarea>
                         </div>
                         <!-- Tổng tiền + Xác nhận -->
                         <div style="padding:14px 16px; background:#1e293b; flex-shrink:0;">
@@ -758,53 +766,7 @@
             </div>
         </div>
 
-        <!-- ====== Order Detail Modal ====== -->
-        <div id="orderDetailModal" class="modal" style="display:none;">
-            <div class="modal-content" style="max-width: 800px;">
-                <div class="modal-header" style="background: linear-gradient(135deg, #0ea5e9, #38bdf8); color:white;">
-                    <h2 style="color:white;"><i class="fas fa-file-invoice" style="margin-right:8px;"></i> Chi Tiết Đơn
-                        Hàng <strong id="orderDetailId"></strong></h2>
-                    <span class="close-btn" onclick="closeOrderDetailModal()"
-                        style="color:white; opacity:0.8;">&times;</span>
-                </div>
-                <div style="padding:24px;">
-                    <div id="orderDetailInfo"
-                        style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; font-size:0.95rem;">
-                    </div>
-                    <h4 style="color:#334155; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
-                        Sản phẩm trong đơn</h4>
-                    <div class="table-container" style="max-height:280px; overflow-y:auto; margin-bottom:16px;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Sản phẩm</th>
-                                    <th style="text-align:center;">SL</th>
-                                    <th style="text-align:right;">Đơn giá</th>
-                                    <th style="text-align:right;">Thành tiền</th>
-                                    <th>Serial/IMEI xuất</th>
-                                </tr>
-                            </thead>
-                            <tbody id="orderDetailItemsBody"></tbody>
-                        </table>
-                    </div>
-                    <div
-                        style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <label style="font-size:0.9rem; color:#64748b;">Trạng thái:</label>
-                            <select id="orderDetailStatusSelect"
-                                style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
-                                <option>Chờ xử lý</option>
-                                <option>Đã hoàn thành</option>
-                                <option>Đã hủy</option>
-                            </select>
-                            <button onclick="saveOrderStatus()"
-                                style="padding:6px 14px; background:#6366f1; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem;">Lưu</button>
-                        </div>
-                        <strong id="orderDetailTotal" style="font-size:1.3rem; color:#ef4444;"></strong>
-                    </div>
-                </div>
-            </div>
-        </div>
+
     </div>
 
     <!-- ====== Import Detail Modal ====== -->

@@ -39,6 +39,7 @@ const createImportReceipt = async (req, res) => {
                 maPn: maPn,
                 ngayNhap: new Date(),
                 tongTien: totalAmount,
+                ghiChu: note || '',
                 maNcc: maNcc || null,
                 maNv: maNv || null,
                 maHttt: maHttt || null,
