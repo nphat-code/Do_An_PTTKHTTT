@@ -127,25 +127,46 @@ const createOrder = async (req, res) => {
 
         await CtHoaDon.bulkCreate(orderItemsWithId, { transaction: t });
 
-        // 6. Cập nhật bảng ChiTietMay (Xuất kho theo Serial) - Auto allocate
+        // 6. Cập nhật bảng ChiTietMay (Xuất kho theo Serial)
         for (let item of cartItems) {
-            // Find available serials in ChiTietMay for this product
-            const availableSerials = await ChiTietMay.findAll({
-                where: {
-                    maModel: item.id,
-                    trangThai: 'Trong kho'
-                },
-                limit: item.quantity,
-                transaction: t
-            });
+            let serialsToUpdate = [];
 
-            if (availableSerials.length < item.quantity) {
-                // Should theoretically not happen if soLuongTon is synced, but just in case
-                throw new Error(`Kho lỗi đồng bộ: Không đủ số lượng Serial còn trong kho cho sản phẩm ${item.id}`);
+            if (item.serials && Array.isArray(item.serials) && item.serials.length > 0) {
+                // Use provided serials
+                if (item.serials.length !== item.quantity) {
+                    throw new Error(`Số lượng serial (${item.serials.length}) không khớp với số lượng sản phẩm (${item.quantity}) cho model ${item.id}`);
+                }
+
+                serialsToUpdate = await ChiTietMay.findAll({
+                    where: {
+                        soSerial: { [Op.in]: item.serials },
+                        maModel: item.id,
+                        trangThai: 'Trong kho'
+                    },
+                    transaction: t
+                });
+
+                if (serialsToUpdate.length < item.quantity) {
+                    throw new Error(`Một số serial cho sản phẩm ${item.id} không hợp lệ hoặc đã bán/không có trong kho`);
+                }
+            } else {
+                // Auto-allocate serials
+                serialsToUpdate = await ChiTietMay.findAll({
+                    where: {
+                        maModel: item.id,
+                        trangThai: 'Trong kho'
+                    },
+                    limit: item.quantity,
+                    transaction: t
+                });
+
+                if (serialsToUpdate.length < item.quantity) {
+                    throw new Error(`Kho lỗi đồng bộ: Không đủ số lượng Serial còn trong kho cho sản phẩm ${item.id}`);
+                }
             }
 
             // Update each found serial
-            for (let serial of availableSerials) {
+            for (let serial of serialsToUpdate) {
                 await serial.update({
                     trangThai: 'Đã bán',
                     maHd: order.maHd

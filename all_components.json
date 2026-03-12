@@ -1,0 +1,62 @@
+[
+  {
+    "maLk": "RAM_8GB_DDR4",
+    "tenLk": "RAM 8GB DDR4 3200MHz",
+    "loaiLk": "RAM",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "RAM_16GB_DDR4",
+    "tenLk": "RAM 16GB DDR4 3200MHz",
+    "loaiLk": "RAM",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "RAM_8GB_DDR5",
+    "tenLk": "RAM 8GB DDR5 4800MHz",
+    "loaiLk": "RAM",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "RAM_16GB_DDR5",
+    "tenLk": "RAM 16GB DDR5 5600MHz",
+    "loaiLk": "RAM",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "SSD_256GB_NVME",
+    "tenLk": "SSD 256GB NVMe Gen 4",
+    "loaiLk": "SSD",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "SSD_512GB_NVME",
+    "tenLk": "SSD 512GB NVMe Gen 4",
+    "loaiLk": "SSD",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "MAC_SCREEN_13",
+    "tenLk": "Màn hình Retina 13.6 inch",
+    "loaiLk": "Màn hình",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "BATT_ASUS_90",
+    "tenLk": "Pin Asus 90Wh",
+    "loaiLk": "Pin",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "KB_DELL_XPS",
+    "tenLk": "Bàn phím Dell XPS 13",
+    "loaiLk": "Bàn phím",
+    "soLuongTon": 0
+  },
+  {
+    "maLk": "CHARGER_HP_65W",
+    "tenLk": "Sạc HP 65W Type-C",
+    "loaiLk": "Sạc",
+    "soLuongTon": 0
+  }
+]

@@ -116,24 +116,81 @@ function renderPOSProductGrid(products) {
     }).join('');
 }
 
-function addToPOSCart(maModel) {
+async function addToPOSCart(maModel) {
     const p = posAllProducts.find(x => x.maModel === maModel);
     if (!p || p.soLuongTon <= 0) return;
-    if (!posCart[maModel]) posCart[maModel] = { product: p, qty: 0 };
+
+    if (!posCart[maModel]) posCart[maModel] = { product: p, qty: 0, serials: [] };
+
     if (posCart[maModel].qty >= p.soLuongTon) {
         Swal.fire({
-            icon: 'warning', title: 'Kh\u00f4ng \u0111\u1ee7 h\u00e0ng',
-            text: `Ch\u1ec9 c\u00f2n ${p.soLuongTon} m\u00e1y trong kho`, timer: 1500, showConfirmButton: false
+            icon: 'warning', title: 'Không đủ hàng',
+            text: `Chỉ còn ${p.soLuongTon} máy trong kho`, timer: 1500, showConfirmButton: false
         });
         return;
     }
-    posCart[maModel].qty++;
-    _refreshPOSView();
+
+    try {
+        const res = await fetch(`/api/products/${maModel}/serials`);
+        const result = await res.json();
+        if (!result.success) throw new Error(result.message);
+
+        // Filter out serials already in cart
+        const allSelectedSerials = Object.values(posCart).flatMap(item => item.serials || []);
+        const availableSerials = result.data.filter(s => !allSelectedSerials.includes(s.soSerial));
+
+        if (!availableSerials.length) {
+            return Swal.fire('Lỗi', 'Không còn máy khả dụng trong kho (đã chọn hết vào giỏ)', 'warning');
+        }
+
+        const options = availableSerials.map(s =>
+            `<option value="${s.soSerial}">${s.soSerial} - ${s.Kho ? s.Kho.tenKho : 'N/A'}</option>`
+        ).join('');
+
+        const { value: selectedSerial } = await Swal.fire({
+            title: 'Chọn Serial / Kho',
+            html: `
+                <div style="text-align:left;">
+                    <p style="font-size:0.9rem; margin-bottom:10px;">Model: <strong>${p.tenModel}</strong></p>
+                    <label style="font-size:0.85rem; font-weight:600;">Chọn máy từ danh sách khả dụng:</label>
+                    <select id="swalSerialPicker" class="swal2-select" style="width:100%; margin-top:10px; font-size:0.9rem;">
+                        ${options}
+                    </select>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Thêm vào giỏ',
+            cancelButtonText: 'Hủy',
+            preConfirm: () => document.getElementById('swalSerialPicker').value
+        });
+
+        if (selectedSerial) {
+            posCart[maModel].qty++;
+            posCart[maModel].serials.push(selectedSerial);
+            _refreshPOSView();
+        }
+    } catch (e) {
+        console.error(e);
+        Swal.fire('Lỗi', 'Không thể hiển thị danh sách Serial', 'error');
+    }
 }
 
 function updatePOSCartQty(maModel, delta) {
     if (!posCart[maModel]) return;
-    posCart[maModel].qty += delta;
+
+    if (delta > 0) {
+        // Adding more - just call the main function to handle serial picker
+        addToPOSCart(maModel);
+        return;
+    }
+
+    // Removing
+    posCart[maModel].qty--;
+    // Remove the last serial added
+    if (posCart[maModel].serials) {
+        posCart[maModel].serials.pop();
+    }
+
     if (posCart[maModel].qty <= 0) delete posCart[maModel];
     _refreshPOSView();
 }
@@ -159,24 +216,30 @@ function renderPOSCart() {
     }
 
     let total = 0;
-    list.innerHTML = items.map(({ product: p, qty }) => {
+    list.innerHTML = items.map(({ product: p, qty, serials }) => {
         const sub = Number(p.giaBan || 0) * qty;
         total += sub;
+        const serialList = (serials || []).map(s => `<div style="font-size:0.75rem; color:#64748b; font-family:monospace; padding-left:10px;">• ${s}</div>`).join('');
         return `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-            <div style="flex:1;min-width:0;">
-                <div style="font-size:0.85rem;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.tenModel}</div>
-                <div style="font-size:0.8rem;color:#6366f1;">${Number(p.giaBan || 0).toLocaleString()} &#8363;/m\u00e1y</div>
+        <div style="display:flex;flex-direction:column;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.85rem;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.tenModel}</div>
+                    <div style="font-size:0.8rem;color:#6366f1;">${Number(p.giaBan || 0).toLocaleString()} &#8363;/máy</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                    <button onclick="updatePOSCartQty('${p.maModel}',-1)"
+                        style="width:24px;height:24px;border:1px solid #e2e8f0;border-radius:4px;background:white;cursor:pointer;">&#8722;</button>
+                    <span style="min-width:20px;text-align:center;font-weight:700;font-size:0.9rem;">${qty}</span>
+                    <button onclick="updatePOSCartQty('${p.maModel}',1)"
+                        style="width:24px;height:24px;border:1px solid #e2e8f0;border-radius:4px;background:white;cursor:pointer;">+</button>
+                </div>
+                <div style="min-width:70px;text-align:right;font-weight:700;font-size:0.85rem;color:#ef4444;">
+                    ${sub.toLocaleString()}&#8363;
+                </div>
             </div>
-            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-                <button onclick="updatePOSCartQty('${p.maModel}',-1)"
-                    style="width:24px;height:24px;border:1px solid #e2e8f0;border-radius:4px;background:white;cursor:pointer;">&#8722;</button>
-                <span style="min-width:20px;text-align:center;font-weight:700;font-size:0.9rem;">${qty}</span>
-                <button onclick="updatePOSCartQty('${p.maModel}',1)"
-                    style="width:24px;height:24px;border:1px solid #e2e8f0;border-radius:4px;background:white;cursor:pointer;">+</button>
-            </div>
-            <div style="min-width:70px;text-align:right;font-weight:700;font-size:0.85rem;color:#ef4444;">
-                ${sub.toLocaleString()}&#8363;
+            <div style="margin-top:4px;">
+                ${serialList}
             </div>
         </div>`;
     }).join('');
@@ -211,8 +274,8 @@ async function submitPOSOrder() {
                     email: '',
                     ghiChu: (document.getElementById('posOrderNote').value || '').trim()
                 },
-                cartItems: items.map(({ product: p, qty }) => ({
-                    id: p.maModel, quantity: qty, price: Number(p.giaBan || 0)
+                cartItems: items.map(({ product: p, qty, serials }) => ({
+                    id: p.maModel, quantity: qty, price: Number(p.giaBan || 0), serials: serials
                 })),
                 maHttt: document.getElementById('posPaymentMethod').value || null
             })

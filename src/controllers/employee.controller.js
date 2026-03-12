@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const getAllEmployees = async (req, res) => {
     try {
         const employees = await NhanVien.findAll({
-            attributes: ['maNv', 'hoTen', 'email', 'sdt', 'diaChi', 'trangThai', 'maCv'],
+            attributes: ['maNv', 'hoTen', 'email', 'sdt', 'diaChi', 'ngaySinh', 'gioiTinh', 'trangThai', 'maCv'],
             order: [['maNv', 'ASC']],
             include: [
                 { model: ChucVu, attributes: ['tenCv'] }
@@ -22,7 +22,7 @@ const getAllEmployees = async (req, res) => {
 const createEmployee = async (req, res) => {
     console.log("Creating employee with data:", req.body);
     try {
-        const { maNv, hoTen, email, sdt, matKhau, maCv } = req.body;
+        const { maNv, hoTen, email, sdt, matKhau, maCv, ngaySinh, gioiTinh, diaChi } = req.body;
 
         if (!maNv || !hoTen || !email || !matKhau) {
             return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ: Mã NV, Họ tên, Email, Mật khẩu" });
@@ -48,7 +48,9 @@ const createEmployee = async (req, res) => {
             hoTen,
             email,
             sdt: sdt || null,
-            diaChi: req.body.diaChi || null,
+            diaChi: diaChi || null,
+            ngaySinh: ngaySinh || null,
+            gioiTinh: gioiTinh || null,
             matKhau: hashedPassword,
             trangThai: true,
             maCv: maCv || null
@@ -116,7 +118,7 @@ const resetEmployeePassword = async (req, res) => {
 
 const updateEmployee = async (req, res) => {
     try {
-        const { hoTen, sdt, diaChi, maCv } = req.body;
+        const { hoTen, sdt, diaChi, maCv, ngaySinh, gioiTinh } = req.body;
 
         const employee = await NhanVien.findByPk(req.params.id);
         if (!employee) {
@@ -127,6 +129,8 @@ const updateEmployee = async (req, res) => {
             hoTen,
             sdt: sdt || null,
             diaChi: diaChi || null,
+            ngaySinh: ngaySinh || null,
+            gioiTinh: gioiTinh || null,
             maCv: maCv || null
         });
 

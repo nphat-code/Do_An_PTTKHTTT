@@ -57,7 +57,6 @@ ChiTietMay.belongsTo(HoaDon, { foreignKey: 'maHd' });
 HangSanXuat.hasMany(LinhKien, { foreignKey: 'maHang' });
 LinhKien.belongsTo(HangSanXuat, { foreignKey: 'maHang' });
 
-// KhoLinhKien
 LinhKien.belongsToMany(Kho, { through: KhoLinhKien, foreignKey: 'maLk' });
 Kho.belongsToMany(LinhKien, { through: KhoLinhKien, foreignKey: 'maKho' });
 
@@ -97,6 +96,9 @@ PhieuNhap.belongsTo(NhanVien, { foreignKey: 'maNv' });
 
 HinhThucThanhToan.hasMany(PhieuNhap, { foreignKey: 'maHttt' });
 PhieuNhap.belongsTo(HinhThucThanhToan, { foreignKey: 'maHttt' });
+
+Kho.hasMany(PhieuNhap, { foreignKey: 'maKho' });
+PhieuNhap.belongsTo(Kho, { foreignKey: 'maKho' });
 
 // CtNhapMay
 PhieuNhap.belongsToMany(DongMay, { through: CtNhapMay, foreignKey: 'maPn' });

@@ -138,24 +138,14 @@ const addRepairDetail = async (req, res) => {
     try {
         const { maPbh, maLk, maKhoXuat, soLuong, donGia } = req.body;
 
-        // 1. Kiểm tra tồn kho linh kiện
-        const lkInKho = await LinhKien.findByPk(maLk, {
-            include: [{
-                model: Kho,
-                where: { maKho: maKhoXuat },
-                through: { attributes: ['soLuongTon'] }
-            }],
-            transaction: t
-        });
-
-        // Update KhoLinhKien record
+        // 1. Kiểm tra tồn kho linh kiện theo kho (KhoLinhKien)
         const stockRecord = await KhoLinhKien.findOne({
             where: { maLk, maKho: maKhoXuat },
             transaction: t
         });
 
         if (!stockRecord || stockRecord.soLuongTon < soLuong) {
-            throw new Error("Không đủ linh kiện trong kho");
+            throw new Error("Không đủ linh kiện trong kho đã chọn");
         }
 
         // 2. Tạo chi tiết sửa chữa
@@ -167,7 +157,15 @@ const addRepairDetail = async (req, res) => {
             donGia
         }, { transaction: t });
 
-        // 3. Trừ tồn kho linh kiện
+        // 3. Trừ tồn kho linh kiện toàn cục
+        const part = await LinhKien.findByPk(maLk, { transaction: t });
+        if (part) {
+            await part.update({
+                soLuongTon: part.soLuongTon - soLuong
+            }, { transaction: t });
+        }
+
+        // 4. Trừ tồn kho linh kiện theo kho (KhoLinhKien)
         await stockRecord.update({
             soLuongTon: stockRecord.soLuongTon - soLuong
         }, { transaction: t });

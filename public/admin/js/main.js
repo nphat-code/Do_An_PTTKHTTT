@@ -1237,6 +1237,7 @@ async function viewImportDetails(receiptId) {
                 <div>
                     <p><strong>Ngày nhập:</strong> ${date}</p>
                     <p><strong>Nhà cung cấp:</strong> ${receipt.NhaCungCap ? receipt.NhaCungCap.tenNcc : '—'}</p>
+                    <p><strong>Kho nhập:</strong> <span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:600;">${receipt.Kho ? receipt.Kho.tenKho : '—'}</span></p>
                 </div>
                 <div>
                      <p><strong>Nhân viên lập:</strong> ${receipt.NhanVien ? receipt.NhanVien.hoTen : '—'}</p>
@@ -2229,6 +2230,21 @@ async function openEmployeeModal(employee = null) {
                 ` : ''}
                 <div style="display:flex; gap:10px; margin-bottom:12px;">
                     <div style="flex:1;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-calendar-alt" style="color:#6366f1;"></i> Ngày sinh</label>
+                        <input id="swalNgaySinh" type="date" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${employee?.ngaySinh || ''}">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-venus-mars" style="color:#6366f1;"></i> Giới tính</label>
+                        <select id="swalGioiTinh" class="swal2-select" style="width:100%; margin:0; padding:4px 10px; border:1px solid #dcdcdc; border-radius:4px; font-size:0.9rem; height: 38px;">
+                            <option value="">-- Chọn giới tính --</option>
+                            <option value="Nam" ${employee?.gioiTinh === 'Nam' ? 'selected' : ''}>Nam</option>
+                            <option value="Nữ" ${employee?.gioiTinh === 'Nữ' ? 'selected' : ''}>Nữ</option>
+                            <option value="Khác" ${employee?.gioiTinh === 'Khác' ? 'selected' : ''}>Khác</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <div style="flex:1;">
                         <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; color: #64748b;"><i class="fas fa-phone" style="color:#6366f1;"></i> Số điện thoại</label>
                         <input id="swalSdt" class="swal2-input" style="width:100%; margin:0; height: 38px; font-size: 0.9rem;" value="${employee?.sdt || ''}" placeholder="09xxxx" autocomplete="off">
                     </div>
@@ -2264,6 +2280,8 @@ async function openEmployeeModal(employee = null) {
                 maNv, hoTen, email, matKhau,
                 sdt: document.getElementById('swalSdt').value.trim(),
                 diaChi: document.getElementById('swalDiaChiNv').value.trim(),
+                ngaySinh: document.getElementById('swalNgaySinh').value || null,
+                gioiTinh: document.getElementById('swalGioiTinh').value || null,
                 maCv: document.getElementById('swalMaCv').value || null
             };
         }
@@ -2385,7 +2403,10 @@ function renderImportHistoryTable(receipts) {
             <tr>
                 <td><strong>${r.maPn}</strong></td>
                 <td>${new Date(r.ngayNhap).toLocaleString('vi-VN')}</td>
-                <td>${totalQty}</td>
+                <td>
+                    <div style="font-weight:600; color:#1e293b;">${r.Kho ? r.Kho.tenKho : '—'}</div>
+                    <div style="font-size:0.8rem; color:#64748b;">Số lượng: ${totalQty}</div>
+                </td>
                 <td style="color:#ef4444; font-weight:700;">${r.tongTien.toLocaleString()} đ</td>
                 <td>
                     <div style="font-size:0.85rem; color:#64748b;">NCC: <strong>${r.NhaCungCap ? r.NhaCungCap.tenNcc : '—'}</strong></div>

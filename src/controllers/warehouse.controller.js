@@ -90,7 +90,13 @@ const deleteWarehouse = async (req, res) => {
 
 const getLinhKien = async (req, res) => {
     try {
-        const parts = await LinhKien.findAll();
+        const { KhoLinhKien, Kho } = require('../models/index');
+        const parts = await LinhKien.findAll({
+            include: [{
+                model: KhoLinhKien,
+                include: [{ model: Kho, attributes: ['tenKho'] }]
+            }]
+        });
         res.json({ success: true, data: parts });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

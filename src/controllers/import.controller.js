@@ -1,4 +1,4 @@
-const { PhieuNhap, CtNhapMay, DongMay, ChiTietMay, Kho, NhanVien, NhaCungCap, LinhKien, CtNhapLk, sequelize } = require('../models/index');
+const { PhieuNhap, CtNhapMay, DongMay, ChiTietMay, Kho, NhanVien, NhaCungCap, LinhKien, CtNhapLk, KhoLinhKien, sequelize } = require('../models/index');
 
 const generateImportCode = () => {
     const today = new Date();
@@ -43,6 +43,7 @@ const createImportReceipt = async (req, res) => {
                 maNcc: maNcc || null,
                 maNv: maNv || null,
                 maHttt: maHttt || null,
+                maKho: selectedKho,
             }, { transaction: t });
         } catch (err) {
             console.error("Error creating PhieuNhap:", err);
@@ -60,11 +61,24 @@ const createImportReceipt = async (req, res) => {
                     donGia: item.price
                 }, { transaction: t });
 
-                // Cập nhật tồn kho linh kiện
+                // Cập nhật tồn kho linh kiện toàn cục
                 const part = await LinhKien.findByPk(item.productId, { transaction: t });
                 if (part) {
                     await part.update({
                         soLuongTon: Number(part.soLuongTon || 0) + Number(item.quantity)
+                    }, { transaction: t });
+                }
+
+                // Cập nhật tồn kho linh kiện theo kho (KhoLinhKien)
+                const [stockRecord, created] = await KhoLinhKien.findOrCreate({
+                    where: { maLk: item.productId, maKho: selectedKho },
+                    defaults: { soLuongTon: item.quantity },
+                    transaction: t
+                });
+
+                if (!created) {
+                    await stockRecord.update({
+                        soLuongTon: Number(stockRecord.soLuongTon || 0) + Number(item.quantity)
                     }, { transaction: t });
                 }
             } else {
@@ -127,7 +141,8 @@ const getImportHistory = async (req, res) => {
                     through: { attributes: ['soLuong', 'donGia'] }
                 },
                 { model: NhanVien, attributes: ['hoTen'] },
-                { model: NhaCungCap, attributes: ['tenNcc'] }
+                { model: NhaCungCap, attributes: ['tenNcc'] },
+                { model: Kho, attributes: ['tenKho'] }
             ],
             order: [['ngayNhap', 'DESC']]
         });
@@ -154,7 +169,8 @@ const getImportReceiptById = async (req, res) => {
                     through: { attributes: ['soLuong', 'donGia'] }
                 },
                 { model: NhanVien, attributes: ['hoTen'] },
-                { model: NhaCungCap, attributes: ['tenNcc'] }
+                { model: NhaCungCap, attributes: ['tenNcc'] },
+                { model: Kho, attributes: ['tenKho'] }
             ]
         });
 

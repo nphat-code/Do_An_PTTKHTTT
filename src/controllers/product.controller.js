@@ -237,9 +237,10 @@ const getCategories = async (req, res) => {
 
 const getProductSerials = async (req, res) => {
     try {
-        const { ChiTietMay } = require('../models/index');
+        const { ChiTietMay, Kho } = require('../models/index');
         const serials = await ChiTietMay.findAll({
             where: { maModel: req.params.id, trangThai: 'Trong kho' },
+            include: [{ model: Kho, attributes: ['tenKho'] }],
             attributes: ['soSerial']
         });
         res.status(200).json({ success: true, data: serials });
