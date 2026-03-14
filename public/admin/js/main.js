@@ -81,6 +81,7 @@ function showTab(tabName) {
     else if (tabName === 'roles') loadRoles();
     else if (tabName === 'warranty') loadWarranties();
     else if (tabName === 'spareparts') loadSpareParts();
+    else if (tabName === 'inspections') loadInspections();
 }
 
 let currentPage = 1;
@@ -453,14 +454,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-const ORDER_STATUSES = ['Chờ xử lý', 'Đã hoàn thành', 'Đã hủy'];
+const ORDER_STATUSES = ['Chờ xử lý', 'Đã thanh toán', 'Đang giao hàng', 'Đã hoàn thành', 'Đã hủy'];
 const ORDER_STATUS_COLORS = {
     'Chờ xử lý': { bg: '#fef3c7', color: '#d97706' },
+    'Đã thanh toán': { bg: '#dbeafe', color: '#2563eb' },
+    'Đang giao hàng': { bg: '#e0e7ff', color: '#4338ca' },
     'Đã hoàn thành': { bg: '#dcfce7', color: '#16a34a' },
     'Đã hủy': { bg: '#fecaca', color: '#dc2626' }
 };
 const ORDER_STATUS_CLASS = {
     'Chờ xử lý': 'pending',
+    'Đã thanh toán': 'paid',
+    'Đang giao hàng': 'shipping',
     'Đã hoàn thành': 'delivered',
     'Đã hủy': 'cancelled'
 };
@@ -483,7 +488,7 @@ function renderOrdersTable(orders) {
             <td>${date}</td>
             <td><strong style="color: #2563eb;">${Number(order.tongTien || 0).toLocaleString()}đ</strong></td>
             <td>
-                <span style="display:inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${ORDER_STATUS_COLORS[status].bg}; color: ${ORDER_STATUS_COLORS[status].color};">
+                <span style="display:inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${(ORDER_STATUS_COLORS[status] || { bg: '#f1f5f9' }).bg}; color: ${(ORDER_STATUS_COLORS[status] || { color: '#64748b' }).color};">
                     ${status}
                 </span>
             </td>
@@ -592,6 +597,8 @@ function renderCharts(data) {
 
         const statusColors = {
             'Chờ xử lý': '#fbbf24',
+            'Đã thanh toán': '#3b82f6',
+            'Đang giao hàng': '#6366f1',
             'Đã hoàn thành': '#10b981',
             'Đã hủy': '#ef4444'
         };
@@ -3013,6 +3020,192 @@ function renderRepairDetails(details, total) {
 function closeWarrantyDetailModal() {
     document.getElementById('warrantyDetailModal').style.display = 'none';
 }
+
+// --- INVENTORY INSPECTION (KIỂM KÊ) ---
+const inspectionModal = document.getElementById('inspectionModal');
+const inspectionDetailModal = document.getElementById('inspectionDetailModal');
+
+window.loadInspections = async () => {
+    try {
+        const res = await fetch('/api/inspections');
+        const data = await res.json();
+        renderInspectionsTable(data);
+    } catch (err) { console.error('Error loading inspections:', err); }
+};
+
+function renderInspectionsTable(inspections) {
+    const tbody = document.getElementById('inspectionTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = inspections.map(ins => `
+        <tr>
+            <td><strong>${ins.maPk}</strong></td>
+            <td>${new Date(ins.ngayKiemKe).toLocaleString('vi-VN')}</td>
+            <td>${ins.Kho ? ins.Kho.tenKho : 'N/A'}</td>
+            <td>${ins.NhanVien ? ins.NhanVien.hoTen : 'N/A'}</td>
+            <td>${ins.ghiChu || ''}</td>
+            <td>
+                <button class="btn-edit" onclick="viewInspectionDetails('${ins.maPk}')"><i class="fas fa-eye"></i></button>
+            </td>
+        </tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;">Chưa có phiếu kiểm kê nào</td></tr>';
+}
+
+window.openInspectionModal = async () => {
+    // Reset modal
+    const khoSelect = document.getElementById('inspectionKhoId');
+    if (khoSelect) khoSelect.value = '';
+
+    document.getElementById('inspectionMachineTableBody').innerHTML = '<tr><td colspan="4" style="text-align: center;">Vui lòng chọn kho để xem danh sách máy</td></tr>';
+    document.getElementById('inspectionSparePartTableBody').innerHTML = '<tr><td colspan="4" style="text-align: center;">Vui lòng chọn kho để xem danh sách linh kiện</td></tr>';
+    document.getElementById('inspectionGhiChu').value = '';
+
+    // Load Warehouses
+    try {
+        const res = await fetch('/api/warehouses');
+        const result = await res.json();
+        if (result.success) {
+            const select = document.getElementById('inspectionKhoId');
+            if (select) {
+                select.innerHTML = '<option value="">-- Chọn kho --</option>' +
+                    result.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
+            }
+        }
+    } catch (err) { console.error(err); }
+
+    if (inspectionModal) inspectionModal.style.display = 'flex';
+};
+
+window.closeInspectionModal = () => { if (inspectionModal) inspectionModal.style.display = 'none'; };
+
+window.loadStockForInspection = async (maKho) => {
+    if (!maKho) return;
+    try {
+        // Fetch Machines in this warehouse
+        const machineRes = await fetch(`/api/products/details?maKho=${maKho}`);
+        const machineResult = await machineRes.json();
+
+        // Fetch Spare Parts in this warehouse
+        const spareRes = await fetch(`/api/spareparts?maKho=${maKho}`);
+        const spareResult = await spareRes.json();
+
+        // Render Machines
+        const mBody = document.getElementById('inspectionMachineTableBody');
+        if (machineResult.success && machineResult.data.length > 0) {
+            mBody.innerHTML = machineResult.data.map(m => `
+                <tr data-serial="${m.soSerial}">
+                    <td>${m.DongMay ? m.DongMay.tenModel : 'N/A'}</td>
+                    <td>${m.soSerial}</td>
+                    <td><span style="padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;">${m.trangThai}</span></td>
+                    <td>
+                        <select class="m-actual-status" style="width:100%; padding:5px; border-radius:4px; border: 1px solid #ddd;">
+                            <option value="Trong kho" ${m.trangThai === 'Trong kho' ? 'selected' : ''}>Trong kho</option>
+                            <option value="Thất lạc">Thất lạc</option>
+                            <option value="Đã bán" ${m.trangThai === 'Đã bán' ? 'selected' : ''}>Đã bán</option>
+                        </select>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            mBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Kho này không có máy tính nào</td></tr>';
+        }
+
+        // Render Spare Parts
+        const sBody = document.getElementById('inspectionSparePartTableBody');
+        if (spareResult.success && spareResult.data.length > 0) {
+            sBody.innerHTML = spareResult.data.map(s => `
+                <tr data-maLk="${s.maLk}">
+                    <td>${s.tenLk}</td>
+                    <td><strong>${s.soLuongTon}</strong></td>
+                    <td><input type="number" class="s-actual-qty" value="${s.soLuongTon}" min="0" style="width:80px; padding:5px; border:1px solid #ddd; border-radius:4px;"></td>
+                    <td><input type="text" class="s-note" placeholder="Ghi chú..." style="width:100%; padding:5px; border:1px solid #ddd; border-radius:4px;"></td>
+                </tr>
+            `).join('');
+        } else {
+            sBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Kho này không có linh kiện nào</td></tr>';
+        }
+    } catch (err) { console.error('Error loading stock for inspection:', err); }
+};
+
+window.submitInspection = async () => {
+    const maKho = document.getElementById('inspectionKhoId').value;
+    if (!maKho) return Swal.fire('Thông báo', 'Vui lòng chọn kho!', 'warning');
+
+    const maPk = 'PK' + Date.now().toString().slice(-8);
+    const maNv = user ? (user.maNv || user.id) : 'ADMIN';
+    const ghiChu = document.getElementById('inspectionGhiChu').value;
+
+    const ctMay = [];
+    document.querySelectorAll('#inspectionMachineTableBody tr[data-serial]').forEach(tr => {
+        ctMay.push({
+            soSerial: tr.getAttribute('data-serial'),
+            ttHeThong: tr.cells[2].innerText,
+            ttThucTe: tr.querySelector('.m-actual-status').value
+        });
+    });
+
+    const ctLk = [];
+    document.querySelectorAll('#inspectionSparePartTableBody tr[data-maLk]').forEach(tr => {
+        ctLk.push({
+            maLk: tr.getAttribute('data-maLk'),
+            slHeThong: parseInt(tr.cells[1].innerText),
+            slThucTe: parseInt(tr.querySelector('.s-actual-qty').value),
+            ghiChu: tr.querySelector('.s-note').value
+        });
+    });
+
+    try {
+        const res = await fetch('/api/inspections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ maPk, maNv, maKho, ngayKiemKe: new Date(), ghiChu, ctMay, ctLk })
+        });
+        const result = await res.json();
+        if (res.ok) {
+            Swal.fire('Thành công', 'Đã lưu phiếu kiểm kê và cập nhật kho!', 'success');
+            closeInspectionModal();
+            loadInspections();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (err) { console.error(err); }
+};
+
+window.viewInspectionDetails = async (id) => {
+    try {
+        const res = await fetch(`/api/inspections/${id}`);
+        const ins = await res.json();
+
+        document.getElementById('displayInspectionId').innerText = ins.maPk;
+        document.getElementById('inspectionInfo').innerHTML = `
+            <div><strong>Ngày:</strong> ${new Date(ins.ngayKiemKe).toLocaleString('vi-VN')}</div>
+            <div><strong>Kho:</strong> ${ins.Kho ? ins.Kho.tenKho : 'N/A'}</div>
+            <div><strong>Nhân viên:</strong> ${ins.NhanVien ? ins.NhanVien.hoTen : 'N/A'}</div>
+            <div><strong>Ghi chú:</strong> ${ins.ghiChu || 'Không có'}</div>
+        `;
+
+        document.getElementById('viewInspectionMachineTableBody').innerHTML = (ins.CtKiemKeMays || []).map(m => `
+            <tr>
+                <td>${m.soSerial}</td>
+                <td><span style="padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; background: #f1f5f9; color: #475569;">${m.ttHeThong}</span></td>
+                <td><span style="padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; background: ${m.ttHeThong === m.ttThucTe ? '#dcfce7' : '#fee2e2'}; color: ${m.ttHeThong === m.ttThucTe ? '#16a34a' : '#dc2626'};">${m.ttThucTe}</span></td>
+            </tr>
+        `).join('') || '<tr><td colspan="3" style="text-align:center;">Không có máy tính</td></tr>';
+
+        document.getElementById('viewInspectionSparePartTableBody').innerHTML = (ins.CtKiemKeLks || []).map(lk => `
+            <tr>
+                <td>${lk.LinhKien ? lk.LinhKien.tenLk : lk.maLk}</td>
+                <td style="text-align: center;">${lk.slHeThong}</td>
+                <td style="text-align: center; color: ${lk.slHeThong !== lk.slThucTe ? '#dc2626' : 'inherit'}; font-weight: bold;">${lk.slThucTe}</td>
+                <td>${lk.ghiChu || ''}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="4" style="text-align:center;">Không có linh kiện</td></tr>';
+
+        if (inspectionDetailModal) inspectionDetailModal.style.display = 'flex';
+    } catch (err) { console.error(err); }
+};
+
+window.closeInspectionDetailModal = () => { if (inspectionDetailModal) inspectionDetailModal.style.display = 'none'; };
+
 
 async function openAddRepairDetail() {
     const id = document.getElementById('displayWId').innerText;

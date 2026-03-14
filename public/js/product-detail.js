@@ -42,7 +42,7 @@ function renderProduct(p) {
 
     // Breadcrumb
     document.getElementById('breadcrumbName').textContent = p.tenModel;
-    document.title = p.tenModel + ' - Phát Laptop';
+    document.title = p.tenModel + ' - P-Tech Laptop';
 
     // Image
     const imageSection = document.getElementById('productImageSection');

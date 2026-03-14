@@ -32,6 +32,9 @@ const upload = multer({
 // GET /api/products - Lấy danh sách sản phẩm
 router.get('/', productController.getAllProducts);
 
+// GET /api/products/details - Lấy chi tiết số serial theo kho
+router.get('/details', productController.getAllProductDetails);
+
 // GET /api/products/brands - Lấy danh sách hãng sản xuất
 router.get('/brands', productController.getBrands);
 

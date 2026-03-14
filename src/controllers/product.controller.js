@@ -297,6 +297,28 @@ const removeCompatiblePart = async (req, res) => {
     }
 };
 
+const getAllProductDetails = async (req, res) => {
+    try {
+        const { maKho } = req.query;
+        const { ChiTietMay, DongMay } = require('../models/index');
+
+        let whereClause = {};
+        if (maKho) {
+            whereClause.maKho = maKho;
+        }
+
+        const details = await ChiTietMay.findAll({
+            where: whereClause,
+            include: [{ model: DongMay, attributes: ['tenModel'] }],
+            order: [['soSerial', 'ASC']]
+        });
+
+        res.status(200).json({ success: true, data: details });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllProducts,
     getProductById,
@@ -308,5 +330,6 @@ module.exports = {
     getProductSerials,
     getCompatibleParts,
     addCompatiblePart,
-    removeCompatiblePart
+    removeCompatiblePart,
+    getAllProductDetails
 };

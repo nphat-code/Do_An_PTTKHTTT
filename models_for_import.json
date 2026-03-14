@@ -1,0 +1,52 @@
+[
+  {
+    "maModel": "ACER_NITRO_V",
+    "tenModel": "Acer Nitro V ANV15",
+    "giaNhap": "18000000.00"
+  },
+  {
+    "maModel": "ASUS_ROG_G16",
+    "tenModel": "Asus ROG Strix G16 2024",
+    "giaNhap": "28000000.00"
+  },
+  {
+    "maModel": "ASUS_VIVOBOOK_15",
+    "tenModel": "Asus Vivobook 15 X1504",
+    "giaNhap": "12000000.00"
+  },
+  {
+    "maModel": "DELL_INSPIRON_15",
+    "tenModel": "Dell Inspiron 15 3530",
+    "giaNhap": "14000000.00"
+  },
+  {
+    "maModel": "DELL_XPS_13",
+    "tenModel": "Dell XPS 13 9340",
+    "giaNhap": "35000000.00"
+  },
+  {
+    "maModel": "HP_PAVILION_14",
+    "tenModel": "HP Pavilion 14 dv2000",
+    "giaNhap": "15500000.00"
+  },
+  {
+    "maModel": "HP_VICTUS_16",
+    "tenModel": "HP Victus 16 2024",
+    "giaNhap": "20000000.00"
+  },
+  {
+    "maModel": "LENOVO_LEGION_5",
+    "tenModel": "Lenovo Legion 5 16IRX9",
+    "giaNhap": "29000000.00"
+  },
+  {
+    "maModel": "MACBOOK_AIR_M3",
+    "tenModel": "MacBook Air 13 M3",
+    "giaNhap": "24000000.00"
+  },
+  {
+    "maModel": "MSI_KATANA_15",
+    "tenModel": "MSI Katana 15 B13V",
+    "giaNhap": "22000000.00"
+  }
+]

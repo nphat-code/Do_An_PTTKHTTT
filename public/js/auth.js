@@ -82,7 +82,7 @@ if (registerForm) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Đăng ký thành công',
-                    text: 'Chào mừng bạn đến với Laptop Store! Vui lòng đăng nhập.',
+                    text: 'Chào mừng bạn đến với P-Tech Laptop! Vui lòng đăng nhập.',
                 }).then(() => {
                     window.location.href = 'login.html';
                 });

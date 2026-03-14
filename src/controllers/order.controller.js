@@ -255,7 +255,7 @@ const getOrderById = async (req, res) => {
     }
 };
 
-const ORDER_STATUSES = ['Chờ xử lý', 'Đã hoàn thành', 'Đã hủy'];
+const ORDER_STATUSES = ['Chờ xử lý', 'Đã thanh toán', 'Đang giao hàng', 'Đã hoàn thành', 'Đã hủy'];
 
 const updateOrderStatus = async (req, res) => {
     const t = await sequelize.transaction();

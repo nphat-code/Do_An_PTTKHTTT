@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Cửa Hàng Laptop</title>
+    <title>Quản Lý P-Tech Laptop</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -15,7 +15,7 @@
 
     <div class="container">
         <aside class="sidebar">
-            <h2>Laptop Store</h2>
+            <h2>P-Tech Laptop</h2>
             <div class="user-profile">
                 <div class="user-avatar">
                     <i class="fas fa-user-circle"></i>
@@ -43,6 +43,7 @@
                     <li><a href="#" data-tab="spareparts"><i class="fas fa-microchip"></i> Linh kiện</a></li>
                     <li><a href="#" data-tab="stock"><i class="fas fa-boxes"></i> Tồn kho</a></li>
                     <li><a href="#" data-tab="inventory"><i class="fas fa-file-import"></i> Nhập hàng</a></li>
+                    <li><a href="#" data-tab="inspections"><i class="fas fa-clipboard-check"></i> Kiểm kê</a></li>
                 </ul>
 
                 <div class="nav-group-title">ĐỐI TÁC & HỆ THỐNG</div>
@@ -497,6 +498,33 @@
                             </tr>
                         </thead>
                         <tbody id="warrantyTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Inspection Section -->
+            <section id="inspections-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Kiểm kê kho</h1>
+                    <button class="btn-add" onclick="openInspectionModal()">
+                        <i class="fas fa-plus"></i> Tạo phiếu kiểm kê
+                    </button>
+                </header>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Ngày kiểm kê</th>
+                                <th>Kho kiểm kê</th>
+                                <th>Nhân viên</th>
+                                <th>Ghi chú</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inspectionTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -1172,6 +1200,126 @@
                         linh kiện</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Inspection Modal -->
+    <div id="inspectionModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;">
+                <h2 style="color: white;"><i class="fas fa-clipboard-check" style="margin-right: 8px;"></i> Tạo Phiếu
+                    Kiểm Kê Mới</h2>
+                <span class="close-btn" onclick="closeInspectionModal()">&times;</span>
+            </div>
+            <div style="padding: 24px;">
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Chọn kho kiểm kê:</label>
+                        <select id="inspectionKhoId" onchange="loadStockForInspection(this.value)"
+                            style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                            <option value="">-- Chọn kho --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="inspection-items-container" style="margin-top: 20px;">
+                    <h4 style="margin-bottom: 10px; color: #4f46e5;"><i class="fas fa-laptop"></i> Danh sách máy tính
+                    </h4>
+                    <div class="table-container" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Số Serial</th>
+                                    <th>TT Hệ thống</th>
+                                    <th>TT Thực tế</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inspectionMachineTableBody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center;">Vui lòng chọn kho để xem danh sách máy
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h4 style="margin-bottom: 10px; color: #10b981;"><i class="fas fa-microchip"></i> Danh sách linh
+                        kiện</h4>
+                    <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tên linh kiện</th>
+                                    <th>SL Hệ thống</th>
+                                    <th>SL Thực tế</th>
+                                    <th>Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inspectionSparePartTableBody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center;">Vui lòng chọn kho để xem danh sách linh
+                                        kiện</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Ghi chú tổng quát:</label>
+                    <textarea id="inspectionGhiChu"
+                        style="width:100%; height:60px; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeInspectionModal()">Hủy</button>
+                <button type="button" class="btn-primary" onclick="submitInspection()">Lưu phiếu kiểm kê</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inspection Detail Modal -->
+    <div id="inspectionDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;">
+                <h2 style="color: white;"><i class="fas fa-file-alt" style="margin-right: 8px;"></i> Chi tiết phiếu kiểm
+                    kê <strong id="displayInspectionId"></strong></h2>
+                <span class="close-btn" onclick="closeInspectionDetailModal()">&times;</span>
+            </div>
+            <div style="padding: 24px;">
+                <div id="inspectionInfo"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;"></div>
+
+                <h4 style="margin-bottom: 10px;">Máy tính</h4>
+                <div class="table-container" style="max-height: 150px; overflow-y: auto; margin-bottom: 20px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Số Serial</th>
+                                <th>TT Hệ thống</th>
+                                <th>TT Thực tế</th>
+                            </tr>
+                        </thead>
+                        <tbody id="viewInspectionMachineTableBody"></tbody>
+                    </table>
+                </div>
+
+                <h4 style="margin-bottom: 10px;">Linh kiện</h4>
+                <div class="table-container" style="max-height: 150px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tên linh kiện</th>
+                                <th>SL Hệ thống</th>
+                                <th>SL Thực tế</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="viewInspectionSparePartTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 

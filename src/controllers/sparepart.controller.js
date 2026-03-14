@@ -3,7 +3,9 @@ const { Op } = require('sequelize');
 
 const getAllParts = async (req, res) => {
     try {
-        const { search } = req.query;
+        const { search, maKho } = req.query;
+        const { KhoLinhKien } = require('../models/index');
+
         const where = {};
         if (search) {
             where[Op.or] = [
@@ -13,12 +15,34 @@ const getAllParts = async (req, res) => {
             ];
         }
 
+        const include = [
+            { model: HangSanXuat, attributes: ['tenHang'] }
+        ];
+
+        if (maKho) {
+            include.push({
+                model: KhoLinhKien,
+                where: { maKho: maKho },
+                required: true // Only return parts that are in this warehouse
+            });
+        }
+
         const parts = await LinhKien.findAll({
             where,
-            include: [{ model: HangSanXuat, attributes: ['tenHang'] }],
+            include,
             order: [['maLk', 'ASC']]
         });
-        res.json({ success: true, data: parts });
+
+        // Map data to keep soLuongTon field consistent
+        const result = parts.map(p => {
+            const part = p.toJSON();
+            if (maKho && part.KhoLinhKiens && part.KhoLinhKiens[0]) {
+                part.soLuongTon = part.KhoLinhKiens[0].soLuongTon;
+            }
+            return part;
+        });
+
+        res.json({ success: true, data: result });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

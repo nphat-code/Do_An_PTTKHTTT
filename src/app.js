@@ -23,6 +23,7 @@ const warehouseRoutes = require('./routes/warehouse.routes');
 const roleRoutes = require('./routes/role.routes');
 const warrantyRoutes = require('./routes/warranty.routes');
 const sparepartRoutes = require('./routes/sparepart.routes');
+const inspectionRoutes = require('./routes/inspection.routes');
 
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
@@ -36,6 +37,7 @@ app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/warranties', warrantyRoutes);
 app.use('/api/spareparts', sparepartRoutes);
+app.use('/api/inspections', inspectionRoutes);
 
 sequelize.authenticate()
     .then(() => {
