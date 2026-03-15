@@ -8,7 +8,14 @@ const PhieuBaoHanh = sequelize.define('PhieuBaoHanh', {
     ketLuanKyThuat: { type: DataTypes.TEXT },
     ngayTraMay: { type: DataTypes.DATE },
     chiPhiSuaChua: { type: DataTypes.DECIMAL(15, 2), defaultValue: 0 },
-    trangThai: { type: DataTypes.ENUM('Chờ kiểm tra', 'Đang sửa', 'Đã xong', 'Đã trả máy') }
+    phiDichVu: { type: DataTypes.DECIMAL(15, 2), defaultValue: 0 },
+    loaiPhieu: { type: DataTypes.ENUM('Bảo hành', 'Sửa chữa'), defaultValue: 'Bảo hành' },
+    daXacNhanBaoGia: { type: DataTypes.BOOLEAN, defaultValue: false },
+    trangThaiQc: { type: DataTypes.BOOLEAN, defaultValue: false },
+    trangThai: {
+        type: DataTypes.ENUM('Chờ kiểm tra', 'Đang sửa', 'Đã xong', 'Đã trả máy', 'Yêu cầu 1-đổi-1', 'Đã đổi máy'),
+        defaultValue: 'Chờ kiểm tra'
+    }
     // soSerial, maNvTiepNhan, maNvKyThuat, maHttt FK
 }, { tableName: 'PHIEU_BAO_HANH', timestamps: false });
 

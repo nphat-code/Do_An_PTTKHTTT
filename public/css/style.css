@@ -234,6 +234,10 @@ ul {
 .main-content {
     flex: 1;
     padding: 30px 40px;
+    width: 100%;
+}
+
+.container>.main-content {
     width: calc(100% - var(--sidebar-width));
     height: 100vh;
     overflow-y: auto;

@@ -1035,6 +1035,8 @@
                                         <option value="Đang sửa">Đang sửa</option>
                                         <option value="Đã xong">Đã xong</option>
                                         <option value="Đã trả máy">Đã trả máy</option>
+                                        <option value="Yêu cầu 1-đổi-1">Yêu cầu 1-đổi-1</option>
+                                        <option value="Đã đổi máy">Đã đổi máy</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -1042,9 +1044,15 @@
                                     <input type="date" id="ngayTraMay">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label>Hình thức thanh toán phí:</label>
-                                <select id="maHtttPbh"></select>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Hình thức thanh toán phí:</label>
+                                    <select id="maHtttPbh"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Phí dịch vụ (VNĐ):</label>
+                                    <input type="number" id="phiDichVuPbh" value="0" min="0">
+                                </div>
                             </div>
                             <button type="submit" class="btn-primary" style="width: 100%;">Cập nhật phiếu</button>
                         </form>
@@ -1071,7 +1079,19 @@
                         </table>
                     </div>
                     <div style="text-align: right; margin-top: 10px; font-weight: 700; color: #dc2626;">
-                        Tổng chi phí sửa chữa: <span id="totalRepairCost">0đ</span>
+                        Tổng chi phí: <span id="totalRepairCost">0đ</span>
+                    </div>
+
+                    <div id="warrantyWorkflowActions"
+                        style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px;">
+                        <button id="btnConfirmQuote" type="button" class="btn-primary"
+                            style="background: #f59e0b; border: none; display: none;" onclick="handleConfirmQuote()">
+                            <i class="fas fa-check-double"></i> Xác nhận báo giá (Khách đã đồng ý)
+                        </button>
+                        <button id="btnVerifyQC" type="button" class="btn-primary"
+                            style="background: #10b981; border: none; display: none;" onclick="handleVerifyQC()">
+                            <i class="fas fa-clipboard-check"></i> Xác nhận QC (Đã sửa xong & test OK)
+                        </button>
                     </div>
                 </div>
             </div>

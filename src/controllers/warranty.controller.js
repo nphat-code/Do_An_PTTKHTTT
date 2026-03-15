@@ -76,18 +76,45 @@ const getWarrantyById = async (req, res) => {
 };
 
 const createWarranty = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const { soSerial, moTaLoi, maNvTiepNhan } = req.body;
 
-        // Kiểm tra serial có tồn tại và đã bán chưa
+        // 1. Kiểm tra serial có tồn tại và đã bán chưa
         const machine = await ChiTietMay.findOne({
-            where: { soSerial, trangThai: 'Đã bán' }
+            where: { soSerial, trangThai: 'Đã bán' },
+            include: [
+                {
+                    model: DongMay,
+                    attributes: ['thoiHanBaoHanh']
+                },
+                {
+                    model: HoaDon,
+                    attributes: ['ngayLap']
+                }
+            ],
+            transaction: t
         });
 
         if (!machine) {
-            return res.status(400).json({ success: false, message: "Số Serial không hợp lệ hoặc máy chưa được bán." });
+            await t.rollback();
+            return res.status(400).json({ success: false, message: "Số Serial không hợp lệ, chưa được bán hoặc đang trong quá trình xử lý khác." });
         }
 
+        // 2. Xác định loại phiếu (Bảo hành/Sửa chữa)
+        let loaiPhieu = 'Sửa chữa';
+        if (machine.HoaDon && machine.HoaDon.ngayLap && machine.DongMay) {
+            const ngayMua = new Date(machine.HoaDon.ngayLap);
+            const hanBaoHanhMonths = machine.DongMay.thoiHanBaoHanh || 12;
+            const ngayHetHan = new Date(ngayMua);
+            ngayHetHan.setMonth(ngayHetHan.getMonth() + hanBaoHanhMonths);
+
+            if (new Date() <= ngayHetHan) {
+                loaiPhieu = 'Bảo hành';
+            }
+        }
+
+        // 3. Tạo phiếu bảo hành
         const maPbh = await generateWarrantyCode();
         const warranty = await PhieuBaoHanh.create({
             maPbh,
@@ -95,11 +122,17 @@ const createWarranty = async (req, res) => {
             moTaLoi,
             maNvTiepNhan,
             ngayLap: new Date(),
-            trangThai: 'Chờ kiểm tra'
-        });
+            trangThai: 'Chờ kiểm tra',
+            loaiPhieu
+        }, { transaction: t });
 
-        res.status(201).json({ success: true, message: "Tạo phiếu bảo hành thành công", data: warranty });
+        // 4. Cập nhật trạng thái máy -> Đang bảo hành
+        await machine.update({ trangThai: 'Đang bảo hành' }, { transaction: t });
+
+        await t.commit();
+        res.status(201).json({ success: true, message: "Tạo phiếu thành công. Loại: " + loaiPhieu, data: warranty });
     } catch (error) {
+        if (t) await t.rollback();
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -108,22 +141,52 @@ const updateWarranty = async (req, res) => {
     const t = await sequelize.transaction();
     try {
         const { id } = req.params;
-        const { ketLuanKyThuat, ngayTraMay, chiPhiSuaChua, trangThai, maNvKyThuat, maHttt } = req.body;
+        const { ketLuanKyThuat, ngayTraMay, phiDichVu, trangThai, maNvKyThuat, maHttt } = req.body;
 
-        const warranty = await PhieuBaoHanh.findByPk(id, { transaction: t });
+        const warranty = await PhieuBaoHanh.findByPk(id, {
+            include: [ChiTietSuaChua],
+            transaction: t
+        });
         if (!warranty) {
             await t.rollback();
-            return res.status(404).json({ success: false, message: "Không tìm thấy phiếu bảo hành" });
+            return res.status(404).json({ success: false, message: "Không tìm thấy phiếu" });
         }
 
+        // 1. Tính toán lại tổng chi phí (chiPhiSuaChua = sum(parts) + phiDichVu)
+        let totalPartsCost = 0;
+        if (warranty.ChiTietSuaChuas) {
+            totalPartsCost = warranty.ChiTietSuaChuas.reduce((sum, item) => sum + (parseFloat(item.donGia) * item.soLuong), 0);
+        }
+        const newTotal = totalPartsCost + parseFloat(phiDichVu || warranty.phiDichVu || 0);
+
+        // 2. Cập nhật phiếu
         await warranty.update({
             ketLuanKyThuat,
             ngayTraMay,
-            chiPhiSuaChua,
+            phiDichVu: phiDichVu || 0,
+            chiPhiSuaChua: newTotal,
             trangThai,
             maNvKyThuat,
             maHttt
         }, { transaction: t });
+
+        // 3. Nếu Đã trả máy -> Cập nhật trạng thái máy về Đã bán
+        if (trangThai === 'Đã trả máy') {
+            await ChiTietMay.update(
+                { trangThai: 'Đã bán' },
+                { where: { soSerial: warranty.soSerial }, transaction: t }
+            );
+        }
+
+        // 4. Nếu Đã đổi máy (Trường hợp 1-đổi-1)
+        if (trangThai === 'Đã đổi máy') {
+            // Máy cũ -> Hàng lỗi
+            await ChiTietMay.update(
+                { trangThai: 'Hàng lỗi' },
+                { where: { soSerial: warranty.soSerial }, transaction: t }
+            );
+            // Lưu ý: Logic chọn máy mới để đổi sẽ thực hiện ở một endpoint khác hoặc client gửi kèm mã máy mới
+        }
 
         await t.commit();
         res.status(200).json({ success: true, message: "Cập nhật thành công", data: warranty });
@@ -133,10 +196,39 @@ const updateWarranty = async (req, res) => {
     }
 };
 
+const confirmQuote = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const warranty = await PhieuBaoHanh.findByPk(id);
+        if (!warranty) return res.status(404).json({ success: false, message: "Không tìm thấy phiếu" });
+
+        await warranty.update({ daXacNhanBaoGia: true, trangThai: 'Đang sửa' });
+        res.json({ success: true, message: "Đã xác nhận báo giá. Bắt đầu sửa chữa." });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const verifyQC = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const warranty = await PhieuBaoHanh.findByPk(id);
+        if (!warranty) return res.status(404).json({ success: false, message: "Không tìm thấy phiếu" });
+
+        await warranty.update({ trangThaiQc: true, trangThai: 'Đã xong' });
+        res.json({ success: true, message: "Xác nhận QC thành công. Sẵn sàng trả máy." });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 const addRepairDetail = async (req, res) => {
     const t = await sequelize.transaction();
     try {
         const { maPbh, maLk, maKhoXuat, soLuong, donGia } = req.body;
+
+        const warranty = await PhieuBaoHanh.findByPk(maPbh, { transaction: t });
+        if (!warranty) throw new Error("Không tìm thấy phiếu bảo hành");
 
         // 1. Kiểm tra tồn kho linh kiện theo kho (KhoLinhKien)
         const stockRecord = await KhoLinhKien.findOne({
@@ -148,35 +240,31 @@ const addRepairDetail = async (req, res) => {
             throw new Error("Không đủ linh kiện trong kho đã chọn");
         }
 
-        // 2. Tạo chi tiết sửa chữa
+        // 2. Xác định đơn giá thực tế (Nếu là Bảo hành Free -> Đơn giá = 0 cho khách)
+        const actualPrice = (warranty.loaiPhieu === 'Bảo hành' ? 0 : donGia);
+
+        // 3. Tạo chi tiết sửa chữa
         const detail = await ChiTietSuaChua.create({
             maPbh,
             maLk,
             maKhoXuat,
             soLuong,
-            donGia
+            donGia: actualPrice
         }, { transaction: t });
 
-        // 3. Trừ tồn kho linh kiện toàn cục
+        // 4. Trừ tồn kho linh kiện
         const part = await LinhKien.findByPk(maLk, { transaction: t });
         if (part) {
-            await part.update({
-                soLuongTon: part.soLuongTon - soLuong
-            }, { transaction: t });
+            await part.update({ soLuongTon: part.soLuongTon - soLuong }, { transaction: t });
         }
+        await stockRecord.update({ soLuongTon: stockRecord.soLuongTon - soLuong }, { transaction: t });
 
-        // 4. Trừ tồn kho linh kiện theo kho (KhoLinhKien)
-        await stockRecord.update({
-            soLuongTon: stockRecord.soLuongTon - soLuong
-        }, { transaction: t });
-
-        // 4. Cập nhật chi phí vào phiếu bảo hành
-        const warranty = await PhieuBaoHanh.findByPk(maPbh, { transaction: t });
-        const newTotal = parseFloat(warranty.chiPhiSuaChua) + (parseFloat(donGia) * soLuong);
+        // 5. Cập nhật tổng chi phí vào phiếu bảo hành
+        const newTotal = parseFloat(warranty.chiPhiSuaChua) + (parseFloat(actualPrice) * soLuong);
         await warranty.update({ chiPhiSuaChua: newTotal }, { transaction: t });
 
         await t.commit();
-        res.status(201).json({ success: true, message: "Thêm linh kiện sửa chữa thành công", data: detail });
+        res.status(201).json({ success: true, message: "Thêm linh kiện thành công", data: detail });
     } catch (error) {
         if (t) await t.rollback();
         res.status(500).json({ success: false, message: error.message });
@@ -216,6 +304,8 @@ module.exports = {
     getWarrantyById,
     createWarranty,
     updateWarranty,
+    confirmQuote,
+    verifyQC,
     addRepairDetail,
     checkWarranty
 };

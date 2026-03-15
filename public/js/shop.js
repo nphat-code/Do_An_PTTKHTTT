@@ -1,5 +1,8 @@
-// Khởi tạo giỏ hàng từ localStorage hoặc mảng rỗng nếu chưa có
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let currentCategory = "";
+let _currentProducts = [];
+let currentPage = 1;
+const itemsPerPage = 8;
 const productContainer = document.getElementById("productContainer");
 const cartModal = document.getElementById("cartModal");
 const checkoutForm = document.getElementById("checkoutForm");
@@ -48,9 +51,6 @@ setInterval(() => {
 // 1. Tải danh sách sản phẩm từ API
 // 1. Tải danh sách sản phẩm từ API
 // 1. Tải danh sách sản phẩm từ API
-let currentPage = 1;
-const itemsPerPage = 8; // Số sản phẩm mỗi trang
-
 async function loadProducts(searchValue, page = 1) {
     currentPage = page;
     const keyword = searchValue !== undefined ? searchValue : document.getElementById("searchInput").value;
@@ -67,12 +67,13 @@ async function loadProducts(searchValue, page = 1) {
 
     try {
         // Gửi request kèm theo các tham số lọc
-        let url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&brand=${brand}&ram=${ram}&limit=${itemsPerPage}&page=${page}`;
+        let url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&brand=${brand}&ram=${ram}&loai=${currentCategory}&limit=${itemsPerPage}&page=${page}`;
 
         const response = await fetch(url);
         const result = await response.json();
 
         if (result.success) {
+            _currentProducts = result.data;
             renderProducts(result.data);
             renderPagination(result.pagination);
         }
@@ -80,6 +81,21 @@ async function loadProducts(searchValue, page = 1) {
         console.error("Lỗi khi tải sản phẩm:", error);
     }
 }
+
+window.filterByCategory = (category) => {
+    currentCategory = category;
+    // Cuộn đến phần tiêu đề sản phẩm
+    document.getElementById('sectionTitle').scrollIntoView({ behavior: 'smooth' });
+    // Cập nhật tiêu đề theo category
+    const titles = {
+        'GAMING': 'Laptop Gaming',
+        'VANPHONG': 'Laptop Văn Phòng',
+        'DOHOA': 'Laptop Đồ Họa',
+        'MONG_NHE': 'Laptop Mỏng Nhẹ'
+    };
+    document.getElementById('sectionTitle').innerText = titles[category] || 'Tất cả sản phẩm';
+    loadProducts();
+};
 
 function renderPagination(pagination) {
     const container = document.getElementById("pagination");
@@ -142,6 +158,8 @@ window.resetFilters = () => {
     document.getElementById("ramFilter").value = "";
     document.getElementById("priceFilter").value = "";
     document.getElementById("searchInput").value = "";
+    currentCategory = "";
+    document.getElementById('sectionTitle').innerText = 'Sản phẩm mới về';
     loadProducts();
 };
 
@@ -203,40 +221,6 @@ function renderProducts(products) {
         productContainer.appendChild(card);
     });
 }
-
-// Cache sản phẩm đang hiển thị để dùng cho addToCart
-let _currentProducts = [];
-
-// Override loadProducts để cache
-const _originalLoadProducts = loadProducts;
-loadProducts = async function (searchValue, page = 1) {
-    currentPage = page;
-    const keyword = searchValue !== undefined ? searchValue : document.getElementById("searchInput").value;
-    const priceRange = document.getElementById("priceFilter").value;
-    const brand = document.getElementById("brandFilter").value;
-
-    let minPrice = "";
-    let maxPrice = "";
-
-    if (priceRange) {
-        [minPrice, maxPrice] = priceRange.split("-");
-    }
-
-    try {
-        let url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&brand=${brand}&limit=${itemsPerPage}&page=${page}`;
-
-        const response = await fetch(url);
-        const result = await response.json();
-
-        if (result.success) {
-            _currentProducts = result.data;
-            renderProducts(result.data);
-            renderPagination(result.pagination);
-        }
-    } catch (error) {
-        console.error("Lỗi khi tải sản phẩm:", error);
-    }
-};
 
 // 3. Thêm sản phẩm vào giỏ hàng
 function addToCart(maModel) {

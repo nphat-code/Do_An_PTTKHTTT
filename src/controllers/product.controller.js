@@ -6,7 +6,7 @@ const getAllProducts = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const offset = (page - 1) * limit;
-        const { search, minPrice, maxPrice, brand } = req.query;
+        const { search, minPrice, maxPrice, brand, loai } = req.query;
 
         let whereClause = {};
 
@@ -22,6 +22,10 @@ const getAllProducts = async (req, res) => {
 
         if (brand) {
             whereClause.maHang = brand;
+        }
+
+        if (loai) {
+            whereClause.maLoai = loai;
         }
 
         const result = await DongMay.findAndCountAll({

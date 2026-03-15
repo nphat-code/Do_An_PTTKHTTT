@@ -124,7 +124,7 @@ function renderTable(products) {
     previewContainer.innerHTML = "";
     products.forEach(p => {
         const cauHinh = p.CauHinh || {};
-        const hang = p.HangSanXuat ? p.HangSanXuat.tenHang : '-';
+        const hang = p.HangSanXuat ? (p.HangSanXuat.quocGia ? `${p.HangSanXuat.tenHang} (${p.HangSanXuat.quocGia})` : p.HangSanXuat.tenHang) : '-';
         const configText = [cauHinh.cpu, cauHinh.ram].filter(Boolean).join(' / ') || '-';
 
         const tr = document.createElement("tr");
@@ -2765,14 +2765,19 @@ function renderWarrantyTable(data) {
         const ngayLap = new Date(item.ngayLap).toLocaleDateString('vi-VN');
         const ngayTra = item.ngayTraMay ? new Date(item.ngayTraMay).toLocaleDateString('vi-VN') : '—';
 
+        // Loai phieu badge
+        const loaiColor = item.loaiPhieu === 'Bảo hành' ? '#10b981' : '#f59e0b';
+        const loaiBadge = `<span style="background:${loaiColor}15; color:${loaiColor}; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600; margin-left:8px;">${item.loaiPhieu}</span>`;
+
         // Status colors
         let statusColor = '#d97706'; // Pending
         if (item.trangThai === 'Đã trả máy') statusColor = '#16a34a';
         else if (item.trangThai === 'Đã xong') statusColor = '#2563eb';
         else if (item.trangThai === 'Đang sửa') statusColor = '#7c3aed';
+        else if (item.trangThai === 'Yêu cầu 1-đổi-1') statusColor = '#ef4444';
 
         tr.innerHTML = `
-            <td><strong style="color: #4f46e5;">${item.maPbh}</strong></td>
+            <td><strong style="color: #4f46e5;">${item.maPbh}</strong>${loaiBadge}</td>
             <td><code style="background:#f1f5f9; padding:4px 8px; border-radius:6px; color: #1e293b; font-weight: 600;">${item.soSerial}</code></td>
             <td>${item.ChiTietMay?.DongMay?.tenModel || '—'}</td>
             <td>${ngayLap}</td>
@@ -2836,7 +2841,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 maNvKyThuat: document.getElementById('maNvKyThuat').value,
                 trangThai: document.getElementById('trangThaiPbh').value,
                 ngayTraMay: document.getElementById('ngayTraMay').value || null,
-                maHttt: document.getElementById('maHtttPbh').value || null
+                maHttt: document.getElementById('maHtttPbh').value || null,
+                phiDichVu: parseFloat(document.getElementById('phiDichVuPbh').value || 0)
             };
 
             try {
@@ -2952,8 +2958,9 @@ async function viewWarrantyDetail(id) {
             const ngayLap = new Date(w.ngayLap).toLocaleString('vi-VN');
             info.innerHTML = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size: 0.95rem;">
-                    <p><strong>Sản phẩm:</strong><br>${w.ChiTietMay?.DongMay?.tenModel || '—'}</p>
+                    <p><strong>Loại hình:</strong><br><span style="color:${w.loaiPhieu === 'Bảo hành' ? '#10b981' : '#f59e0b'}; font-weight:700;">${w.loaiPhieu}</span></p>
                     <p><strong>Số Serial:</strong><br><code>${w.soSerial}</code></p>
+                    <p><strong>Sản phẩm:</strong><br>${w.ChiTietMay?.DongMay?.tenModel || '—'}</p>
                     <p><strong>Ngày tiếp nhận:</strong><br>${ngayLap}</p>
                     <p><strong>NV tiếp nhận:</strong><br>${w.NvTiepNhan?.hoTen || '—'}</p>
                 </div>
@@ -2967,6 +2974,7 @@ async function viewWarrantyDetail(id) {
             document.getElementById('ketLuanKyThuat').value = w.ketLuanKyThuat || '';
             document.getElementById('trangThaiPbh').value = w.trangThai;
             document.getElementById('ngayTraMay').value = w.ngayTraMay ? w.ngayTraMay.split('T')[0] : '';
+            document.getElementById('phiDichVuPbh').value = w.phiDichVu || 0;
 
             await loadWarrantyEmployees();
             await loadHtttPbh();
@@ -2974,9 +2982,50 @@ async function viewWarrantyDetail(id) {
             document.getElementById('maNvKyThuat').value = w.maNvKyThuat || '';
             document.getElementById('maHtttPbh').value = w.maHttt || '';
 
-            renderRepairDetails(w.ChiTietSuaChuas, w.chiPhiSuaChua);
+            renderRepairDetails(w.ChiTietSuaChuas, w.chiPhiSuaChua, w.phiDichVu);
+
+            // Workflow actions
+            const btnQuote = document.getElementById('btnConfirmQuote');
+            const btnQC = document.getElementById('btnVerifyQC');
+
+            btnQuote.style.display = (!w.daXacNhanBaoGia && w.loaiPhieu === 'Sửa chữa') ? 'block' : 'none';
+            btnQC.style.display = (w.trangThai === 'Đang sửa' && !w.trangThaiQc) ? 'block' : 'none';
 
             document.getElementById('warrantyDetailModal').style.display = 'flex';
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function handleConfirmQuote() {
+    const id = document.getElementById('displayWId').innerText;
+    if (!id) return;
+
+    try {
+        const res = await fetch(`/api/warranties/${id}/confirm-quote`, { method: 'PUT' });
+        const result = await res.json();
+        if (result.success) {
+            Swal.fire('Thành công', result.message, 'success');
+            viewWarrantyDetail(id);
+            loadWarranties();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function handleVerifyQC() {
+    const id = document.getElementById('displayWId').innerText;
+    if (!id) return;
+
+    try {
+        const res = await fetch(`/api/warranties/${id}/verify-qc`, { method: 'PUT' });
+        const result = await res.json();
+        if (result.success) {
+            Swal.fire('Thành công', result.message, 'success');
+            viewWarrantyDetail(id);
+            loadWarranties();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
         }
     } catch (err) { console.error(err); }
 }
@@ -2995,26 +3044,39 @@ async function loadHtttPbh() {
     } catch (err) { console.error(err); }
 }
 
-function renderRepairDetails(details, total) {
+function renderRepairDetails(details, total, laborFee = 0) {
     const tbody = document.getElementById('repairDetailTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (!details || details.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Chưa có linh kiện thay thế</td></tr>';
+    if ((!details || details.length === 0) && laborFee == 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Chưa có linh kiện hoặc phí phát sinh</td></tr>';
     } else {
-        details.forEach(d => {
+        if (details) {
+            details.forEach(d => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${d.LinhKien?.tenLk || '—'}</td>
+                    <td>${d.soLuong}</td>
+                    <td>${Number(d.donGia).toLocaleString()}đ</td>
+                    <td style="font-weight:600;">${(d.soLuong * d.donGia).toLocaleString()}đ</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Them hang nhi dịch vụ nếu có
+        if (laborFee > 0) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${d.LinhKien?.tenLk || '—'}</td>
-                <td>${d.soLuong}</td>
-                <td>${Number(d.donGia).toLocaleString()}đ</td>
-                <td style="font-weight:600;">${(d.soLuong * d.donGia).toLocaleString()}đ</td>
+                <td colspan="3" style="font-style:italic; color:#6366f1;">Phí dịch vụ kỹ thuật (Công lắp đặt/Sửa chữa)</td>
+                <td style="font-weight:600; color:#6366f1;">${Number(laborFee).toLocaleString()}đ</td>
             `;
             tbody.appendChild(tr);
-        });
+        }
     }
-    document.getElementById('totalRepairCost').innerText = Number(total || 0).toLocaleString() + 'đ';
+    // Tong chi phi = chiPhiSuaChua (đã bao gồm phí linh kiện và phí dịch vụ ở backend)
+    document.getElementById('totalRepairCost').innerText = Number(total).toLocaleString() + 'đ';
 }
 
 function closeWarrantyDetailModal() {
@@ -3296,13 +3358,14 @@ function renderSparePartTable(data) {
     }
 
     data.forEach(p => {
+        const countryText = p.HangSanXuat?.quocGia ? ` (${p.HangSanXuat.quocGia})` : '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.maLk}</strong></td>
             <td>${p.tenLk}</td>
             <td><strong style="color: ${p.soLuongTon > 0 ? '#10b981' : '#ef4444'};">${p.soLuongTon || 0}</strong></td>
             <td><span class="badge" style="background:#e0f2fe; color:#0369a1;">${p.loaiLk || '-'}</span></td>
-            <td>${p.HangSanXuat?.tenHang || '-'}</td>
+            <td>${(p.HangSanXuat?.tenHang || '-') + countryText}</td>
             <td><strong>${Number(p.giaNhap || 0).toLocaleString()}đ</strong></td>
             <td style="display: flex; gap: 8px;">
                 <button class="btn-edit" onclick="editSparePart('${p.maLk}')"><i class="fas fa-edit"></i></button>
