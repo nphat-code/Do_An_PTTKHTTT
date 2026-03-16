@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/order.controller');
-const { verifyToken } = require('../middleware/auth.middleware');
+const { verifyToken, authorize } = require('../middleware/auth.middleware');
 
 // Đường dẫn: /api/orders
 
@@ -18,14 +18,14 @@ router.get('/my-orders', verifyToken, orderController.getMyOrders);
 router.put('/profile', verifyToken, orderController.updateProfile);
 
 // 4. Admin lấy danh sách toàn bộ đơn hàng
-router.get('/', orderController.getAllOrders);
+router.get('/', verifyToken, orderController.getAllOrders);
 
 // 5. Thống kê Dashboard (Phải đặt trước /:id)
-router.get('/stats', orderController.getDashboardStats);
+router.get('/stats', verifyToken, orderController.getDashboardStats);
 
 // 6. Admin hoặc Khách hàng xem chi tiết một đơn hàng cụ thể
-router.get('/:id', orderController.getOrderById);
-router.put('/:id/status', orderController.updateOrderStatus);
+router.get('/:id', verifyToken, orderController.getOrderById);
+router.put('/:id/status', verifyToken, authorize('ORDER_PROCESS'), orderController.updateOrderStatus);
 
 // 7. Lấy danh sách serial đã xuất cho 1 đơn hàng + 1 model cụ thể
 router.get('/:id/serials/:modelId', orderController.getSerialsForOrder);

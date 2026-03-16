@@ -149,18 +149,20 @@ async function addToPOSCart(maModel) {
 
         const { value: selectedSerial } = await Swal.fire({
             title: 'Chọn Serial / Kho',
+            width: '600px',
             html: `
-                <div style="text-align:left;">
-                    <p style="font-size:0.9rem; margin-bottom:10px;">Model: <strong>${p.tenModel}</strong></p>
-                    <label style="font-size:0.85rem; font-weight:600;">Chọn máy từ danh sách khả dụng:</label>
-                    <select id="swalSerialPicker" class="swal2-select" style="width:100%; margin-top:10px; font-size:0.9rem;">
+                <div style="text-align:left; width:100%; overflow-x:hidden;">
+                    <p style="font-size:0.95rem; margin-bottom:12px; color:#1e293b;">Model: <strong style="color:#4f46e5;">${p.tenModel}</strong></p>
+                    <label style="font-size:0.9rem; font-weight:600; color:#475569; display:block; margin-bottom:8px;">Chọn máy từ danh sách khả dụng:</label>
+                    <select id="swalSerialPicker" class="swal2-select" style="width:100%; margin:0; font-size:0.95rem; padding:10px; border-radius:8px;">
                         ${options}
                     </select>
                 </div>
             `,
             showCancelButton: true,
-            confirmButtonText: 'Thêm vào giỏ',
+            confirmButtonText: '<i class="fas fa-cart-plus"></i> Thêm vào giỏ',
             cancelButtonText: 'Hủy',
+            confirmButtonColor: '#4f46e5',
             preConfirm: () => document.getElementById('swalSerialPicker').value
         });
 

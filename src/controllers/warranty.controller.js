@@ -1,4 +1,4 @@
-const { sequelize, PhieuBaoHanh, ChiTietSuaChua, ChiTietMay, DongMay, NhanVien, LinhKien, Kho, HinhThucThanhToan, KhoLinhKien } = require('../models/index');
+const { sequelize, PhieuBaoHanh, ChiTietSuaChua, ChiTietMay, DongMay, NhanVien, LinhKien, Kho, HinhThucThanhToan, KhoLinhKien, HoaDon } = require('../models/index');
 const { Op } = require('sequelize');
 
 const generateWarrantyCode = async () => {

@@ -1,4 +1,4 @@
-const { ChucVu } = require('../models');
+const { ChucVu, Quyen, ChiTietQuyen } = require('../models');
 const { Op } = require('sequelize');
 
 // Lấy danh sách chức vụ
@@ -78,4 +78,68 @@ const deleteRole = async (req, res) => {
     }
 };
 
-module.exports = { getAllRoles, createRole, updateRole, deleteRole };
+// ==================== QUẢN LÝ PHÂN QUYỀN ====================
+
+// Lấy toàn bộ danh mục quyền hệ thống
+const getAllPermissions = async (req, res) => {
+    try {
+        const perms = await Quyen.findAll({ order: [['maQuyen', 'ASC']] });
+        res.json({ success: true, data: perms });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Lấy danh sách mã quyền của một chức vụ
+const getRolePermissions = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const mappings = await ChiTietQuyen.findAll({
+            where: { maCv: id },
+            attributes: ['maQuyen']
+        });
+        const permissionCodes = mappings.map(m => m.maQuyen);
+        res.json({ success: true, data: permissionCodes });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Cập nhật danh sách quyền cho một chức vụ
+const updateRolePermissions = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { permissions } = req.body; // Array of maQuyen
+
+        if (!Array.isArray(permissions)) {
+            return res.status(400).json({ success: false, message: 'Danh sách quyền không hợp lệ' });
+        }
+
+        // Xóa hết quyền cũ của chức vụ này
+        await ChiTietQuyen.destroy({ where: { maCv: id } });
+
+        // Thêm mới các quyền đã chọn
+        const newMappings = permissions.map(pCode => ({
+            maCv: id,
+            maQuyen: pCode
+        }));
+
+        if (newMappings.length > 0) {
+            await ChiTietQuyen.bulkCreate(newMappings);
+        }
+
+        res.json({ success: true, message: 'Cập nhật phân quyền thành công' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+module.exports = {
+    getAllRoles,
+    createRole,
+    updateRole,
+    deleteRole,
+    getAllPermissions,
+    getRolePermissions,
+    updateRolePermissions
+};

@@ -7,13 +7,58 @@ if (!token || !user || user.role !== 'employee') {
     window.location.href = '/admin/login.html';
 }
 
-// Hiển thị thông tin người dùng
+// Hiển thị thông tin người dùng và kiểm tra quyền
 document.addEventListener('DOMContentLoaded', () => {
     const adminNameEl = document.getElementById('adminName');
     const adminRoleEl = document.getElementById('adminRole');
     if (adminNameEl && user.fullName) adminNameEl.innerText = user.fullName;
-    if (adminRoleEl && user.role) adminRoleEl.innerText = (user.role === 'employee' ? 'Nhân viên' : user.role);
+    if (adminRoleEl && user.role) adminRoleEl.innerText = (user.role === 'employee' ? (user.tenCv || 'Nhân viên') : user.role);
+
+    // Thực thi phân quyền giao diện
+    enforcePermissions();
 });
+
+const permissionMap = {
+    'products': 'PRODUCT_MANAGE',
+    'orders': 'ORDER_PROCESS',
+    'customers': 'USER_MANAGE',
+    'employees': 'USER_MANAGE',
+    'roles': 'SYSTEM_SETTINGS',
+    'permissions': 'SYSTEM_SETTINGS',
+    'inventory': 'IMPORT_MANAGE',
+    'stock': 'INVENTORY_VIEW',
+    'suppliers': 'SYSTEM_SETTINGS',
+    'brands': 'SYSTEM_SETTINGS',
+    'categories': 'SYSTEM_SETTINGS',
+    'warehouses': 'SYSTEM_SETTINGS',
+    'warranty': 'WARRANTY_MANAGE',
+    'spareparts': 'WARRANTY_MANAGE',
+    'inspections': 'INVENTORY_VIEW',
+    'reports': 'REPORT_VIEW'
+};
+
+function hasPermission(tabName) {
+    const requiredPermission = permissionMap[tabName];
+    if (!requiredPermission) return true; // Mặc định cho phép nếu không có trong map (ví dụ: overview)
+
+    if (!user.permissions || !Array.isArray(user.permissions)) return false;
+    return user.permissions.includes(requiredPermission);
+}
+
+function enforcePermissions() {
+    sidebarLinks.forEach(link => {
+        const tabName = link.getAttribute('data-tab');
+        if (!hasPermission(tabName)) {
+            link.parentElement.style.display = 'none'; // Ẩn link trong sidebar
+        }
+    });
+
+    // Nếu tab hiện tại không có quyền, chuyển về overview
+    const activeTab = localStorage.getItem('activeTab') || 'overview';
+    if (!hasPermission(activeTab)) {
+        showTab('overview');
+    }
+}
 
 
 let isEditMode = false;
@@ -56,6 +101,12 @@ sidebarLinks.forEach(link => {
 });
 
 function showTab(tabName) {
+    if (!hasPermission(tabName)) {
+        Swal.fire('Truy cập bị từ chối', 'Bạn không có quyền truy cập chức năng này', 'error');
+        showTab('overview');
+        return;
+    }
+
     sidebarLinks.forEach(item => item.classList.remove('active'));
     sections.forEach(section => section.style.display = 'none');
 
@@ -83,6 +134,8 @@ function showTab(tabName) {
     else if (tabName === 'warranty') loadWarranties();
     else if (tabName === 'spareparts') loadSpareParts();
     else if (tabName === 'inspections') loadInspections();
+    else if (tabName === 'permissions') loadPermissionsSection();
+    else if (tabName === 'reports') loadReports();
 }
 
 let currentPage = 1;
@@ -92,7 +145,9 @@ async function loadProducts(page = 1) {
     localStorage.setItem('currentPage', page);
     const keyword = document.getElementById("searchInput").value;
     try {
-        const response = await fetch(`/api/products?page=${page}&limit=${limit}&search=${keyword}`);
+        const response = await fetch(`/api/products?page=${page}&limit=${limit}&search=${keyword}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             renderTable(result.data);
@@ -173,7 +228,10 @@ async function deleteProduct(event, id) {
     });
     if (result.isConfirmed) {
         try {
-            const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/products/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+            });
             if (response.ok) {
                 Swal.fire({
                     icon: 'success',
@@ -194,8 +252,8 @@ async function deleteProduct(event, id) {
 async function loadDropdowns() {
     try {
         const [brandsRes, catsRes] = await Promise.all([
-            fetch('/api/products/brands'),
-            fetch('/api/products/categories')
+            fetch('/api/products/brands', { headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` } }),
+            fetch('/api/products/categories', { headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` } })
         ]);
         const brandsData = await brandsRes.json();
         const catsData = await catsRes.json();
@@ -226,7 +284,9 @@ window.openEditModal = async (maModel) => {
     document.querySelector("#productModal .modal-header h2").innerText = "Chỉnh sửa sản phẩm";
 
     try {
-        const res = await fetch(`/api/products/${maModel}`);
+        const res = await fetch(`/api/products/${maModel}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (!result.success) return Swal.fire('Lỗi', result.message, 'error');
 
@@ -248,6 +308,7 @@ window.openEditModal = async (maModel) => {
         document.getElementById("trongLuong").value = ch.trongLuong || '';
         document.getElementById("giaNhap").value = p.giaNhap || 0;
         document.getElementById("giaBan").value = p.giaBan || 0;
+        document.getElementById("thoiHanBaoHanh").value = p.thoiHanBaoHanh || 12;
 
         // Hiển ảnh hiện tại
         const previewImg = document.getElementById('previewImg');
@@ -271,7 +332,9 @@ window.openEditModal = async (maModel) => {
 
 async function loadCompMaLkDropdown() {
     try {
-        const res = await fetch('/api/spareparts');
+        const res = await fetch('/api/spareparts', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             const select = document.getElementById('compMaLk');
@@ -283,7 +346,9 @@ async function loadCompMaLkDropdown() {
 
 async function loadCompatibility(maModel) {
     try {
-        const res = await fetch(`/api/products/${maModel}/compatible-parts`);
+        const res = await fetch(`/api/products/${maModel}/compatible-parts`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         const tbody = document.getElementById('compTableBody');
         tbody.innerHTML = '';
@@ -313,7 +378,7 @@ window.addCompatibility = async () => {
     try {
         const res = await fetch(`/api/products/${maModel}/compatible-parts`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
             body: JSON.stringify({ maLk, ghiChu })
         });
         const result = await res.json();
@@ -332,7 +397,8 @@ window.removeCompatibility = async (maLk) => {
 
     try {
         const res = await fetch(`/api/products/${maModel}/compatible-parts/${maLk}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
         });
         const result = await res.json();
         if (result.success) {
@@ -376,6 +442,7 @@ productForm.onsubmit = async function (e) {
     formData.append('trongLuong', document.getElementById("trongLuong").value);
     formData.append('giaNhap', document.getElementById("giaNhap").value);
     formData.append('giaBan', document.getElementById("giaBan").value);
+    formData.append('thoiHanBaoHanh', document.getElementById("thoiHanBaoHanh").value);
 
     // Thêm file ảnh nếu có chọn
     const fileInput = document.getElementById('hinhAnh');
@@ -389,6 +456,7 @@ productForm.onsubmit = async function (e) {
     try {
         const response = await fetch(url, {
             method: method,
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }, // Added Authorization header
             body: formData
         });
 
@@ -431,7 +499,9 @@ async function loadOrders() {
     try {
         const searchInput = document.getElementById('searchOrderInput');
         const search = searchInput ? searchInput.value.trim() : '';
-        const response = await fetch(`/api/orders?search=${encodeURIComponent(search)}`);
+        const response = await fetch(`/api/orders?search=${encodeURIComponent(search)}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             renderOrdersTable(result.data);
@@ -507,7 +577,10 @@ async function changeOrderStatus(orderId, trangThai) {
     try {
         const res = await fetch(`/api/orders/${orderId}/status`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
             body: JSON.stringify({ trangThai })
         });
         const result = await res.json();
@@ -535,7 +608,9 @@ let statusChartInstance = null;
 
 async function loadDashboardStats() {
     try {
-        const response = await fetch('/api/orders/stats');
+        const response = await fetch('/api/orders/stats', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
 
         if (result.success) {
@@ -707,7 +782,9 @@ document.querySelectorAll(".close-order-btn").forEach(btn => {
 let currentViewingOrder = null;
 async function viewOrderDetails(orderId) {
     try {
-        const response = await fetch(`http://localhost:3000/api/orders/${orderId}`);
+        const response = await fetch(`/api/orders/${orderId}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
 
         if (result.success) {
@@ -879,9 +956,9 @@ function printInvoice() {
         </head>
         <body>
             <div class="header">
-                <div class="store-name">LAPTOP STORE</div>
-                <div>Địa chỉ: 123 Đường Công Nghệ, Q. Thủ Đức, TP.HCM</div>
-                <div>Hotline: 0123.456.789 - Email: support@laptopstore.com</div>
+                <div class="store-name">P-TECH LAPTOP</div>
+                <div>Địa chỉ: 123 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh</div>
+                <div>Hotline: 1900 1234 - Email: support@ptechlaptop.vn</div>
                 <div class="invoice-title">HÓA ĐƠN BÁN HÀNG</div>
             </div>
 
@@ -919,7 +996,7 @@ function printInvoice() {
             </div>
 
             <div class="footer">
-                <p>Cảm ơn quý khách đã mua sắm tại Laptop Store!</p>
+                <p>Cảm ơn quý khách đã mua sắm tại P-Tech Laptop!</p>
                 <p>Vui lòng giữ lại hóa đơn để được bảo hành sản phẩm.</p>
             </div>
             
@@ -941,10 +1018,12 @@ async function loadCustomers() {
     try {
         const keyword = document.getElementById("searchCustomerInput") ? document.getElementById("searchCustomerInput").value : '';
         const url = keyword
-            ? `http://localhost:3000/api/users/search?query=${keyword}`
-            : 'http://localhost:3000/api/users';
+            ? `/api/users/search?query=${keyword}`
+            : '/api/users';
 
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
 
         if (result.success) {
@@ -1005,8 +1084,9 @@ async function toggleUserLock(userId) {
 
     if (result.isConfirmed) {
         try {
-            const response = await fetch(`http://localhost:3000/api/users/${userId}/lock`, {
-                method: 'PUT'
+            const response = await fetch(`/api/users/${userId}/lock`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
             });
             const data = await response.json();
 
@@ -1043,10 +1123,13 @@ async function resetCustomerPassword(userId) {
 
     if (newPassword) {
         try {
-            const res = await fetch(`http://localhost:3000/api/users/${userId}/reset-password`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newPassword })
+            const res = await fetch(`/api/users/${userId}/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ newPassword: newPassword })
             });
             const data = await res.json();
             if (data.success) {
@@ -1080,7 +1163,9 @@ async function openCustomerModal(user = null) {
     // Nếu là thêm mới, tự động lấy mã tiếp theo
     if (!isEdit) {
         try {
-            const res = await fetch('http://localhost:3000/api/users/next-id');
+            const res = await fetch('/api/users/next-id', {
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+            });
             const result = await res.json();
             if (result.success) {
                 nextId = result.nextId;
@@ -1202,7 +1287,7 @@ async function saveCustomer(data, isEdit) {
         const method = isEdit ? 'PUT' : 'POST';
         const response = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -1232,7 +1317,9 @@ document.querySelectorAll(".close-view-import-btn").forEach(btn => {
 // Hàm xem chi tiết phiếu nhập
 async function viewImportDetails(receiptId) {
     try {
-        const response = await fetch(`/api/imports/${receiptId}`);
+        const response = await fetch(`/api/imports/${receiptId}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
 
         if (result.success) {
@@ -1374,7 +1461,7 @@ async function submitImportReceipt() {
     try {
         const response = await fetch('/api/imports', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
             body: JSON.stringify({
                 note,
                 items: importItems
@@ -1401,7 +1488,9 @@ async function loadStockData() {
     const keyword = document.getElementById("searchStockInput") ? document.getElementById("searchStockInput").value : '';
     try {
         // Fetch all products for stock view
-        const response = await fetch(`/api/products?limit=1000&search=${keyword}`);
+        const response = await fetch(`/api/products?limit=1000&search=${keyword}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
 
         if (result.success) {
@@ -1473,7 +1562,9 @@ function renderStockTable(products) {
 
 async function viewSerials(maModel, tenModel) {
     try {
-        const response = await fetch('/api/products/' + maModel + '/serials');
+        const response = await fetch('/api/products/' + maModel + '/serials', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
 
         let html = '';
@@ -1542,7 +1633,9 @@ let editingSupplier = null;
 async function loadSuppliers() {
     try {
         const search = document.getElementById('searchSupplierInput')?.value || '';
-        const response = await fetch(`/api/suppliers?search=${encodeURIComponent(search)}`);
+        const response = await fetch(`/api/suppliers?search=${encodeURIComponent(search)}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             renderSuppliersTable(result.data);
@@ -1581,7 +1674,9 @@ async function openSupplierModal(supplier = null) {
     let defaultMaNcc = supplier?.maNcc || '';
     if (!supplier) {
         try {
-            const res = await fetch('/api/suppliers/next-id');
+            const res = await fetch('/api/suppliers/next-id', {
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+            });
             const data = await res.json();
             if (data.success) {
                 defaultMaNcc = data.nextId;
@@ -1664,7 +1759,7 @@ async function saveSupplier(data, isEdit) {
         const method = isEdit ? 'PUT' : 'POST';
         const response = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -1682,7 +1777,7 @@ async function saveSupplier(data, isEdit) {
 async function deleteSupplier(maNcc) {
     const confirm = await Swal.fire({
         title: 'Xóa nhà cung cấp?',
-        text: `Bạn có chắc muốn xóa NCC: ${maNcc}?`,
+        text: `Bạn có chắc muốn xóa NCC: ${maNcc}? LƯU Ý: Không thể xóa nếu hãng này đang có sản phẩm.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Xóa',
@@ -1692,7 +1787,10 @@ async function deleteSupplier(maNcc) {
     if (!confirm.isConfirmed) return;
 
     try {
-        const response = await fetch(`/api/suppliers/${maNcc}`, { method: 'DELETE' });
+        const response = await fetch(`/api/suppliers/${maNcc}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
@@ -1712,7 +1810,9 @@ let editingBrand = null;
 async function loadBrands() {
     try {
         const search = document.getElementById('searchBrandInput')?.value || '';
-        const response = await fetch(`/api/brands?search=${encodeURIComponent(search)}`);
+        const response = await fetch(`/api/brands?search=${encodeURIComponent(search)}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             renderBrandsTable(result.data);
@@ -1792,7 +1892,7 @@ async function saveBrand(data, isEdit) {
         const method = isEdit ? 'PUT' : 'POST';
         const response = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -1820,7 +1920,10 @@ async function deleteBrand(maHang) {
     if (!confirm.isConfirmed) return;
 
     try {
-        const response = await fetch(`/api/brands/${maHang}`, { method: 'DELETE' });
+        const response = await fetch(`/api/brands/${maHang}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
@@ -1840,7 +1943,9 @@ let editingWarehouse = null;
 async function loadWarehouses() {
     try {
         const search = document.getElementById('searchWarehouseInput')?.value || '';
-        const response = await fetch(`/api/warehouses?search=${encodeURIComponent(search)}`);
+        const response = await fetch(`/api/warehouses?search=${encodeURIComponent(search)}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             renderWarehousesTable(result.data);
@@ -1955,7 +2060,7 @@ async function saveWarehouse(data, isEdit) {
         const method = isEdit ? 'PUT' : 'POST';
         const response = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -1983,7 +2088,10 @@ async function deleteWarehouse(maKho) {
     if (!confirm.isConfirmed) return;
 
     try {
-        const response = await fetch(`/api/warehouses/${maKho}`, { method: 'DELETE' });
+        const response = await fetch(`/api/warehouses/${maKho}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
@@ -2003,7 +2111,9 @@ let editingRole = null;
 async function loadRoles() {
     try {
         const search = document.getElementById('searchRoleInput')?.value || '';
-        const response = await fetch(`/api/roles?search=${encodeURIComponent(search)}`);
+        const response = await fetch(`/api/roles?search=${encodeURIComponent(search)}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             renderRolesTable(result.data);
@@ -2090,7 +2200,7 @@ async function saveRole(data, isEdit) {
         const method = isEdit ? 'PUT' : 'POST';
         const response = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -2118,7 +2228,10 @@ async function deleteRole(maCv) {
     if (!confirm.isConfirmed) return;
 
     try {
-        const response = await fetch(`/api/roles/${maCv}`, { method: 'DELETE' });
+        const response = await fetch(`/api/roles/${maCv}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
@@ -2137,7 +2250,9 @@ let editingEmployee = null;
 
 async function loadEmployees() {
     try {
-        const response = await fetch('/api/employees');
+        const response = await fetch('/api/employees', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             renderEmployeesTable(result.data);
@@ -2188,7 +2303,9 @@ async function openEmployeeModal(employee = null) {
 
     if (!isEdit) {
         try {
-            const res = await fetch('/api/employees/next-id');
+            const res = await fetch('/api/employees/next-id', {
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+            });
             const resData = await res.json();
             if (resData.success) {
                 nextMaNv = resData.nextId;
@@ -2202,7 +2319,9 @@ async function openEmployeeModal(employee = null) {
     // Fetch roles for dropdown
     let roles = [];
     try {
-        const resRoles = await fetch('/api/roles');
+        const resRoles = await fetch('/api/roles', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const roleData = await resRoles.json();
         if (roleData.success) roles = roleData.data;
     } catch (err) {
@@ -2310,7 +2429,7 @@ async function saveEmployee(data, isEdit) {
         const method = isEdit ? 'PUT' : 'POST';
         const response = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('token')}` },
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -2339,7 +2458,10 @@ async function toggleEmployee(maNv, currentStatus) {
     if (!confirm.isConfirmed) return;
 
     try {
-        const response = await fetch(`/api/employees/${maNv}/toggle`, { method: 'PUT' });
+        const response = await fetch(`/api/employees/${maNv}/toggle`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             Swal.fire({ icon: 'success', title: result.message, timer: 1500, showConfirmButton: false });
@@ -2358,6 +2480,9 @@ async function resetEmpPassword(maNv) {
         input: 'password',
         inputLabel: `Nhập mật khẩu mới cho nhân viên ${maNv}`,
         inputPlaceholder: 'Ít nhất 6 ký tự...',
+        inputAttributes: {
+            autocomplete: 'new-password'
+        },
         showCancelButton: true,
         confirmButtonText: 'Cập nhật',
         cancelButtonText: 'Hủy',
@@ -2368,10 +2493,13 @@ async function resetEmpPassword(maNv) {
 
     if (newPassword) {
         try {
-            const response = await fetch(`http://localhost:3000/api/employees/${maNv}/reset-password`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newPassword })
+            const response = await fetch(`/api/employees/${maNv}/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ password: newPassword })
             });
             const result = await response.json();
 
@@ -2391,7 +2519,9 @@ let importItems = [];
 
 async function loadImportHistory() {
     try {
-        const response = await fetch('/api/imports');
+        const response = await fetch('/api/imports', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await response.json();
         if (result.success) {
             renderImportHistoryTable(result.data);
@@ -2440,13 +2570,13 @@ async function openImportModal() {
     document.getElementById('importModal').style.display = 'flex';
 
     try {
-        const [resKho, resNcc, resHttt] = await Promise.all([
-            fetch('/api/warehouses'),
-            fetch('/api/suppliers'),
-            fetch('/api/orders/payment-methods')
+        const [warehousesData, suppliersData, paymentsData] = await Promise.all([
+            fetch('/api/warehouses', { headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` } }),
+            fetch('/api/suppliers', { headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` } }),
+            fetch('/api/orders/payment-methods', { headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` } })
         ]);
 
-        const resultKho = await resKho.json();
+        const resultKho = await warehousesData.json();
         if (resultKho.success) {
             const select = document.getElementById('importKhoId');
             select.innerHTML = resultKho.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
@@ -2478,7 +2608,9 @@ async function addImportItemUI() {
     // Lấy DS model sản phẩm
     let products = [];
     try {
-        const res = await fetch('/api/products?limit=1000');
+        const res = await fetch('/api/products?limit=1000', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) products = result.data;
     } catch (e) {
@@ -2741,7 +2873,9 @@ async function loadWarranties() {
     try {
         const searchInput = document.getElementById('searchWarrantyInput');
         const search = searchInput ? searchInput.value.trim() : '';
-        const res = await fetch(`/api/warranties?search=${encodeURIComponent(search)}`);
+        const res = await fetch(`/api/warranties?search=${encodeURIComponent(search)}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             renderWarrantyTable(result.data);
@@ -2957,17 +3091,36 @@ async function viewWarrantyDetail(id) {
 
             const info = document.getElementById('warrantyGeneralInfo');
             const ngayLap = new Date(w.ngayLap).toLocaleString('vi-VN');
+            const typeColor = w.loaiPhieu === 'Bảo hành' ? '#10b981' : '#f59e0b';
+
             info.innerHTML = `
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size: 0.95rem;">
-                    <p><strong>Loại hình:</strong><br><span style="color:${w.loaiPhieu === 'Bảo hành' ? '#10b981' : '#f59e0b'}; font-weight:700;">${w.loaiPhieu}</span></p>
-                    <p><strong>Số Serial:</strong><br><code>${w.soSerial}</code></p>
-                    <p><strong>Sản phẩm:</strong><br>${w.ChiTietMay?.DongMay?.tenModel || '—'}</p>
-                    <p><strong>Ngày tiếp nhận:</strong><br>${ngayLap}</p>
-                    <p><strong>NV tiếp nhận:</strong><br>${w.NvTiepNhan?.hoTen || '—'}</p>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Loại hình</span>
+                        <span style="color: ${typeColor}; font-weight: 700; font-size: 1.1rem;">${w.loaiPhieu}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Số Serial</span>
+                        <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; color: #1e293b; font-weight: 600; font-size: 0.95rem;">${w.soSerial}</code>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Ngày tiếp nhận</span>
+                        <span style="font-weight: 600; color: #1e293b; font-size: 1rem;">${ngayLap}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; grid-column: span 2;">
+                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Sản phẩm / Model</span>
+                        <span style="font-weight: 600; color: #1e293b; font-size: 1rem;">${w.ChiTietMay?.DongMay?.tenModel || 'Thiết bị không định danh'}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">NV tiếp nhận</span>
+                        <span style="font-weight: 600; color: #1e293b; font-size: 1rem;">${w.NvTiepNhan?.hoTen || '—'}</span>
+                    </div>
                 </div>
-                <div style="background:#fff7ed; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #ffedd5;">
-                    <strong style="color: #9a3412;"><i class="fas fa-exclamation-triangle"></i> Mô tả lỗi khách báo:</strong>
-                    <p style="margin-top:5px; white-space: pre-wrap;">${w.moTaLoi}</p>
+                <div style="background: #fffbeb; padding: 18px; border-radius: 12px; border-left: 5px solid #f59e0b; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+                    <strong style="color: #92400e; font-size: 0.9rem; display: flex; align-items: center; margin-bottom: 8px;">
+                        <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i> MÔ TẢ TÌNH TRẠNG LỖI TỪ KHÁCH HÀNG:
+                    </strong>
+                    <p style="margin: 0; white-space: pre-wrap; color: #451a03; line-height: 1.6; font-size: 1rem; font-style: italic;">"${w.moTaLoi}"</p>
                 </div>
             `;
 
@@ -3050,34 +3203,42 @@ function renderRepairDetails(details, total, laborFee = 0) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if ((!details || details.length === 0) && laborFee == 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Chưa có linh kiện hoặc phí phát sinh</td></tr>';
-    } else {
-        if (details) {
-            details.forEach(d => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${d.LinhKien?.tenLk || '—'}</td>
-                    <td>${d.soLuong}</td>
-                    <td>${Number(d.donGia).toLocaleString()}đ</td>
-                    <td style="font-weight:600;">${(d.soLuong * d.donGia).toLocaleString()}đ</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+    let partsSubtotal = 0;
 
-        // Them hang nhi dịch vụ nếu có
-        if (laborFee > 0) {
+    if ((!details || details.length === 0)) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color:#94a3b8;"><i class="fas fa-box-open" style="display:block; font-size:2rem; margin-bottom:10px; opacity:0.5;"></i>Chưa có linh kiện/vật tư</td></tr>';
+    } else {
+        details.forEach(d => {
             const tr = document.createElement('tr');
+            const subtotal = d.soLuong * d.donGia;
+            partsSubtotal += subtotal;
             tr.innerHTML = `
-                <td colspan="3" style="font-style:italic; color:#6366f1;">Phí dịch vụ kỹ thuật (Công lắp đặt/Sửa chữa)</td>
-                <td style="font-weight:600; color:#6366f1;">${Number(laborFee).toLocaleString()}đ</td>
+                <td style="padding: 12px 15px;">${d.LinhKien?.tenLk || '—'}</td>
+                <td style="padding: 12px 15px; text-align: center;"><span style="background: #eef2ff; color: #4f46e5; padding: 2px 10px; border-radius: 6px; font-weight: 600;">${d.soLuong}</span></td>
+                <td style="padding: 12px 15px; text-align: right;">${Number(d.donGia).toLocaleString()}đ</td>
+                <td style="padding: 12px 15px; text-align: right; font-weight:700; color: #1e293b;">${subtotal.toLocaleString()}đ</td>
             `;
             tbody.appendChild(tr);
-        }
+        });
     }
-    // Tong chi phi = chiPhiSuaChua (đã bao gồm phí linh kiện và phí dịch vụ ở backend)
-    document.getElementById('totalRepairCost').innerText = Number(total).toLocaleString() + 'đ';
+
+    // Luu lai partsSubtotal de tinh toan live
+    tbody.dataset.partsSubtotal = partsSubtotal;
+
+    // Ham cap nhat UI tong tien
+    const updateTotalUI = () => {
+        const currentLabor = parseFloat(document.getElementById('phiDichVuPbh').value) || 0;
+        const grandTotal = partsSubtotal + currentLabor;
+        document.getElementById('totalRepairCost').innerText = grandTotal.toLocaleString() + 'đ';
+    };
+
+    // Lang nghe sự thay đổi của phí dịch vụ
+    const laborInput = document.getElementById('phiDichVuPbh');
+    if (laborInput) {
+        laborInput.oninput = updateTotalUI;
+    }
+
+    updateTotalUI();
 }
 
 function closeWarrantyDetailModal() {
@@ -3090,7 +3251,9 @@ const inspectionDetailModal = document.getElementById('inspectionDetailModal');
 
 window.loadInspections = async () => {
     try {
-        const res = await fetch('/api/inspections');
+        const res = await fetch('/api/inspections', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const data = await res.json();
         renderInspectionsTable(data);
     } catch (err) { console.error('Error loading inspections:', err); }
@@ -3118,19 +3281,39 @@ window.openInspectionModal = async () => {
     const khoSelect = document.getElementById('inspectionKhoId');
     if (khoSelect) khoSelect.value = '';
 
+    const empSelect = document.getElementById('inspectionEmployeeId');
+    if (empSelect) empSelect.value = '';
+
     document.getElementById('inspectionMachineTableBody').innerHTML = '<tr><td colspan="4" style="text-align: center;">Vui lòng chọn kho để xem danh sách máy</td></tr>';
     document.getElementById('inspectionSparePartTableBody').innerHTML = '<tr><td colspan="4" style="text-align: center;">Vui lòng chọn kho để xem danh sách linh kiện</td></tr>';
     document.getElementById('inspectionGhiChu').value = '';
 
-    // Load Warehouses
+    // Load Warehouses & Employees
     try {
-        const res = await fetch('/api/warehouses');
-        const result = await res.json();
-        if (result.success) {
+        const [khoRes, empRes] = await Promise.all([
+            fetch('/api/warehouses'),
+            fetch('/api/employees')
+        ]);
+        const khoResult = await khoRes.json();
+        const empResult = await empRes.json();
+
+        if (khoResult.success) {
             const select = document.getElementById('inspectionKhoId');
             if (select) {
                 select.innerHTML = '<option value="">-- Chọn kho --</option>' +
-                    result.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
+                    khoResult.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
+            }
+        }
+
+        if (empResult.success) {
+            const select = document.getElementById('inspectionEmployeeId');
+            if (select) {
+                select.innerHTML = '<option value="">-- Chọn nhân viên --</option>' +
+                    empResult.data.map(e => `<option value="${e.maNv}">${e.hoTen}</option>`).join('');
+                // Default to current user if possible
+                if (user && (user.maNv || user.id)) {
+                    select.value = user.maNv || user.id;
+                }
             }
         }
     } catch (err) { console.error(err); }
@@ -3193,8 +3376,10 @@ window.submitInspection = async () => {
     const maKho = document.getElementById('inspectionKhoId').value;
     if (!maKho) return Swal.fire('Thông báo', 'Vui lòng chọn kho!', 'warning');
 
+    const maNv = document.getElementById('inspectionEmployeeId').value;
+    if (!maNv) return Swal.fire('Thông báo', 'Vui lòng chọn nhân viên kiểm kê!', 'warning');
+
     const maPk = 'PK' + Date.now().toString().slice(-8);
-    const maNv = user ? (user.maNv || user.id) : 'ADMIN';
     const ghiChu = document.getElementById('inspectionGhiChu').value;
 
     const ctMay = [];
@@ -3338,7 +3523,9 @@ function closeAddRepairDetail() {
 async function loadSpareParts() {
     try {
         const keyword = document.getElementById('searchSparePartInput').value;
-        const res = await fetch(`/api/spareparts?search=${encodeURIComponent(keyword)}`);
+        const res = await fetch(`/api/spareparts?search=${encodeURIComponent(keyword)}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             renderSparePartTable(result.data);
@@ -3393,7 +3580,9 @@ function closeSparePartModal() {
 
 async function loadSparePartBrands() {
     try {
-        const res = await fetch('/api/products/brands');
+        const res = await fetch('/api/products/brands', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             const select = document.getElementById('sparePartHang');
@@ -3420,7 +3609,10 @@ document.getElementById('sparePartForm').onsubmit = async (e) => {
     try {
         const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
             body: JSON.stringify(body)
         });
         const result = await res.json();
@@ -3436,7 +3628,9 @@ document.getElementById('sparePartForm').onsubmit = async (e) => {
 
 async function editSparePart(id) {
     try {
-        const res = await fetch(`/api/spareparts/${id}`);
+        const res = await fetch(`/api/spareparts/${id}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             const p = result.data;
@@ -3469,7 +3663,10 @@ async function deleteSparePart(id) {
 
     if (confirm.isConfirmed) {
         try {
-            const res = await fetch(`/api/spareparts/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/spareparts/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+            });
             const result = await res.json();
             if (result.success) {
                 Swal.fire('Đã xóa', result.message, 'success');
@@ -3488,7 +3685,9 @@ async function deleteSparePart(id) {
 async function loadCategories() {
     try {
         const keyword = document.getElementById('searchCategoryInput').value;
-        const res = await fetch(`/api/categories?search=${encodeURIComponent(keyword)}`);
+        const res = await fetch(`/api/categories?search=${encodeURIComponent(keyword)}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             renderCategoriesTable(result.data);
@@ -3549,7 +3748,10 @@ document.getElementById('categoryForm').onsubmit = async (e) => {
     try {
         const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
             body: JSON.stringify(body)
         });
         const result = await res.json();
@@ -3565,7 +3767,9 @@ document.getElementById('categoryForm').onsubmit = async (e) => {
 
 async function editCategory(id) {
     try {
-        const res = await fetch(`/api/categories`);
+        const res = await fetch(`/api/categories`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             const c = result.data.find(item => item.maLoai === id);
@@ -3595,7 +3799,10 @@ async function deleteCategory(id) {
 
     if (confirm.isConfirmed) {
         try {
-            const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/categories/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+            });
             const result = await res.json();
             if (result.success) {
                 Swal.fire('Đã xóa', result.message, 'success');
@@ -3605,4 +3812,173 @@ async function deleteCategory(id) {
             }
         } catch (err) { console.error(err); }
     }
+}
+
+// ==================== QUẢN LÝ PHÂN QUYỀN ====================
+
+async function loadPermissionsSection() {
+    await loadRoleSelectForPermissions();
+    await loadAllPermissionsGrid();
+}
+
+async function loadRoleSelectForPermissions() {
+    try {
+        const res = await fetch('/api/roles', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        const result = await res.json();
+        const select = document.getElementById('roleSelectPermission');
+        if (select && result.success) {
+            select.innerHTML = '<option value="">-- Chọn chức vụ --</option>' +
+                result.data.map(r => `<option value="${r.maCv}">${r.tenCv} (${r.maCv})</option>`).join('');
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function loadAllPermissionsGrid() {
+    try {
+        const res = await fetch('/api/roles/permissions', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        const result = await res.json();
+        const grid = document.getElementById('permissionsGrid');
+        if (grid && result.success) {
+            grid.innerHTML = result.data.map(p => `
+                <div class="permission-item" style="background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; align-items: flex-start; gap: 12px; transition: all 0.2s;">
+                    <input type="checkbox" name="permission" value="${p.maQuyen}" id="perm_${p.maQuyen}" style="width: 20px; height: 20px; border-radius: 4px; border: 2px solid #cbd5e1; cursor: pointer; margin-top: 2px;">
+                    <label for="perm_${p.maQuyen}" style="cursor: pointer; flex-grow: 1;">
+                        <span style="display: block; font-weight: 700; color: #1e293b; margin-bottom: 4px;">${p.tenQuyen}</span>
+                        <span style="font-size: 0.85rem; color: #64748b; font-style: italic;">${p.moTa || ''}</span>
+                    </label>
+                </div>
+            `).join('');
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function loadRolePermissions() {
+    const maCv = document.getElementById('roleSelectPermission').value;
+    // Reset all checkboxes
+    document.querySelectorAll('input[name="permission"]').forEach(cb => cb.checked = false);
+
+    if (!maCv) return;
+
+    try {
+        const res = await fetch(`/api/roles/${maCv}/permissions`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        const result = await res.json();
+        if (result.success) {
+            result.data.forEach(pCode => {
+                const cb = document.getElementById(`perm_${pCode}`);
+                if (cb) cb.checked = true;
+            });
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function savePermissionsMappings() {
+    const maCv = document.getElementById('roleSelectPermission').value;
+    if (!maCv) {
+        Swal.fire('Chú ý', 'Vui lòng chọn một chức vụ trước', 'warning');
+        return;
+    }
+
+    const selectedPermissions = Array.from(document.querySelectorAll('input[name="permission"]:checked'))
+        .map(cb => cb.value);
+
+    try {
+        const res = await fetch(`/api/roles/${maCv}/permissions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ permissions: selectedPermissions })
+        });
+        const result = await res.json();
+        if (result.success) {
+            Swal.fire('Thành công', result.message, 'success');
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (err) { console.error(err); }
+}
+
+// ==================== QUẢN LÝ BÁO CÁO ====================
+
+async function loadReports() {
+    const start = document.getElementById('reportStartDate').value;
+    const end = document.getElementById('reportEndDate').value;
+
+    // Mặc định tháng hiện tại nếu không chọn
+    let dateQuery = '';
+    if (start && end) {
+        dateQuery = `?startDate=${start}&endDate=${end}`;
+    }
+
+    try {
+        const headers = { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` };
+
+        // 1. Load Sales Report
+        const salesRes = await fetch(`/api/reports/sales${dateQuery}`, { headers });
+        const salesData = await salesRes.json();
+        if (salesData.success) renderSalesReport(salesData.data);
+
+        // 2. Load Staff Performance
+        const staffRes = await fetch(`/api/reports/staff${dateQuery}`, { headers });
+        const staffData = await staffRes.json();
+        if (staffData.success) renderStaffReport(staffData.data);
+
+        // 3. Load Inventory Report
+        const invRes = await fetch('/api/reports/inventory', { headers });
+        const invData = await invRes.json();
+        if (invData.success) renderInventoryReport(invData.data);
+
+    } catch (err) {
+        console.error("Lỗi tải báo cáo:", err);
+    }
+}
+
+function renderSalesReport(data) {
+    document.getElementById('reportTotalRevenue').innerText = Number(data.summary.totalRevenue || 0).toLocaleString() + 'đ';
+    document.getElementById('reportTotalOrders').innerText = data.summary.totalOrders || 0;
+}
+
+function renderStaffReport(data) {
+    const tbody = document.getElementById('staffPerformanceTableBody');
+    if (!tbody) return;
+
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Không có dữ liệu trong khoảng này</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = data.map(s => `
+        <tr>
+            <td><strong>${s.hoTen}</strong></td>
+            <td>${s.orderCount}</td>
+            <td style="color: #10b981; font-weight: 600;">${Number(s.totalRevenue || 0).toLocaleString()}đ</td>
+        </tr>
+    `).join('');
+}
+
+function renderInventoryReport(data) {
+    document.getElementById('reportTotalStockValue').innerText = Number(data.summary.totalValue || 0).toLocaleString() + 'đ';
+    document.getElementById('reportLowStockCount').innerText = data.lowStock.length;
+
+    const tbody = document.getElementById('lowStockReportTableBody');
+    if (!tbody) return;
+
+    if (data.lowStock.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Hàng trong kho vẫn đủ</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = data.lowStock.map(p => `
+        <tr>
+            <td>${p.tenModel}</td>
+            <td style="color: #ef4444; font-weight: 700;">${p.soLuongTon}</td>
+        </tr>
+    `).join('');
 }

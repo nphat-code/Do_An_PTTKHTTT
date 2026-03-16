@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { NhanVien, KhachHang } = require('../models');
+const { NhanVien, KhachHang, Quyen, ChiTietQuyen } = require('../models');
 
 const verifyToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -35,10 +35,39 @@ const verifyToken = async (req, res, next) => {
     }
 };
 
+const authorize = (permissionCode) => {
+    return async (req, res, next) => {
+        // Only employees (NhanVien) have granular permissions in this system
+        if (!req.user || req.user.role !== 'employee') {
+            return res.status(403).json({ success: false, message: "Truy cập bị từ chối" });
+        }
+
+        try {
+            // Check if the role (maCv) has the required maQuyen
+            const hasPermission = await ChiTietQuyen.findOne({
+                where: {
+                    maCv: req.user.maCv,
+                    maQuyen: permissionCode
+                }
+            });
+
+            if (hasPermission) {
+                return next();
+            }
+
+            return res.status(403).json({
+                success: false,
+                message: `Bạn không có quyền: ${permissionCode}`
+            });
+        } catch (error) {
+            console.error('Authorization Error:', error);
+            return res.status(500).json({ success: false, message: "Lỗi kiểm tra quyền hạn" });
+        }
+    };
+};
+
 const isAdmin = (req, res, next) => {
     if (req.user && req.user.role === 'employee') {
-        // Technically all 'employee' (NhanVien) could access admin or we check MA_CV
-        // For now, any employee can access admin routes
         next();
     } else {
         return res.status(403).json({ success: false, message: "Bạn không có quyền truy cập Admin" });
@@ -47,5 +76,6 @@ const isAdmin = (req, res, next) => {
 
 module.exports = {
     verifyToken,
-    isAdmin
+    isAdmin,
+    authorize
 };

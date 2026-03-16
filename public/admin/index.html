@@ -9,6 +9,83 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Premium Report Card Styles */
+        .report-section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .report-card {
+            position: relative;
+            padding: 24px;
+            border-radius: 20px;
+            overflow: hidden;
+            color: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 140px;
+        }
+
+        .report-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.2);
+        }
+
+        .report-card i.bg-icon {
+            position: absolute;
+            right: -10px;
+            bottom: -15px;
+            font-size: 5.5rem;
+            opacity: 0.2;
+            transform: rotate(-10deg);
+            pointer-events: none;
+        }
+
+        .report-card .report-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .report-card .report-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            opacity: 0.95;
+        }
+
+        .report-card .report-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1.2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-card.revenue {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .report-card.orders {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+
+        .report-card.stock {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .report-card.alerts {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+    </style>
 </head>
 
 <body>
@@ -58,13 +135,13 @@
                 <ul>
                     <li><a href="#" data-tab="employees"><i class="fas fa-user-tie"></i> Nhân viên</a></li>
                     <li><a href="#" data-tab="roles"><i class="fas fa-id-badge"></i> Chức vụ</a></li>
+                    <li><a href="#" data-tab="permissions"><i class="fas fa-user-shield"></i> Phân quyền</a></li>
+                    <li><a href="#" data-tab="reports"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
                 </ul>
 
                 <div class="nav-group-title">TIỆN ÍCH</div>
                 <ul>
                     <li><a href="#" data-tab="warranty"><i class="fas fa-tools"></i> Bảo hành</a></li>
-                    <li><a href="#"><i class="fas fa-chart-line"></i> Báo cáo</a></li>
-                    <li><a href="#"><i class="fas fa-cog"></i> Cài đặt</a></li>
                     <li><a href="#" onclick="logoutAdmin()" style="color: #ef4444;"><i class="fas fa-sign-out-alt"></i>
                             Đăng xuất</a></li>
                 </ul>
@@ -468,6 +545,143 @@
                 </div>
             </section>
 
+            <section id="reports-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Báo cáo & Thống kê</h1>
+                </header>
+
+                <div class="section-box" style="padding: 30px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                    <!-- Filter Bar -->
+                    <div
+                        style="display: flex; gap: 20px; align-items: center; margin-bottom: 40px; background: #fff; padding: 25px; border-radius: 16px; border: 1px solid #edf2f7; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
+                        <div class="form-group" style="margin: 0; flex: 1;">
+                            <label
+                                style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Từ
+                                ngày</label>
+                            <input type="date" id="reportStartDate"
+                                style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #edf2f7; background: #f8fafc; transition: all 0.2s;">
+                        </div>
+                        <div class="form-group" style="margin: 0; flex: 1;">
+                            <label
+                                style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Đến
+                                ngày</label>
+                            <input type="date" id="reportEndDate"
+                                style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #edf2f7; background: #f8fafc; transition: all 0.2s;">
+                        </div>
+                        <button class="btn-primary" onclick="loadReports()"
+                            style="height: 48px; align-self: flex-end; padding: 0 30px; border-radius: 10px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);">
+                            <i class="fas fa-sync-alt" style="margin-right: 10px;"></i> Cập nhật
+                        </button>
+                    </div>
+
+                    <!-- Summary Grid -->
+                    <div class="report-section-grid">
+                        <div class="report-card revenue">
+                            <i class="fas fa-coins bg-icon"></i>
+                            <div class="report-content">
+                                <div class="report-label">Doanh thu thuần</div>
+                                <div class="report-value" id="reportTotalRevenue">0đ</div>
+                            </div>
+                        </div>
+                        <div class="report-card orders">
+                            <i class="fas fa-shopping-cart bg-icon"></i>
+                            <div class="report-content">
+                                <div class="report-label">Tổng số đơn hàng</div>
+                                <div class="report-value" id="reportTotalOrders">0</div>
+                            </div>
+                        </div>
+                        <div class="report-card stock">
+                            <i class="fas fa-laptop bg-icon"></i>
+                            <div class="report-content">
+                                <div class="report-label">Giá trị kho máy</div>
+                                <div class="report-value" id="reportTotalStockValue">0đ</div>
+                            </div>
+                        </div>
+                        <div class="report-card alerts">
+                            <i class="fas fa-exclamation-circle bg-icon"></i>
+                            <div class="report-content">
+                                <div class="report-label">Cảnh báo hết hàng</div>
+                                <div class="report-value" id="reportLowStockCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Tables Container -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div class="section-box" style="box-shadow: none; border: 1px solid #e2e8f0;">
+                            <h3 style="margin-bottom: 15px;"><i class="fas fa-user-tie"
+                                    style="margin-right: 8px; color: #4f46e5;"></i> Hiệu suất nhân viên</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Họ tên</th>
+                                        <th>Số đơn</th>
+                                        <th>Doanh thu</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffPerformanceTableBody">
+                                    <tr>
+                                        <td colspan="3" style="text-align:center;">Đang tải...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="section-box" style="box-shadow: none; border: 1px solid #e2e8f0;">
+                            <h3 style="margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"
+                                    style="margin-right: 8px; color: #ef4444;"></i> Top máy sắp hết hàng</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tên Model</th>
+                                        <th>Số lượng tồn</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lowStockReportTableBody">
+                                    <tr>
+                                        <td colspan="2" style="text-align:center;">Đang tải...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="permissions-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Phân quyền hệ thống</h1>
+                </header>
+
+                <div class="section-box" style="padding: 25px;">
+                    <div
+                        style="display: flex; gap: 20px; align-items: flex-end; margin-bottom: 30px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                        <div class="form-group" style="margin: 0; flex-grow: 1; max-width: 400px;">
+                            <label style="font-weight: 700; color: #1e293b; margin-bottom: 10px; display: block;">Chọn
+                                Chức vụ / Vai trò:</label>
+                            <select id="roleSelectPermission" onchange="loadRolePermissions()"
+                                style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 1rem;">
+                                <option value="">-- Chọn chức vụ --</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="savePermissionsMappings()"
+                            style="padding: 12px 30px; height: 48px; display: flex; align-items: center; background: #4f46e5;">
+                            <i class="fas fa-save" style="margin-right: 8px;"></i> Lưu thiết lập
+                        </button>
+                    </div>
+
+                    <div id="permissionsGrid"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                        <!-- Permissions will be loaded here -->
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #94a3b8;">
+                            <i class="fas fa-shield-alt"
+                                style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i>
+                            <p>Vui lòng chọn một chức vụ để quản lý quyền hạn</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="roles-content" class="tab-section" style="display: none;">
                 <header>
                     <h1>Quản lý chức vụ</h1>
@@ -648,9 +862,7 @@
                     </div>
 
                     <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;">
-                    <h4 style="margin-bottom: 10px; color: #10b981;"><i class="fas fa-money-bill-wave"></i> Giá &amp;
-                        Tồn
-                        kho</h4>
+                    <h4 style="margin-bottom: 10px; color: #10b981;"><i class="fas fa-money-bill-wave"></i> Giá</h4>
 
                     <div class="form-row">
                         <div class="form-group">
@@ -660,6 +872,15 @@
                         <div class="form-group">
                             <label>Giá bán (VNĐ):</label>
                             <input type="number" id="giaBan" placeholder="0" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-shield-alt"></i> Thời hạn bảo hành (tháng):</label>
+                            <input type="number" id="thoiHanBaoHanh" placeholder="Mặc định: 12" min="0">
+                        </div>
+                        <div class="form-group">
                         </div>
                     </div>
 
@@ -700,6 +921,87 @@
                 </form>
             </div>
         </div>
+        <style>
+            .back-link a:hover {
+                color: #4f46e5;
+            }
+
+            /* Premium Report Card Styles */
+            .report-section-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 24px;
+                margin-bottom: 40px;
+            }
+
+            .report-card {
+                position: relative;
+                padding: 24px;
+                border-radius: 20px;
+                overflow: hidden;
+                color: white;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                min-height: 140px;
+            }
+
+            .report-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.2);
+            }
+
+            .report-card i.bg-icon {
+                position: absolute;
+                right: -10px;
+                bottom: -15px;
+                font-size: 5.5rem;
+                opacity: 0.2;
+                transform: rotate(-10deg);
+                pointer-events: none;
+            }
+
+            .report-card .report-content {
+                position: relative;
+                z-index: 2;
+            }
+
+            .report-card .report-label {
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-bottom: 8px;
+                opacity: 0.95;
+            }
+
+            .report-card .report-value {
+                font-size: 2rem;
+                font-weight: 800;
+                margin: 0;
+                line-height: 1.2;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .report-card.revenue {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            }
+
+            .report-card.orders {
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            }
+
+            .report-card.stock {
+                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            }
+
+            .report-card.alerts {
+                background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            }
+        </style>
         <div id="orderDetailModal" class="modal">
             <div class="modal-content" style="max-width: 850px;">
                 <div class="modal-header"
@@ -1032,94 +1334,138 @@
 
     <!-- Warranty Detail / Repair Modal -->
     <div id="warrantyDetailModal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white;">
-                <h2 style="color: white;">Chi Tiết Bảo Hành <strong id="displayWId"></strong></h2>
-                <span class="close-btn" onclick="closeWarrantyDetailModal()" style="color: white;">&times;</span>
+        <div class="modal-content" style="max-width: 850px; border-radius: 16px;">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, #1e293b, #334155); color: white; border-radius: 16px 16px 0 0;">
+                <h2 style="color: white;"><i class="fas fa-toolbox" style="margin-right: 12px; color: #60a5fa;"></i>Chi
+                    Tiết Bảo Hành <strong id="displayWId"></strong></h2>
+                <span class="close-btn" onclick="closeWarrantyDetailModal()"
+                    style="color: white; opacity: 0.8;">&times;</span>
             </div>
-            <div class="modal-body" style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                    <h4 style="border-bottom: 2px solid #eef2ff; padding-bottom: 5px; margin-bottom: 10px;">Thông tin
-                        chung</h4>
-                    <div id="warrantyGeneralInfo"></div>
+            <div class="modal-body" style="padding: 25px; display: flex; flex-direction: column; gap: 30px;">
+                <!-- Section 1: General Info -->
+                <section>
+                    <h4
+                        style="color: #4f46e5; border-bottom: 2px solid #eef2ff; padding-bottom: 8px; margin-bottom: 15px; display: flex; align-items: center;">
+                        <i class="fas fa-info-circle" style="margin-right: 8px;"></i>Thông tin chung & Tình trạng lỗi
+                    </h4>
+                    <div id="warrantyGeneralInfo"
+                        style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    </div>
+                </section>
 
-                    <div style="margin-top: 20px;">
-                        <h4 style="border-bottom: 2px solid #eef2ff; padding-bottom: 5px; margin-bottom: 10px;">Cập nhật
-                            tình trạng</h4>
-                        <form id="updateWarrantyForm">
-                            <div class="form-group">
-                                <label>Kết luận kỹ thuật:</label>
-                                <textarea id="ketLuanKyThuat" style="width:100%; height:60px;"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>Nhân viên kỹ thuật:</label>
-                                <select id="maNvKyThuat"></select>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Trạng thái:</label>
-                                    <select id="trangThaiPbh">
-                                        <option value="Chờ kiểm tra">Chờ kiểm tra</option>
-                                        <option value="Đang sửa">Đang sửa</option>
-                                        <option value="Đã xong">Đã xong</option>
-                                        <option value="Đã trả máy">Đã trả máy</option>
-                                        <option value="Yêu cầu 1-đổi-1">Yêu cầu 1-đổi-1</option>
-                                        <option value="Đã đổi máy">Đã đổi máy</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Ngày trả máy:</label>
-                                    <input type="date" id="ngayTraMay">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Hình thức thanh toán phí:</label>
-                                    <select id="maHtttPbh"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Phí dịch vụ (VNĐ):</label>
-                                    <input type="number" id="phiDichVuPbh" value="0" min="0">
-                                </div>
-                            </div>
-                            <button type="submit" class="btn-primary" style="width: 100%;">Cập nhật phiếu</button>
-                        </form>
+                <!-- Section 2: Repair Details (Moved up) -->
+                <section>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eef2ff; padding-bottom: 8px; margin-bottom: 15px;">
+                        <h4 style="color: #4f46e5; margin: 0; display: flex; align-items: center;">
+                            <i class="fas fa-tools" style="margin-right: 8px;"></i>Linh kiện & Vật tư thay thế
+                        </h4>
+                        <button type="button" class="btn-add"
+                            style="padding: 8px 18px; font-size: 0.85rem; border-radius: 20px; background: #10b981; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);"
+                            onclick="openAddRepairDetail()"><i class="fas fa-plus-circle"
+                                style="margin-right: 6px;"></i>Thêm linh kiện</button>
                     </div>
-                </div>
-                <div>
-                    <h4 style="border-bottom: 2px solid #eef2ff; padding-bottom: 5px; margin-bottom: 10px;">Chi tiết sửa
-                        chữa (Linh kiện)</h4>
-                    <div style="margin-bottom: 10px;">
-                        <button type="button" class="btn-add" style="padding: 5px 10px; font-size: 0.8rem;"
-                            onclick="openAddRepairDetail()">+ Thêm linh kiện</button>
-                    </div>
-                    <div class="table-container" style="max-height: 250px; overflow-y: auto;">
-                        <table>
-                            <thead>
+                    <div class="table-container"
+                        style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                        <table style="font-size: 0.95rem;">
+                            <thead style="background: #f8fafc;">
                                 <tr>
-                                    <th>Linh kiện</th>
-                                    <th>SL</th>
-                                    <th>Đơn giá</th>
-                                    <th>Thành tiền</th>
+                                    <th style="padding: 15px 20px;">Tên linh kiện / Vật tư</th>
+                                    <th style="padding: 15px 20px; text-align: center; width: 100px;">Số lượng</th>
+                                    <th style="padding: 15px 20px; text-align: right; width: 150px;">Đơn giá</th>
+                                    <th style="padding: 15px 20px; text-align: right; width: 150px;">Thành tiền</th>
                                 </tr>
                             </thead>
                             <tbody id="repairDetailTableBody"></tbody>
                         </table>
                     </div>
-                    <div style="text-align: right; margin-top: 10px; font-weight: 700; color: #dc2626;">
-                        Tổng chi phí: <span id="totalRepairCost">0đ</span>
-                    </div>
 
-                    <div id="warrantyWorkflowActions"
-                        style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px;">
+                </section>
+
+                <!-- Section 3: Update Form -->
+                <section>
+                    <h4
+                        style="color: #4f46e5; border-bottom: 2px solid #eef2ff; padding-bottom: 8px; margin-bottom: 15px; display: flex; align-items: center;">
+                        <i class="fas fa-edit" style="margin-right: 8px;"></i>Cập nhật tiến trình sửa chữa
+                    </h4>
+                    <form id="updateWarrantyForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group" style="grid-column: span 2; margin-bottom: 0;">
+                            <label style="font-weight: 600; font-size: 0.85rem;">Kết luận kỹ thuật / Phân tích nguyên
+                                nhân:</label>
+                            <textarea id="ketLuanKyThuat"
+                                style="width:100%; height:70px; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;"
+                                placeholder="Nhập kết luận sau khi kiểm tra máy..."></textarea>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-weight: 600; font-size: 0.85rem;">Nhân viên kỹ thuật phụ trách:</label>
+                            <select id="maNvKyThuat"
+                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white;"></select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-weight: 600; font-size: 0.85rem;">Trạng thái phiếu:</label>
+                            <select id="trangThaiPbh"
+                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white;">
+                                <option value="Chờ kiểm tra">Chờ kiểm tra</option>
+                                <option value="Đang sửa">Đang sửa</option>
+                                <option value="Đã xong">Đã xong</option>
+                                <option value="Đã trả máy">Đã trả máy</option>
+                                <option value="Yêu cầu 1-đổi-1">Yêu cầu 1-đổi-1</option>
+                                <option value="Đã đổi máy">Đã đổi máy</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-weight: 600; font-size: 0.85rem;">Ngày hẹn/thực tế trả máy:</label>
+                            <input type="date" id="ngayTraMay"
+                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-weight: 600; font-size: 0.85rem;">Hình thức thanh toán (HTTT):</label>
+                            <select id="maHtttPbh"
+                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white;"></select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-weight: 600; font-size: 0.85rem;">Phí dịch vụ kỹ thuật (VNĐ):</label>
+                            <input type="number" id="phiDichVuPbh" value="0" min="0"
+                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                        </div>
+
+                        <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 10px;">
+                            <button type="submit" class="btn-primary"
+                                style="padding: 12px 30px; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #4338ca); border-radius: 8px; min-width: 200px;">
+                                <i class="fas fa-save" style="margin-right: 8px;"></i>Cập nhật thông tin phiếu
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Final Summary (Total Cost & Workflow Actions) -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 10px; border-top: 2px solid #f1f5f9; padding-top: 25px;">
+                    <div id="warrantyWorkflowActions" style="display: flex; gap: 12px;">
                         <button id="btnConfirmQuote" type="button" class="btn-primary"
-                            style="background: #f59e0b; border: none; display: none;" onclick="handleConfirmQuote()">
-                            <i class="fas fa-check-double"></i> Xác nhận báo giá (Khách đã đồng ý)
+                            style="background: #f59e0b; border: none; display: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);"
+                            onclick="handleConfirmQuote()">
+                            <i class="fas fa-check-double" style="margin-right: 8px;"></i>Khách đã đồng ý báo giá
                         </button>
                         <button id="btnVerifyQC" type="button" class="btn-primary"
-                            style="background: #10b981; border: none; display: none;" onclick="handleVerifyQC()">
-                            <i class="fas fa-clipboard-check"></i> Xác nhận QC (Đã sửa xong & test OK)
+                            style="background: #10b981; border: none; display: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);"
+                            onclick="handleVerifyQC()">
+                            <i class="fas fa-clipboard-check" style="margin-right: 8px;"></i>Xác nhận hoàn tất & QC
                         </button>
+                    </div>
+                    <div
+                        style="text-align: right; padding: 20px; background: #fff1f2; border-radius: 12px; border: 1px solid #ffe4e6; min-width: 300px;">
+                        <div style="color: #9f1239; font-size: 0.9rem; margin-bottom: 5px; font-weight: 500;">TỔNG CHI
+                            PHÍ SỬA CHỮA</div>
+                        <div id="totalRepairCost"
+                            style="color: #e11d48; font-size: 2rem; font-weight: 800; letter-spacing: -1px;">0đ
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1296,12 +1642,19 @@
                 <span class="close-btn" onclick="closeInspectionModal()">&times;</span>
             </div>
             <div style="padding: 24px;">
-                <div class="form-row">
+                <div class="form-row" style="display: flex; gap: 15px;">
                     <div class="form-group" style="flex: 1;">
                         <label>Chọn kho kiểm kê:</label>
                         <select id="inspectionKhoId" onchange="loadStockForInspection(this.value)"
                             style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
                             <option value="">-- Chọn kho --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Nhân viên kiểm kê:</label>
+                        <select id="inspectionEmployeeId"
+                            style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                            <option value="">-- Chọn nhân viên --</option>
                         </select>
                     </div>
                 </div>

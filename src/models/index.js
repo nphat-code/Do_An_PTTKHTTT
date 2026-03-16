@@ -26,6 +26,9 @@ const ChuongTrinhKm = require('./ChuongTrinhKm.model');
 const DongMayKm = require('./DongMayKm.model');
 const LinhKienTuongThich = require('./LinhKienTuongThich.model');
 const HinhThucThanhToan = require('./HinhThucThanhToan.model');
+const Quyen = require('./Quyen.model');
+const ChiTietQuyen = require('./ChiTietQuyen.model');
+
 
 // Relationships
 
@@ -185,6 +188,24 @@ LinhKienTuongThich.belongsTo(DongMay, { foreignKey: 'maModel' });
 LinhKien.hasMany(LinhKienTuongThich, { foreignKey: 'maLk' });
 LinhKienTuongThich.belongsTo(LinhKien, { foreignKey: 'maLk' });
 
+// RBAC: ChucVu - Quyen
+ChucVu.belongsToMany(Quyen, {
+    through: ChiTietQuyen,
+    foreignKey: 'maCv',
+    otherKey: 'maQuyen'
+});
+Quyen.belongsToMany(ChucVu, {
+    through: ChiTietQuyen,
+    foreignKey: 'maQuyen',
+    otherKey: 'maCv'
+});
+
+ChucVu.hasMany(ChiTietQuyen, { foreignKey: 'maCv' });
+ChiTietQuyen.belongsTo(ChucVu, { foreignKey: 'maCv' });
+Quyen.hasMany(ChiTietQuyen, { foreignKey: 'maQuyen' });
+ChiTietQuyen.belongsTo(Quyen, { foreignKey: 'maQuyen' });
+
+
 
 module.exports = {
     sequelize,
@@ -213,5 +234,7 @@ module.exports = {
     ChuongTrinhKm,
     DongMayKm,
     LinhKienTuongThich,
-    HinhThucThanhToan
+    HinhThucThanhToan,
+    Quyen,
+    ChiTietQuyen
 };

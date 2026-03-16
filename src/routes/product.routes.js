@@ -3,6 +3,8 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const productController = require('../controllers/product.controller');
+const { verifyToken, authorize } = require('../middleware/auth.middleware');
+
 
 // Cấu hình multer để upload ảnh sản phẩm
 const storage = multer.diskStorage({
@@ -48,17 +50,17 @@ router.get('/:id', productController.getProductById);
 router.get('/:id/serials', productController.getProductSerials);
 
 // POST /api/products - Thêm sản phẩm mới (có upload ảnh)
-router.post('/', upload.single('hinhAnh'), productController.createProduct);
+router.post('/', verifyToken, authorize('PRODUCT_MANAGE'), upload.single('hinhAnh'), productController.createProduct);
 
 // PUT /api/products/:id - Cập nhật sản phẩm (có upload ảnh)
-router.put('/:id', upload.single('hinhAnh'), productController.updateProduct);
+router.put('/:id', verifyToken, authorize('PRODUCT_MANAGE'), upload.single('hinhAnh'), productController.updateProduct);
 
 // DELETE /api/products/:id - Xóa sản phẩm
-router.delete('/:id', productController.deleteProduct);
+router.delete('/:id', verifyToken, authorize('PRODUCT_MANAGE'), productController.deleteProduct);
 
 // Compatibility routes
 router.get('/:id/compatible-parts', productController.getCompatibleParts);
-router.post('/:id/compatible-parts', productController.addCompatiblePart);
-router.delete('/:id/compatible-parts/:maLk', productController.removeCompatiblePart);
+router.post('/:id/compatible-parts', verifyToken, authorize('PRODUCT_MANAGE'), productController.addCompatiblePart);
+router.delete('/:id/compatible-parts/:maLk', verifyToken, authorize('PRODUCT_MANAGE'), productController.removeCompatiblePart);
 
 module.exports = router;

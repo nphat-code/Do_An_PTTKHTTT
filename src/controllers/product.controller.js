@@ -88,8 +88,9 @@ const getProductById = async (req, res) => {
 const createProduct = async (req, res) => {
     const t = await sequelize.transaction();
     try {
-        const { maModel, tenModel, giaNhap, giaBan, maHang, maLoai,
+        const { maModel, tenModel, giaNhap, giaBan, thoiHanBaoHanh, maHang, maLoai,
             cpu, ram, oCung, vga, manHinh, pin, trongLuong } = req.body;
+        console.log('--- createProduct req.body ---', req.body);
 
         // 1. Create CauHinh if any config field is provided
         let maCh = null;
@@ -114,6 +115,7 @@ const createProduct = async (req, res) => {
             tenModel,
             giaNhap: giaNhap ? Number(giaNhap) : null,
             giaBan: giaBan ? Number(giaBan) : null,
+            thoiHanBaoHanh: thoiHanBaoHanh ? Number(thoiHanBaoHanh) : 12,
             soLuongTon: 0,
             hinhAnh,
             maCh: maCh,
@@ -152,8 +154,10 @@ const updateProduct = async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy" });
         }
 
-        const { tenModel, giaNhap, giaBan, maHang, maLoai,
+        const { tenModel, giaNhap, giaBan, thoiHanBaoHanh, maHang, maLoai,
             cpu, ram, oCung, vga, manHinh, pin, trongLuong } = req.body;
+
+        const updateData = {};
 
         // Update CauHinh
         if (cpu || ram || oCung || vga || manHinh || pin || trongLuong) {
@@ -175,17 +179,17 @@ const updateProduct = async (req, res) => {
                     maCh, cpu, ram, oCung, vga, manHinh, pin,
                     trongLuong: trongLuong ? parseFloat(trongLuong) : null
                 }, { transaction: t });
-                await product.update({ maCh }, { transaction: t });
+                updateData.maCh = maCh;
             }
         }
 
         // Update DongMay fields
-        const updateData = {};
         if (tenModel !== undefined) updateData.tenModel = tenModel;
         if (giaNhap !== undefined) updateData.giaNhap = Number(giaNhap);
         if (giaBan !== undefined) updateData.giaBan = Number(giaBan);
         if (maHang !== undefined) updateData.maHang = maHang || null;
         if (maLoai !== undefined) updateData.maLoai = maLoai || null;
+        if (thoiHanBaoHanh !== undefined) updateData.thoiHanBaoHanh = thoiHanBaoHanh ? Number(thoiHanBaoHanh) : 12;
         if (req.file) updateData.hinhAnh = `uploads/products/${req.file.filename}`;
 
         await product.update(updateData, { transaction: t });

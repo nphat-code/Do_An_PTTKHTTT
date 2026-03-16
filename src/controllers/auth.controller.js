@@ -1,4 +1,4 @@
-const { NhanVien, KhachHang } = require('../models/index');
+const { NhanVien, KhachHang, ChiTietQuyen } = require('../models/index');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -75,6 +75,13 @@ const login = async (req, res) => {
                 { expiresIn: '1d' }
             );
 
+            // Fetch permissions
+            const permissions = await ChiTietQuyen.findAll({
+                where: { maCv: employee.maCv },
+                attributes: ['maQuyen']
+            });
+            const permissionCodes = permissions.map(p => p.maQuyen);
+
             return res.status(200).json({
                 success: true,
                 message: "Đăng nhập nhân viên thành công",
@@ -83,7 +90,9 @@ const login = async (req, res) => {
                     id: employee.maNv,
                     fullName: employee.hoTen,
                     email: employee.email,
-                    role: 'employee'
+                    role: 'employee',
+                    maCv: employee.maCv,
+                    permissions: permissionCodes
                 }
             });
         }
