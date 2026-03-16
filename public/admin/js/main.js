@@ -77,6 +77,7 @@ function showTab(tabName) {
     else if (tabName === 'stock') loadStockData();
     else if (tabName === 'suppliers') loadSuppliers();
     else if (tabName === 'brands') loadBrands();
+    else if (tabName === 'categories') loadCategories();
     else if (tabName === 'warehouses') loadWarehouses();
     else if (tabName === 'roles') loadRoles();
     else if (tabName === 'warranty') loadWarranties();
@@ -3473,6 +3474,132 @@ async function deleteSparePart(id) {
             if (result.success) {
                 Swal.fire('Đã xóa', result.message, 'success');
                 loadSpareParts();
+            } else {
+                Swal.fire('Lỗi', result.message, 'error');
+            }
+        } catch (err) { console.error(err); }
+    }
+}
+
+// ==========================================
+// QUẢN LÝ LOẠI MÁY
+// ==========================================
+
+async function loadCategories() {
+    try {
+        const keyword = document.getElementById('searchCategoryInput').value;
+        const res = await fetch(`/api/categories?search=${encodeURIComponent(keyword)}`);
+        const result = await res.json();
+        if (result.success) {
+            renderCategoriesTable(result.data);
+        }
+    } catch (error) {
+        console.error("Lỗi tải loại máy:", error);
+    }
+}
+
+function renderCategoriesTable(data) {
+    const tbody = document.getElementById('categoryTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Không tìm thấy loại máy</td></tr>';
+        return;
+    }
+
+    data.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${c.maLoai}</strong></td>
+            <td>${c.tenLoai}</td>
+            <td style="display: flex; gap: 8px;">
+                <button class="btn-edit" onclick="editCategory('${c.maLoai}')"><i class="fas fa-edit"></i></button>
+                <button class="btn-delete" onclick="deleteCategory('${c.maLoai}')"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openCategoryModal() {
+    const form = document.getElementById('categoryForm');
+    if (form) form.reset();
+    document.getElementById('categoryId').value = '';
+    document.getElementById('categoryMa').disabled = false;
+    document.querySelector('#categoryModal h2').innerHTML = '<i class="fas fa-tags" style="margin-right:12px; color:#60a5fa;"></i>Thêm Loại Máy Mới';
+    document.getElementById('categoryModal').style.display = 'flex';
+}
+
+function closeCategoryModal() {
+    document.getElementById('categoryModal').style.display = 'none';
+}
+
+document.getElementById('categoryForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('categoryId').value;
+    const body = {
+        maLoai: document.getElementById('categoryMa').value,
+        tenLoai: document.getElementById('categoryTen').value
+    };
+
+    const url = id ? `/api/categories/${id}` : '/api/categories';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (result.success) {
+            Swal.fire('Thành công', result.message, 'success');
+            closeCategoryModal();
+            loadCategories();
+        } else {
+            Swal.fire('Lỗi', result.message, 'error');
+        }
+    } catch (err) { console.error(err); }
+};
+
+async function editCategory(id) {
+    try {
+        const res = await fetch(`/api/categories`);
+        const result = await res.json();
+        if (result.success) {
+            const c = result.data.find(item => item.maLoai === id);
+            if (c) {
+                document.getElementById('categoryId').value = c.maLoai;
+                document.getElementById('categoryMa').value = c.maLoai;
+                document.getElementById('categoryMa').disabled = true;
+                document.getElementById('categoryTen').value = c.tenLoai;
+
+                document.querySelector('#categoryModal h2').innerHTML = '<i class="fas fa-edit" style="margin-right:12px; color:#60a5fa;"></i>Chỉnh Sửa Loại Máy';
+                document.getElementById('categoryModal').style.display = 'flex';
+            }
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function deleteCategory(id) {
+    const confirm = await Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: "Loại máy sẽ bị xóa khỏi danh sách quản lý!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Xóa ngay',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (confirm.isConfirmed) {
+        try {
+            const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.success) {
+                Swal.fire('Đã xóa', result.message, 'success');
+                loadCategories();
             } else {
                 Swal.fire('Lỗi', result.message, 'error');
             }

@@ -49,6 +49,7 @@
                 <div class="nav-group-title">ĐỐI TÁC & HỆ THỐNG</div>
                 <ul>
                     <li><a href="#" data-tab="brands"><i class="fas fa-industry"></i> Hãng sản xuất</a></li>
+                    <li><a href="#" data-tab="categories"><i class="fas fa-tags"></i> Loại máy</a></li>
                     <li><a href="#" data-tab="suppliers"><i class="fas fa-truck"></i> Nhà cung cấp</a></li>
                     <li><a href="#" data-tab="warehouses"><i class="fas fa-warehouse"></i> Quản lý kho</a></li>
                 </ul>
@@ -405,7 +406,34 @@
                 </div>
             </section>
 
+            <section id="categories-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý loại máy</h1>
+                    <button class="btn-add" onclick="openCategoryModal()">
+                        <i class="fas fa-plus" style="margin-right: 8px;"></i> Thêm loại máy
+                    </button>
+                </header>
 
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchCategoryInput" placeholder="Tìm kiếm loại máy..."
+                        oninput="loadCategories()">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 150px;">Mã loại</th>
+                                <th style="min-width: 250px;">Tên loại máy</th>
+                                <th style="width: 140px;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categoryTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
             <section id="warehouses-content" class="tab-section" style="display: none;">
                 <header>
@@ -1218,6 +1246,42 @@
                     <button type="submit" class="btn-primary"
                         style="background: linear-gradient(135deg, #4f46e5, #4338ca); padding: 12px 30px; border-radius: 12px; font-weight: 700; border: none;">Lưu
                         linh kiện</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content" style="max-width: 500px; border-radius: 20px;">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, #4f46e5, #4338ca); color: white; border-radius: 20px 20px 0 0; padding: 20px 30px;">
+                <h2 style="color: white; margin: 0; font-size: 1.25rem;"><i class="fas fa-tags"
+                        style="margin-right: 12px; color: #60a5fa;"></i>Loại Máy</h2>
+                <span class="close-btn" onclick="closeCategoryModal()"
+                    style="color: white; opacity: 0.7;">&times;</span>
+            </div>
+            <form id="categoryForm" style="padding: 30px;">
+                <input type="hidden" id="categoryId">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 8px;">Mã
+                        loại:</label>
+                    <input type="text" id="categoryMa" placeholder="VD: GAMING, VANPHONG" required
+                        style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem;">
+                </div>
+                <div class="form-group" style="margin-bottom: 30px;">
+                    <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 8px;">Tên loại
+                        máy:</label>
+                    <input type="text" id="categoryTen" placeholder="VD: Laptop Gaming, Văn phòng" required
+                        style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem;">
+                </div>
+
+                <div class="modal-footer"
+                    style="padding-top: 10px; border: none; display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" class="btn-secondary" onclick="closeCategoryModal()">Hủy</button>
+                    <button type="submit" class="btn-primary"
+                        style="background: linear-gradient(135deg, #4f46e5, #4338ca); padding: 12px 30px; border-radius: 12px; font-weight: 700; border: none;">Lưu
+                        loại máy</button>
                 </div>
             </form>
         </div>
