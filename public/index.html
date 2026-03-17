@@ -101,7 +101,12 @@
         </div>
 
         <div class="categories-section"
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-bottom: 40px;">
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; margin-bottom: 40px;">
+            <div class="category-card" onclick="resetFilters()"
+                style="background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s;">
+                <i class="fas fa-th-large" style="font-size: 2rem; color: #6366f1; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1rem; font-weight: 600;">Tất cả</h3>
+            </div>
             <div class="category-card" onclick="filterByCategory('GAMING')"
                 style="background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s;">
                 <i class="fas fa-laptop-code" style="font-size: 2rem; color: #4f46e5; margin-bottom: 10px;"></i>
@@ -130,7 +135,7 @@
                     phẩm mới về</h2>
                 <p style="color: var(--text-muted); margin-top: 5px;">Những mẫu laptop công nghệ mới nhất 2024</p>
             </div>
-            <a href="#" class="view-all-btn"
+            <a href="#" class="view-all-btn" onclick="resetFilters(); return false;"
                 style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Xem tất cả <i
                     class="fas fa-arrow-right"></i></a>
         </div>
@@ -202,14 +207,14 @@
             <div>
                 <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: white;">Liên kết nhanh</h3>
                 <ul style="list-style: none; padding: 0;">
-                    <li style="margin-bottom: 10px;"><a href="#"
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="resetFilters(); return false;"
                             style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">Trang chủ</a></li>
-                    <li style="margin-bottom: 10px;"><a href="#"
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="resetFilters(); return false;"
                             style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">Sản phẩm</a></li>
-                    <li style="margin-bottom: 10px;"><a href="#"
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="showInfoModal('news'); return false;"
                             style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">Tin tức công nghệ</a>
                     </li>
-                    <li style="margin-bottom: 10px;"><a href="#"
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="showInfoModal('contact'); return false;"
                             style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">Liên hệ</a></li>
                 </ul>
             </div>
@@ -219,15 +224,19 @@
                 <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: white;">Hỗ trợ khách hàng
                 </h3>
                 <ul style="list-style: none; padding: 0;">
-                    <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Chính
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="showInfoModal('warranty'); return false;"
+                            style="color: #9ca3af; text-decoration: none;">Chính
                             sách bảo hành</a></li>
-                    <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Chính
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="showInfoModal('returns'); return false;"
+                            style="color: #9ca3af; text-decoration: none;">Chính
                             sách đổi trả</a></li>
-                    <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Hướng
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="showInfoModal('guide'); return false;"
+                            style="color: #9ca3af; text-decoration: none;">Hướng
                             dẫn mua hàng</a></li>
-                    <li style="margin-bottom: 10px;"><a href="#" onclick="openWarrantyCheck()"
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="openWarrantyCheck(); return false;"
                             style="color: #9ca3af; text-decoration: none;">Tra cứu bảo hành</a></li>
-                    <li style="margin-bottom: 10px;"><a href="#" style="color: #9ca3af; text-decoration: none;">Tra cứu
+                    <li style="margin-bottom: 10px;"><a href="#" onclick="showInfoModal('order-check'); return false;"
+                            style="color: #9ca3af; text-decoration: none;">Tra cứu
                             đơn hàng</a></li>
                 </ul>
             </div>
@@ -252,8 +261,6 @@
             </div>
         </div>
 
-        <!-- Copyright -->
-        &copy; 2024 P-Tech Laptop. All rights reserved. Designed for PTTKHTTT Project.
     </footer>
 
     <!-- Warranty Modal -->
@@ -287,8 +294,34 @@
         </div>
     </div>
 
+    <!-- Information Modal -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content" style="max-width: 700px; border-radius: 20px;">
+            <div class="modal-header">
+                <h2 id="infoModalTitle">Thông tin</h2>
+                <i class="fas fa-times close-btn" onclick="closeInfoModal()"></i>
+            </div>
+            <div id="infoModalBody"
+                style="padding: 30px; line-height: 1.8; color: #4b5563; max-height: 60vh; overflow-y: auto;">
+                <!-- Content will be injected -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeInfoModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/shop.js"></script>
     <script>
+        function showInfoModal(type) {
+            if (typeof window.handleInfoModal === 'function') {
+                window.handleInfoModal(type);
+            }
+        }
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
         function openWarrantyCheck() {
             document.getElementById('warrantyCheckModal').style.display = 'flex';
         }
@@ -320,27 +353,27 @@
                     if (status === 'Đang sửa') statusColor = '#7c3aed';
 
                     resultDiv.innerHTML = `
-                        <div style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-                            <div style="color: #16a34a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-                                <i class="fas fa-check-circle"></i> Thông tin thiết bị
-                            </div>
-                            <h3 style="margin: 0; color: #1e293b; font-size: 1.1rem;">${brand} ${machine}</h3>
-                            <p style="margin: 5px 0 0; color: #64748b; font-size: 0.9rem;">Số Serial: <code style="font-weight: 600; color: #334155;">${serial}</code></p>
-                        </div>
-                        
-                        <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-                            <div style="color: #64748b; font-weight: 600; font-size: 0.85rem; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
-                                TÌNH TRẠNG BẢO HÀNH
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-weight: 700; font-size: 1.1rem; color: ${statusColor};">${status}</span>
-                                ${w ? `<span style="font-size: 0.8rem; color: #94a3b8;">Cập nhật: ${new Date(w.ngayLap).toLocaleDateString('vi-VN')}</span>` : ''}
-                            </div>
-                            <p style="margin-top: 10px; font-size: 0.85rem; color: #94a3b8; font-style: italic;">
-                                * Vui lòng mang máy đến trung tâm gần nhất nếu gặp sự cố.
-                            </p>
-                        </div>
-                    `;
+            <div style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="color: #16a34a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                    <i class="fas fa-check-circle"></i> Thông tin thiết bị
+                </div>
+                <h3 style="margin: 0; color: #1e293b; font-size: 1.1rem;">${brand} ${machine}</h3>
+                <p style="margin: 5px 0 0; color: #64748b; font-size: 0.9rem;">Số Serial: <code style="font-weight: 600; color: #334155;">${serial}</code></p>
+            </div>
+
+            <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+                <div style="color: #64748b; font-weight: 600; font-size: 0.85rem; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
+                    TÌNH TRẠNG BẢO HÀNH
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; font-size: 1.1rem; color: ${statusColor};">${status}</span>
+                    ${w ? `<span style="font-size: 0.8rem; color: #94a3b8;">Cập nhật: ${new Date(w.ngayLap).toLocaleDateString('vi-VN')}</span>` : ''}
+                </div>
+                <p style="margin-top: 10px; font-size: 0.85rem; color: #94a3b8; font-style: italic;">
+                    * Vui lòng mang máy đến trung tâm gần nhất nếu gặp sự cố.
+                </p>
+            </div>
+            `;
                 } else {
                     resultDiv.innerHTML = `
                         <div style="text-align: center; padding: 10px;">

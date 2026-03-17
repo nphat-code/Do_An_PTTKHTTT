@@ -1,4 +1,4 @@
-let cart = JSON.parse(localStorage.getItem('cart')) || [];
+﻿let cart = JSON.parse(localStorage.getItem('cart')) || [];
 let currentCategory = "";
 let _currentProducts = [];
 let currentPage = 1;
@@ -17,18 +17,6 @@ window.moveSlide = function (direction) {
 
     const slides = track.children;
     const totalSlides = slides.length;
-    // Calculate max index correctly based on how many "shifts" are possible
-    // If 4 slides and we show 2, we can shift 0, 1, 2. (Showing [0,1], [1,2], [2,3]). 
-    // Wait, if grid is 50%, we can shift freely.
-    // Let's implement simple circular sliding.
-
-    // Actually, simple calculation:
-    // We want to show index i and i+1.
-    // Max index is totalSlides - itemsPerView.
-
-    // But if we want it to be circular and infinite-feeling, that's complex without cloning.
-    // Let's stick to simple bounded sliding for now, or simple loop to beginning.
-
     const maxIndex = totalSlides - itemsPerView;
 
     currentSlide += direction;
@@ -49,8 +37,6 @@ setInterval(() => {
 }, 5000);
 
 // 1. Tải danh sách sản phẩm từ API
-// 1. Tải danh sách sản phẩm từ API
-// 1. Tải danh sách sản phẩm từ API
 async function loadProducts(searchValue, page = 1) {
     currentPage = page;
     const keyword = searchValue !== undefined ? searchValue : document.getElementById("searchInput").value;
@@ -66,7 +52,6 @@ async function loadProducts(searchValue, page = 1) {
     }
 
     try {
-        // Gửi request kèm theo các tham số lọc
         let url = `http://localhost:3000/api/products?search=${keyword}&minPrice=${minPrice}&maxPrice=${maxPrice}&brand=${brand}&ram=${ram}&loai=${currentCategory}&limit=${itemsPerPage}&page=${page}`;
 
         const response = await fetch(url);
@@ -84,9 +69,7 @@ async function loadProducts(searchValue, page = 1) {
 
 window.filterByCategory = (category) => {
     currentCategory = category;
-    // Cuộn đến phần tiêu đề sản phẩm
     document.getElementById('sectionTitle').scrollIntoView({ behavior: 'smooth' });
-    // Cập nhật tiêu đề theo category
     const titles = {
         'GAMING': 'Laptop Gaming',
         'VANPHONG': 'Laptop Văn Phòng',
@@ -103,7 +86,6 @@ function renderPagination(pagination) {
     container.innerHTML = "";
 
     const { totalPages, currentPage } = pagination;
-
     if (totalPages <= 1) return;
 
     // Prev Button
@@ -160,12 +142,12 @@ window.resetFilters = () => {
     document.getElementById("searchInput").value = "";
     currentCategory = "";
     document.getElementById('sectionTitle').innerText = 'Sản phẩm mới về';
+    document.getElementById('sectionTitle').scrollIntoView({ behavior: 'smooth' });
     loadProducts();
 };
 
 window.toggleFilters = () => {
     const filters = document.getElementById("advancedFilters");
-    // Toggle giữa 'flex' và 'none' để giữ layout flex đã set trong HTML
     if (filters.style.display === "none") {
         filters.style.display = "flex";
     } else {
@@ -213,7 +195,6 @@ function renderProducts(products) {
             </div>
         `;
 
-        // Click card → trang chi tiết
         card.onclick = () => {
             window.location.href = `/product-detail.html?id=${encodeURIComponent(p.maModel)}`;
         };
@@ -249,7 +230,6 @@ function addToCart(maModel) {
     updateCartUI();
     saveCart();
 
-    // Thông báo nhanh
     const Toast = Swal.mixin({
         toast: true,
         position: 'bottom-end',
@@ -265,11 +245,9 @@ function updateCartUI() {
     const cartItemsContainer = document.getElementById("cartItemsContainer");
     const cartTotal = document.getElementById("cartTotal");
 
-    // Cập nhật badge số lượng
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     cartCount.innerText = totalItems;
 
-    // Hiển thị danh sách trong Modal
     cartItemsContainer.innerHTML = "";
     let totalMoney = 0;
 
@@ -317,19 +295,12 @@ function saveCart() {
 }
 
 // 5. Xử lý đóng/mở Modal
-// 5. Xử lý đóng/mở Modal
 window.openCart = () => {
     cartModal.style.display = "block";
 };
 window.closeCart = () => cartModal.style.display = "none";
 window.onclick = (e) => { if (e.target == cartModal) closeCart(); };
 
-// checkout logic moved to checkout.js
-
-// 7. Tìm kiếm sản phẩm
-// 7. Tìm kiếm sản phẩm (Đã được xử lý ở trên)
-
-// Check authentication status
 // Check authentication status
 function checkAuth() {
     const user = JSON.parse(sessionStorage.getItem('user'));
@@ -341,7 +312,7 @@ function checkAuth() {
             <a href="#" onclick="logout()">Đăng xuất</a>
             ${user.role === 'employee' ? ' | <a href="/admin/">Quản lý</a>' : ''}
         `;
-        verifySession(); // Verify if token is still valid
+        verifySession();
     } else {
         authContainer.innerHTML = `<a href="login.html" style="text-decoration:none; color: inherit;">Đăng nhập</a>`;
     }
@@ -357,7 +328,6 @@ async function verifySession() {
         });
 
         if (!response.ok) {
-            // Token invalid or User locked
             const result = await response.json();
             if (response.status === 403 && result.message.includes('khóa')) {
                 alert(result.message);
@@ -375,7 +345,6 @@ window.logout = () => {
     window.location.reload();
 };
 
-// Load danh sách hãng vào dropdown từ DB
 async function loadBrandFilter() {
     try {
         const res = await fetch('http://localhost:3000/api/products/brands');
@@ -398,4 +367,102 @@ window.onload = async () => {
     loadProducts();
     updateCartUI();
     checkAuth();
+};
+
+// ==================== INFO MODAL HANDLER ====================
+window.handleInfoModal = (type) => {
+    const modal = document.getElementById('infoModal');
+    const titleEl = document.getElementById('infoModalTitle');
+    const bodyEl = document.getElementById('infoModalBody');
+    if (!modal || !titleEl || !bodyEl) return;
+
+    modal.style.display = 'flex';
+    bodyEl.innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+
+    const contents = {
+        'warranty': {
+            title: 'Chính sách bảo hành',
+            html: `
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <i class="fas fa-shield-alt" style="font-size: 2.5rem; color: #4f46e5;"></i>
+                    <h3 style="margin: 0;">Bảo hành chính hãng 12-24 tháng</h3>
+                </div>
+                <p>P-Tech Laptop cam kết cung cấp dịch vụ bảo hành tốt nhất cho khách hàng:</p>
+                <ul>
+                    <li><strong>Bảo hành phần cứng:</strong> Miễn phí thay thế linh kiện lỗi do nhà sản xuất trong suốt thời gian bảo hành.</li>
+                    <li><strong>Bảo hành phần mềm:</strong> Hỗ trợ cài đặt Windows, Office và các phần mềm cơ bản trọn đời.</li>
+                    <li><strong>Thời gian xử lý:</strong> Tối đa 3-5 ngày làm việc. Nếu quá thời gian trên, chúng tôi sẽ cho khách hàng mượn máy tương đương để sử dụng.</li>
+                    <li><strong>Địa điểm:</strong> Tất cả các cửa hàng trong hệ thống P-Tech trên toàn quốc.</li>
+                </ul>
+            `
+        },
+        'returns': {
+            title: 'Chính sách đổi trả',
+            html: `
+                <i class="fas fa-undo-alt" style="font-size: 2.5rem; color: #ef4444; margin-bottom: 20px;"></i>
+                <p>Khách hàng có thể yên tâm mua sắm với chính sách "Đổi trả dễ dàng":</p>
+                <ul>
+                    <li><strong>7 ngày đầu:</strong> Lỗi là đổi mới 100% không mất phí.</li>
+                    <li><strong>30 ngày đầu:</strong> Thu lại máy với phí 10% nếu khách hàng không còn nhu cầu sử dụng (máy còn nguyên vẹn).</li>
+                    <li><strong>Điều kiện:</strong> Máy không bị biến dạng, vào nước, cháy nổ do sử dụng sai cách và còn đầy đủ hộp, phụ kiện đi kèm.</li>
+                </ul>
+            `
+        },
+        'guide': {
+            title: 'Hướng dẫn mua hàng',
+            html: `
+                <div style="background: #f8fafc; padding: 20px; border-radius: 12px;">
+                    <h4 style="margin-top: 0;"><i class="fas fa-shopping-cart"></i> 3 Bước mua hàng đơn giản:</h4>
+                    <ol>
+                        <li><strong>Chọn sản phẩm:</strong> Tìm kiếm và thêm máy vào giỏ hàng.</li>
+                        <li><strong>Đặt hàng:</strong> Nhập thông tin giao hàng và chọn phương thức thanh toán.</li>
+                        <li><strong>Nhận hàng:</strong> Kiểm tra máy, ký nhận và thanh toán (nếu chọn COD).</li>
+                    </ol>
+                    <p style="margin-bottom: 0;"><i class="fas fa-phone-alt"></i> Cần hỗ trợ gấp? Gọi ngay <strong>1900 1234</strong> (8:00 - 21:00).</p>
+                </div>
+            `
+        },
+        'contact': {
+            title: 'Liên hệ với chúng tôi',
+            html: `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <p><strong><i class="fas fa-map-marker-alt"></i> Địa chỉ:</strong><br>123 Nguyễn Văn Linh, Quận 7, TP. HCM</p>
+                        <p><strong><i class="fas fa-phone"></i> Điện thoại:</strong><br>1900 1234 - 0909 000 999</p>
+                        <p><strong><i class="fas fa-envelope"></i> Email:</strong><br>support@ptechlaptop.vn</p>
+                    </div>
+                    <div style="background: #eef2ff; padding: 15px; border-radius: 12px; font-size: 0.9rem;">
+                        <strong>Thời gian làm việc:</strong><br>
+                        Thứ 2 - Thứ 7: 08:30 - 21:00<br>
+                        Chủ nhật: 09:00 - 18:00
+                    </div>
+                </div>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="text-align: center; font-style: italic;">Hân hạnh được phục vụ quý khách!</p>
+            `
+        },
+        'news': {
+            title: 'Tin tức công nghệ',
+            html: `
+                <div style="text-align: center; padding: 20px;">
+                    <i class="fas fa-newspaper" style="font-size: 3rem; color: #6366f1; margin-bottom: 20px;"></i>
+                    <p>Hệ thống Tin tức đang được cập nhật...</p>
+                    <p style="font-size: 0.9rem; color: #94a3b8;">Vui lòng theo dõi Fanpage của P-Tech để cập nhật những công nghệ mới nhất!</p>
+                </div>
+            `
+        },
+        'order-check': {
+            title: 'Tra cứu đơn hàng',
+            html: `
+                <p>Để tra cứu trạng thái đơn hàng, vui lòng đăng nhập vào tài khoản của bạn và vào mục <strong>Lịch sử mua hàng</strong>.</p>
+                <p>Nếu bạn mua hàng không cần tài khoản, vui lỏng gọi <strong>1900 1234</strong> cung cấp số điện thoại để tổng đài viên hỗ trợ.</p>
+            `
+        }
+    };
+
+    const content = contents[type];
+    if (content) {
+        titleEl.innerText = content.title;
+        bodyEl.innerHTML = content.html;
+    }
 };

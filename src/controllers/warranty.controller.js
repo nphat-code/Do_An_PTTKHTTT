@@ -178,16 +178,6 @@ const updateWarranty = async (req, res) => {
             );
         }
 
-        // 4. Nếu Đã đổi máy (Trường hợp 1-đổi-1)
-        if (trangThai === 'Đã đổi máy') {
-            // Máy cũ -> Hàng lỗi
-            await ChiTietMay.update(
-                { trangThai: 'Hàng lỗi' },
-                { where: { soSerial: warranty.soSerial }, transaction: t }
-            );
-            // Lưu ý: Logic chọn máy mới để đổi sẽ thực hiện ở một endpoint khác hoặc client gửi kèm mã máy mới
-        }
-
         await t.commit();
         res.status(200).json({ success: true, message: "Cập nhật thành công", data: warranty });
     } catch (error) {

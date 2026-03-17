@@ -1,4 +1,4 @@
-const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon, ChiTietMay, HinhThucThanhToan } = require('../models/index');
+const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon, ChiTietMay, HinhThucThanhToan, NhanVien } = require('../models/index');
 const { Op } = require('sequelize');
 
 const generateOrderCode = () => {
@@ -114,6 +114,7 @@ const createOrder = async (req, res) => {
             ghiChu: customerInfo.ghiChu || '',
             trangThai: 'Chờ xử lý',
             maKh: customer.maKh,
+            maNv: req.user ? req.user.maNv : null, // Record creator staff
             maHttt: validMaHttt,
             maKm: maKm || null,
         }, { transaction: t });
@@ -212,9 +213,19 @@ const getAllOrders = async (req, res) => {
             include: [
                 {
                     model: KhachHang,
-                    attributes: ['hoTen', 'sdt']
+                    attributes: ['hoTen', 'sdt'],
+                    required: false
                 },
-                { model: DongMay, through: { attributes: ['soLuong', 'donGia', 'thanhTien'] } }
+                {
+                    model: NhanVien,
+                    attributes: ['hoTen'],
+                    required: false
+                },
+                {
+                    model: DongMay,
+                    through: { attributes: ['soLuong', 'donGia', 'thanhTien'] },
+                    required: false
+                }
             ],
             order: [['ngayLap', 'DESC']]
         });
@@ -229,10 +240,19 @@ const getOrderById = async (req, res) => {
     try {
         const order = await HoaDon.findByPk(req.params.id, {
             include: [
-                { model: KhachHang },
+                {
+                    model: KhachHang,
+                    required: false
+                },
+                {
+                    model: NhanVien,
+                    attributes: ['hoTen'],
+                    required: false
+                },
                 {
                     model: DongMay,
-                    through: { attributes: ['soLuong', 'donGia', 'thanhTien'] }
+                    through: { attributes: ['soLuong', 'donGia', 'thanhTien'] },
+                    required: false
                 }
             ]
         });
@@ -255,7 +275,7 @@ const getOrderById = async (req, res) => {
     }
 };
 
-const ORDER_STATUSES = ['Chờ xử lý', 'Đã thanh toán', 'Đang giao hàng', 'Đã hoàn thành', 'Đã hủy'];
+const ORDER_STATUSES = ['Chờ xử lý', 'Đang giao hàng', 'Đã hoàn thành', 'Đã hủy'];
 
 const updateOrderStatus = async (req, res) => {
     const t = await sequelize.transaction();

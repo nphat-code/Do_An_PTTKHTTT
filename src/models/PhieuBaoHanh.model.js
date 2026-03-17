@@ -13,7 +13,7 @@ const PhieuBaoHanh = sequelize.define('PhieuBaoHanh', {
     daXacNhanBaoGia: { type: DataTypes.BOOLEAN, defaultValue: false },
     trangThaiQc: { type: DataTypes.BOOLEAN, defaultValue: false },
     trangThai: {
-        type: DataTypes.ENUM('Chờ kiểm tra', 'Đang sửa', 'Đã xong', 'Đã trả máy', 'Yêu cầu 1-đổi-1', 'Đã đổi máy'),
+        type: DataTypes.ENUM('Chờ kiểm tra', 'Đang sửa', 'Đã xong', 'Đã trả máy'),
         defaultValue: 'Chờ kiểm tra'
     }
     // soSerial, maNvTiepNhan, maNvKyThuat, maHttt FK

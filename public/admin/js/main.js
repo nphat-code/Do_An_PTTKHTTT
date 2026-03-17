@@ -525,17 +525,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-const ORDER_STATUSES = ['Chờ xử lý', 'Đã thanh toán', 'Đang giao hàng', 'Đã hoàn thành', 'Đã hủy'];
+const ORDER_STATUSES = ['Chờ xử lý', 'Đang giao hàng', 'Đã hoàn thành', 'Đã hủy'];
 const ORDER_STATUS_COLORS = {
     'Chờ xử lý': { bg: '#fef3c7', color: '#d97706' },
-    'Đã thanh toán': { bg: '#dbeafe', color: '#2563eb' },
     'Đang giao hàng': { bg: '#e0e7ff', color: '#4338ca' },
     'Đã hoàn thành': { bg: '#dcfce7', color: '#16a34a' },
     'Đã hủy': { bg: '#fecaca', color: '#dc2626' }
 };
 const ORDER_STATUS_CLASS = {
     'Chờ xử lý': 'pending',
-    'Đã thanh toán': 'paid',
     'Đang giao hàng': 'shipping',
     'Đã hoàn thành': 'delivered',
     'Đã hủy': 'cancelled'
@@ -555,7 +553,7 @@ function renderOrdersTable(orders) {
         tr.innerHTML = `
             <td><strong>${order.maHd}</strong></td>
             <td>${order.KhachHang ? order.KhachHang.hoTen : 'N/A'}</td>
-            <td>${order.KhachHang ? order.KhachHang.sdt : 'N/A'}</td>
+            <td><span style="color:#64748b; font-size:0.9rem;">${order.NhanVien ? order.NhanVien.hoTen : '—'}</span></td>
             <td>${date}</td>
             <td><strong style="color: #2563eb;">${Number(order.tongTien || 0).toLocaleString()}đ</strong></td>
             <td>
@@ -810,12 +808,13 @@ async function viewOrderDetails(orderId) {
                 <div style="background: #f8fafc; border-radius: 12px; padding: 16px;">
                     <h4 style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;"><i class="fas fa-info-circle" style="margin-right: 6px;"></i>Thông tin đơn</h4>
                     <p style="margin-bottom: 8px;"><strong>Ngày đặt:</strong> ${date}</p>
+                    <p style="margin-bottom: 8px;"><strong>Nhân viên lập:</strong> <span style="color:#6366f1; font-weight:600;">${order.NhanVien ? order.NhanVien.hoTen : '—'}</span></p>
                     <p style="margin-bottom: 12px;">
-                        <strong>Trạng thái hiện tại:</strong> 
+                        <strong>Trạng thái:</strong> 
                         <span style="display:inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${sc.bg}; color: ${sc.color};">${status}</span>
                     </p>
                     <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0;">
-                        <label style="display:block; font-size: 0.8rem; color: #64748b; margin-bottom: 5px; font-weight:600;">Cập nhật trạng thái:</label>
+                        <label style="display:block; font-size: 0.8rem; color: #64748b; margin-bottom: 5px; font-weight:600;">Thay đổi trạng thái:</label>
                         <select class="status-select" onchange="changeOrderStatus('${order.maHd}', this.value)" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; cursor: pointer; background: white;">
                             ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`).join('')}
                         </select>
@@ -973,6 +972,7 @@ function printInvoice() {
                     <h4>Đơn hàng</h4>
                     Đơn số: <strong>${order.maHd}</strong><br>
                     Ngày đặt: ${date}<br>
+                    Nhân viên lập: ${order.NhanVien ? order.NhanVien.hoTen : '—'}<br>
                     Trạng thái: ${order.trangThai || 'Chờ xử lý'}
                 </div>
             </div>
@@ -2909,7 +2909,6 @@ function renderWarrantyTable(data) {
         if (item.trangThai === 'Đã trả máy') statusColor = '#16a34a';
         else if (item.trangThai === 'Đã xong') statusColor = '#2563eb';
         else if (item.trangThai === 'Đang sửa') statusColor = '#7c3aed';
-        else if (item.trangThai === 'Yêu cầu 1-đổi-1') statusColor = '#ef4444';
 
         tr.innerHTML = `
             <td><strong style="color: #4f46e5;">${item.maPbh}</strong>${loaiBadge}</td>
@@ -2951,7 +2950,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await fetch('/api/warranties', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                    },
                     body: JSON.stringify(data)
                 });
                 const result = await res.json();
@@ -2983,7 +2985,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await fetch(`/api/warranties/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                    },
                     body: JSON.stringify(data)
                 });
                 const result = await res.json();
@@ -3015,7 +3020,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await fetch('/api/warranties/repair-detail', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                    },
                     body: JSON.stringify(data)
                 });
                 const result = await res.json();
@@ -3047,7 +3055,9 @@ function closeWarrantyModal() {
 
 async function loadWarrantyEmployees() {
     try {
-        const res = await fetch('/api/employees');
+        const res = await fetch('/api/employees', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             const select = document.getElementById('warrantyEmployee');
@@ -3065,7 +3075,9 @@ async function checkSerial() {
     if (!serial) return Swal.fire('Thông báo', 'Vui lòng nhập số Serial', 'info');
 
     try {
-        const res = await fetch(`/api/warranties/check/${serial}`);
+        const res = await fetch(`/api/warranties/check/${serial}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         const infoDiv = document.getElementById('machineInfo');
         if (result.success) {
@@ -3082,7 +3094,9 @@ async function checkSerial() {
 
 async function viewWarrantyDetail(id) {
     try {
-        const res = await fetch(`/api/warranties/${id}`);
+        const res = await fetch(`/api/warranties/${id}`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             const w = result.data;
@@ -3155,7 +3169,10 @@ async function handleConfirmQuote() {
     if (!id) return;
 
     try {
-        const res = await fetch(`/api/warranties/${id}/confirm-quote`, { method: 'PUT' });
+        const res = await fetch(`/api/warranties/${id}/confirm-quote`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             Swal.fire('Thành công', result.message, 'success');
@@ -3172,7 +3189,10 @@ async function handleVerifyQC() {
     if (!id) return;
 
     try {
-        const res = await fetch(`/api/warranties/${id}/verify-qc`, { method: 'PUT' });
+        const res = await fetch(`/api/warranties/${id}/verify-qc`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             Swal.fire('Thành công', result.message, 'success');
@@ -3186,7 +3206,9 @@ async function handleVerifyQC() {
 
 async function loadHtttPbh() {
     try {
-        const res = await fetch('/api/orders/payment-methods');
+        const res = await fetch('/api/orders/payment-methods', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
         const result = await res.json();
         if (result.success) {
             const select = document.getElementById('maHtttPbh');
@@ -3903,82 +3925,4 @@ async function savePermissionsMappings() {
             Swal.fire('Lỗi', result.message, 'error');
         }
     } catch (err) { console.error(err); }
-}
-
-// ==================== QUẢN LÝ BÁO CÁO ====================
-
-async function loadReports() {
-    const start = document.getElementById('reportStartDate').value;
-    const end = document.getElementById('reportEndDate').value;
-
-    // Mặc định tháng hiện tại nếu không chọn
-    let dateQuery = '';
-    if (start && end) {
-        dateQuery = `?startDate=${start}&endDate=${end}`;
-    }
-
-    try {
-        const headers = { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` };
-
-        // 1. Load Sales Report
-        const salesRes = await fetch(`/api/reports/sales${dateQuery}`, { headers });
-        const salesData = await salesRes.json();
-        if (salesData.success) renderSalesReport(salesData.data);
-
-        // 2. Load Staff Performance
-        const staffRes = await fetch(`/api/reports/staff${dateQuery}`, { headers });
-        const staffData = await staffRes.json();
-        if (staffData.success) renderStaffReport(staffData.data);
-
-        // 3. Load Inventory Report
-        const invRes = await fetch('/api/reports/inventory', { headers });
-        const invData = await invRes.json();
-        if (invData.success) renderInventoryReport(invData.data);
-
-    } catch (err) {
-        console.error("Lỗi tải báo cáo:", err);
-    }
-}
-
-function renderSalesReport(data) {
-    document.getElementById('reportTotalRevenue').innerText = Number(data.summary.totalRevenue || 0).toLocaleString() + 'đ';
-    document.getElementById('reportTotalOrders').innerText = data.summary.totalOrders || 0;
-}
-
-function renderStaffReport(data) {
-    const tbody = document.getElementById('staffPerformanceTableBody');
-    if (!tbody) return;
-
-    if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Không có dữ liệu trong khoảng này</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = data.map(s => `
-        <tr>
-            <td><strong>${s.hoTen}</strong></td>
-            <td>${s.orderCount}</td>
-            <td style="color: #10b981; font-weight: 600;">${Number(s.totalRevenue || 0).toLocaleString()}đ</td>
-        </tr>
-    `).join('');
-}
-
-function renderInventoryReport(data) {
-    document.getElementById('reportTotalStockValue').innerText = Number(data.summary.totalValue || 0).toLocaleString() + 'đ';
-    document.getElementById('reportLowStockCount').innerText = data.lowStock.length;
-
-    const tbody = document.getElementById('lowStockReportTableBody');
-    if (!tbody) return;
-
-    if (data.lowStock.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Hàng trong kho vẫn đủ</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = data.lowStock.map(p => `
-        <tr>
-            <td>${p.tenModel}</td>
-            <td style="color: #ef4444; font-weight: 700;">${p.soLuongTon}</td>
-        </tr>
-    `).join('');
 }

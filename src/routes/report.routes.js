@@ -7,4 +7,10 @@ router.get('/sales', verifyToken, authorize('REPORT_VIEW'), reportController.get
 router.get('/inventory', verifyToken, authorize('REPORT_VIEW'), reportController.getInventoryReport);
 router.get('/staff', verifyToken, authorize('REPORT_VIEW'), reportController.getStaffPerformance);
 
+// Advanced Analytics (Module 4.0)
+router.get('/financial', verifyToken, authorize('REPORT_VIEW'), reportController.getFinancialReport);
+router.get('/inventory-advanced', verifyToken, authorize('REPORT_VIEW'), reportController.getInventoryAdvancedReport);
+router.get('/warranty-quality', verifyToken, authorize('REPORT_VIEW'), reportController.getWarrantyQualityReport);
+router.get('/performance', verifyToken, authorize('REPORT_VIEW'), reportController.getPerformanceAnalytics);
+
 module.exports = router;
