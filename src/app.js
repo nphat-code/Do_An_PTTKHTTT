@@ -26,6 +26,7 @@ const sparepartRoutes = require('./routes/sparepart.routes');
 const categoryRoutes = require('./routes/category.routes');
 const inspectionRoutes = require('./routes/inspection.routes');
 const reportRoutes = require('./routes/report.routes');
+const promotionRoutes = require('./routes/promotion.routes');
 
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
@@ -42,6 +43,7 @@ app.use('/api/spareparts', sparepartRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/inspections', inspectionRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 sequelize.authenticate()
     .then(() => {

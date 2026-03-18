@@ -79,6 +79,10 @@ if (registerForm) {
             const result = await response.json();
 
             if (result.success) {
+                // Lưu thông tin để tự động điền ở trang đăng nhập
+                sessionStorage.setItem('reg_email', email);
+                sessionStorage.setItem('reg_pwd', password);
+
                 Swal.fire({
                     icon: 'success',
                     title: 'Đăng ký thành công',
@@ -184,3 +188,32 @@ if (resetPasswordForm) {
         }
     };
 }
+
+// Tự động điền thông tin sau khi đăng ký (UX)
+window.addEventListener('DOMContentLoaded', () => {
+    const regEmail = sessionStorage.getItem('reg_email');
+    const regPwd = sessionStorage.getItem('reg_pwd');
+
+    if (regEmail && regPwd && loginForm) {
+        document.getElementById('email').value = regEmail;
+        document.getElementById('password').value = regPwd;
+
+        // Xóa sau khi dùng để bảo mật
+        sessionStorage.removeItem('reg_email');
+        sessionStorage.removeItem('reg_pwd');
+
+        // Thông báo nhẹ cho người dùng
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+
+        Toast.fire({
+            icon: 'info',
+            title: 'Hệ thống đã tự động điền thông tin đăng ký của bạn.'
+        });
+    }
+});

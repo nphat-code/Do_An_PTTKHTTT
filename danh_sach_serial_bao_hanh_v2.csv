@@ -1,0 +1,21 @@
+﻿Số Serial,Model,Mô tả lỗi mẫu,Kết luận kỹ thuật mẫu,Linh kiện thay thế (Gợi ý),Mã NV Tiếp nhận (Gợi ý)
+K2101N012345678902,MSI Katana 15 B13V,Máy không lên nguồn,Hỏng mạch nguồn chính trên mainboard,Bàn phím ACER,NV001
+K2101N012345678901,MSI Katana 15 B13V,Màn hình bị sọc,Lỗi panel hiển thị,Màn hình ACER,NV002
+BGRT4Y2,Dell XPS 13 9340,Bàn phím bị liệt phím Enter,Chập mạch phím,Bàn phím ACER,NV003
+BGRT4Y3,Dell XPS 13 9340,Pin sạc không vào,Pin bị chai hoặc lỗi mạch sạc,Bàn phím ACER,NV004
+PF1ABC23,Lenovo Legion 5 16IRX9,Máy quá nóng khi chơi game,Quạt tản nhiệt khô dầu hoặc hỏng,Bàn phím ACER,NV005
+J8K9L03,Dell Inspiron 15 3530,Loa bị rè,Rách màng loa,Bàn phím ACER,NV001
+J8K9L02,Dell Inspiron 15 3530,Touchpad không nhạy,Hỏng cáp kết nối touchpad,Bàn phím ACER,NV002
+MAN0CV123456790,Asus Vivobook 15 X1504,Lỗi không nhận ổ cứng,Ổ cứng bị bad sector nặng,Bàn phím ACER,NV003
+MAN0CV123456789,Asus Vivobook 15 X1504,Máy không lên nguồn,Hỏng mạch nguồn chính trên mainboard,Bàn phím ACER,NV004
+C02FL124Q6LR,MacBook Air 13 M3,Màn hình bị sọc,Lỗi panel hiển thị,Màn hình ACER,NV005
+C02FL123Q6LR,MacBook Air 13 M3,Bàn phím bị liệt phím Enter,Chập mạch phím,Bàn phím ACER,NV001
+5CG2345681,HP Victus 16 2024,Pin sạc không vào,Pin bị chai hoặc lỗi mạch sạc,Bàn phím ACER,NV002
+5CG2345678,HP Victus 16 2024,Máy quá nóng khi chơi game,Quạt tản nhiệt khô dầu hoặc hỏng,Bàn phím ACER,NV003
+5CG2345680,HP Victus 16 2024,Loa bị rè,Rách màng loa,Bàn phím ACER,NV004
+5CG2345679,HP Victus 16 2024,Touchpad không nhạy,Hỏng cáp kết nối touchpad,Bàn phím ACER,NV005
+M1N0CV556677882,Asus ROG Strix G16 2024,Lỗi không nhận ổ cứng,Ổ cứng bị bad sector nặng,Bàn phím ACER,NV001
+M1N0CV556677881,Asus ROG Strix G16 2024,Máy không lên nguồn,Hỏng mạch nguồn chính trên mainboard,Bàn phím ACER,NV002
+NXHMWAA002123456781600,Acer Nitro V ANV15,Màn hình bị sọc,Lỗi panel hiển thị,Màn hình ACER,NV003
+NXHMWAA001123456781600,Acer Nitro V ANV15,Bàn phím bị liệt phím Enter,Chập mạch phím,Bàn phím ACER,NV004
+NXHMWAA003123456781600,Acer Nitro V ANV15,Pin sạc không vào,Pin bị chai hoặc lỗi mạch sạc,Bàn phím ACER,NV005

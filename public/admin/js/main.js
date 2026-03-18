@@ -34,7 +34,8 @@ const permissionMap = {
     'warranty': 'WARRANTY_MANAGE',
     'spareparts': 'WARRANTY_MANAGE',
     'inspections': 'INVENTORY_VIEW',
-    'reports': 'REPORT_VIEW'
+    'reports': 'REPORT_VIEW',
+    'promotions': 'ORDER_PROCESS'
 };
 
 function hasPermission(tabName) {
@@ -136,6 +137,7 @@ function showTab(tabName) {
     else if (tabName === 'inspections') loadInspections();
     else if (tabName === 'permissions') loadPermissionsSection();
     else if (tabName === 'reports') loadReports();
+    else if (tabName === 'promotions') loadPromotions();
 }
 
 let currentPage = 1;
@@ -871,8 +873,28 @@ async function viewOrderDetails(orderId) {
                 });
             }
 
-            // 4. Tổng tiền
-            document.getElementById("orderTotalDetail").innerText = Number(order.tongTien || 0).toLocaleString() + "đ";
+            // 4. Tính toán và hiển thị tổng tiền, khuyến mãi
+            let subtotal = 0;
+            orderItems.forEach(p => {
+                const ct = p.CtHoaDon || p.ctHoaDon || {};
+                subtotal += Number(ct.thanhTien || (Number(ct.donGia || 0) * (ct.soLuong || 0)));
+            });
+
+            const finalTotal = Number(order.tongTien || 0);
+            const discount = subtotal - finalTotal;
+
+            document.getElementById("orderSubtotalDetail").innerText = subtotal.toLocaleString() + "đ";
+
+            const promoRow = document.getElementById("orderPromotionRow");
+            if (order.ChuongTrinhKm && discount > 0) {
+                document.getElementById("orderPromotionName").innerText = order.ChuongTrinhKm.tenKm;
+                document.getElementById("orderDiscountDetail").innerText = "-" + discount.toLocaleString() + "đ";
+                promoRow.style.display = "flex";
+            } else {
+                promoRow.style.display = "none";
+            }
+
+            document.getElementById("orderTotalDetail").innerText = finalTotal.toLocaleString() + "đ";
 
             // Hiện modal
             orderDetailModal.style.display = "flex";
@@ -910,11 +932,13 @@ function printInvoice() {
     let itemsHtml = '';
 
     const printItems = order.DongMays || [];
+    let subtotal = 0;
     printItems.forEach(p => {
         const ct = p.CtHoaDon || p.ctHoaDon || {};
         const qty = ct.soLuong || 0;
         const price = Number(ct.donGia || 0);
         const total = Number(ct.thanhTien || qty * price);
+        subtotal += total;
         itemsHtml += `
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 8px;">
@@ -927,6 +951,23 @@ function printInvoice() {
             </tr>
         `;
     });
+
+    const finalTotal = Number(order.tongTien || 0);
+    const discount = subtotal - finalTotal;
+
+    let promotionHtml = '';
+    if (order.ChuongTrinhKm && discount > 0) {
+        promotionHtml = `
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px;">
+                <span>Tạm tính:</span>
+                <span>${subtotal.toLocaleString()}đ</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 16px; color: #ef4444;">
+                <span>Khuyến mãi (${order.ChuongTrinhKm.tenKm}):</span>
+                <span>-${discount.toLocaleString()}đ</span>
+            </div>
+        `;
+    }
 
     const html = `
         <!DOCTYPE html>
@@ -991,8 +1032,9 @@ function printInvoice() {
                 </tbody>
             </table>
 
+            ${promotionHtml}
             <div class="total-section">
-                Tổng cộng: ${Number(order.tongTien || 0).toLocaleString()}đ
+                Tổng cộng: ${finalTotal.toLocaleString()}đ
             </div>
 
             <div class="footer">
@@ -1040,15 +1082,20 @@ function renderCustomersTable(users) {
     container.innerHTML = "";
 
     users.forEach(user => {
-        const date = new Date(user.createdAt || new Date()).toLocaleDateString('vi-VN');
         const status = user.trangThai; // Boolean
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td><strong>${user.maKh}</strong></td>
             <td style="font-size: 0.95rem;"><strong>${user.hoTen}</strong> ${user.email ? `<br><small style="color:#94a3b8; font-weight:400;">${user.email}</small>` : ''}</td>
             <td style="font-size: 0.95rem;"><i class="fas fa-phone" style="font-size: 0.75rem; color: #64748b; margin-right: 6px;"></i>${user.sdt}</td>
-            <td style="font-size: 0.9rem; color: #475569;">${user.diaChi || '—'}</td>
-            <td>${date}</td>
+            <td>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span class="badge" style="background: ${user.rank.color}15; color: ${user.rank.color}; border: 1px solid ${user.rank.color}30; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; width: fit-content;">
+                        <i class="fas ${user.rank.icon}" style="margin-right: 4px;"></i>${user.rank.name}
+                    </span>
+                    <small style="color: #94a3b8; font-size: 0.7rem;">Tổng: ${(user.totalSpending || 0).toLocaleString()}đ</small>
+                </div>
+            </td>
             <td>
                 <span class="status-badge ${status ? 'status-active' : 'status-inactive'}">
                     ${status ? 'Hoạt động' : 'Đã khóa'}
@@ -2582,14 +2629,14 @@ async function openImportModal() {
             select.innerHTML = resultKho.data.map(k => `<option value="${k.maKho}">${k.tenKho}</option>`).join('');
         }
 
-        const resultNcc = await resNcc.json();
+        const resultNcc = await suppliersData.json();
         if (resultNcc.success) {
             const selectNcc = document.getElementById('importNccId');
             selectNcc.innerHTML = '<option value="">-- Chọn Nhà Cung Cấp (Tùy chọn) --</option>' +
                 resultNcc.data.map(n => `<option value="${n.maNcc}">${n.tenNcc}</option>`).join('');
         }
 
-        const resultHttt = await resHttt.json();
+        const resultHttt = await paymentsData.json();
         if (resultHttt.success) {
             const selectHttt = document.getElementById('importHtttId');
             selectHttt.innerHTML = '<option value="">-- Chọn HTTT (Tùy chọn) --</option>' +
@@ -2902,21 +2949,23 @@ function renderWarrantyTable(data) {
 
         // Loai phieu badge
         const loaiColor = item.loaiPhieu === 'Bảo hành' ? '#10b981' : '#f59e0b';
-        const loaiBadge = `<span style="background:${loaiColor}15; color:${loaiColor}; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600; margin-left:8px;">${item.loaiPhieu}</span>`;
+        const loaiBadge = `<span style="background:${loaiColor}15; color:${loaiColor}; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600; display: inline-block; margin-top: 4px;">${item.loaiPhieu}</span>`;
 
-        // Status colors
-        let statusColor = '#d97706'; // Pending
-        if (item.trangThai === 'Đã trả máy') statusColor = '#16a34a';
-        else if (item.trangThai === 'Đã xong') statusColor = '#2563eb';
-        else if (item.trangThai === 'Đang sửa') statusColor = '#7c3aed';
+        // Status mapping
+        const statusMap = {
+            'Đang sửa': { label: 'Đang sửa', color: '#7c3aed' },
+            'Đã xong': { label: 'Đã xong', color: '#2563eb' },
+            'Đã trả máy': { label: 'Đã trả máy', color: '#16a34a' }
+        };
+        const st = statusMap[item.trangThai] || { label: item.trangThai, color: '#d97706' };
 
         tr.innerHTML = `
-            <td><strong style="color: #4f46e5;">${item.maPbh}</strong>${loaiBadge}</td>
+            <td><strong style="color: #4f46e5;">${item.maPbh}</strong><br>${loaiBadge}</td>
             <td><code style="background:#f1f5f9; padding:4px 8px; border-radius:6px; color: #1e293b; font-weight: 600;">${item.soSerial}</code></td>
             <td>${item.ChiTietMay?.DongMay?.tenModel || '—'}</td>
             <td>${ngayLap}</td>
             <td>${ngayTra}</td>
-            <td><span class="status-badge" style="background: ${statusColor}15; color: ${statusColor}; border: 1px solid ${statusColor}30; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.8rem;">${item.trangThai}</span></td>
+            <td><span class="status-badge" style="background: ${st.color}15; color: ${st.color}; border: 1px solid ${st.color}30; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; white-space: nowrap;">${st.label}</span></td>
             <td>
                 <button class="btn-edit" onclick="viewWarrantyDetail('${item.maPbh}')" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
             </td>
@@ -3108,33 +3157,35 @@ async function viewWarrantyDetail(id) {
             const typeColor = w.loaiPhieu === 'Bảo hành' ? '#10b981' : '#f59e0b';
 
             info.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Loại hình</span>
-                        <span style="color: ${typeColor}; font-weight: 700; font-size: 1.1rem;">${w.loaiPhieu}</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">Serial Máy</span>
+                        <div style="background: #eef2ff; color: #4338ca; padding: 6px 10px; border-radius: 6px; font-weight: 700; font-family: monospace; font-size: 1rem; border: 1px solid #c7d2fe;">${w.soSerial}</div>
                     </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Số Serial</span>
-                        <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; color: #1e293b; font-weight: 600; font-size: 0.95rem;">${w.soSerial}</code>
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Ngày tiếp nhận</span>
-                        <span style="font-weight: 600; color: #1e293b; font-size: 1rem;">${ngayLap}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; grid-column: span 2;">
-                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Sản phẩm / Model</span>
-                        <span style="font-weight: 600; color: #1e293b; font-size: 1rem;">${w.ChiTietMay?.DongMay?.tenModel || 'Thiết bị không định danh'}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">NV tiếp nhận</span>
-                        <span style="font-weight: 600; color: #1e293b; font-size: 1rem;">${w.NvTiepNhan?.hoTen || '—'}</span>
+                    <div>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">Loại phiếu</span>
+                        <div style="background: ${typeColor}15; color: ${typeColor}; padding: 6px 10px; border-radius: 6px; font-weight: 700; text-align: center; border: 1px solid ${typeColor}30;">${w.loaiPhieu}</div>
                     </div>
                 </div>
-                <div style="background: #fffbeb; padding: 18px; border-radius: 12px; border-left: 5px solid #f59e0b; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-                    <strong style="color: #92400e; font-size: 0.9rem; display: flex; align-items: center; margin-bottom: 8px;">
-                        <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i> MÔ TẢ TÌNH TRẠNG LỖI TỪ KHÁCH HÀNG:
+                <div style="margin-bottom: 16px;">
+                    <span style="display: block; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">Model / Sản phẩm</span>
+                    <div style="font-weight: 700; color: #1e293b; font-size: 1rem;">${w.ChiTietMay?.DongMay?.tenModel || 'Thiết bị không định danh'}</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                    <div>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">Khách hàng</span>
+                        <div style="font-weight: 600; color: #334155;">${w.KhachHang?.hoTen || '—'}</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">Ngày nhận</span>
+                        <div style="font-weight: 600; color: #334155;">${ngayLap}</div>
+                    </div>
+                </div>
+                <div style="background: #fffbeb; padding: 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    <strong style="color: #92400e; font-size: 0.75rem; text-transform: uppercase; display: block; margin-bottom: 6px;">
+                        Mô tả lỗi từ khách:
                     </strong>
-                    <p style="margin: 0; white-space: pre-wrap; color: #451a03; line-height: 1.6; font-size: 1rem; font-style: italic;">"${w.moTaLoi}"</p>
+                    <p style="margin: 0; color: #78350f; font-size: 0.9rem; font-style: italic; line-height: 1.5;">"${w.moTaLoi}"</p>
                 </div>
             `;
 
@@ -3150,7 +3201,13 @@ async function viewWarrantyDetail(id) {
             document.getElementById('maNvKyThuat').value = w.maNvKyThuat || '';
             document.getElementById('maHtttPbh').value = w.maHttt || '';
 
-            renderRepairDetails(w.ChiTietSuaChuas, w.chiPhiSuaChua, w.phiDichVu);
+            // Update Stepper
+            updateWarrantyStepper(w.trangThai);
+
+            // Store status for security checks
+            document.getElementById('displayWId').dataset.trangThai = w.trangThai;
+
+            renderRepairDetails(w.ChiTietSuaChuas, w.chiPhiSuaChua, w.phiDichVu, w.trangThai);
 
             // Workflow actions
             const btnQuote = document.getElementById('btnConfirmQuote');
@@ -3163,6 +3220,60 @@ async function viewWarrantyDetail(id) {
         }
     } catch (err) { console.error(err); }
 }
+
+function updateWarrantyStepper(status) {
+    const steps = ['Tiếp nhận', 'Chờ kiểm tra', 'Đang sửa', 'Đã xong', 'Đã trả máy'];
+    
+    // Define active steps for each status
+    const statusMap = {
+        'Chờ kiểm tra': 2,
+        'Đang sửa': 3,
+        'Đã xong': 4,
+        'Đã trả máy': 4
+    };
+
+    const currentStep = statusMap[status] || 1;
+    
+    // Reset steps
+    for (let i = 1; i <= 4; i++) {
+        const step = document.getElementById(`step${i}`);
+        if (!step) continue;
+        const dot = step.querySelector('.step-dot');
+        const label = step.querySelector('.step-label');
+        
+        if (i < currentStep) {
+            // Completed steps
+            dot.style.background = '#6366f1';
+            dot.style.color = '#fff';
+            dot.style.boxShadow = '0 0 0 1px #6366f1';
+            dot.innerHTML = '<i class="fas fa-check"></i>';
+            label.style.color = '#1e293b';
+        } else if (i === currentStep) {
+            // Current active step
+            dot.style.background = '#6366f1';
+            dot.style.color = '#fff';
+            dot.style.boxShadow = '0 0 0 1px #6366f1';
+            dot.innerHTML = i;
+            label.style.color = '#1e293b';
+            label.style.fontWeight = '700';
+        } else {
+            // Future steps
+            dot.style.background = '#fff';
+            dot.style.color = '#94a3b8';
+            dot.style.boxShadow = '0 0 0 1px #cbd5e1';
+            dot.innerHTML = i;
+            label.style.color = '#94a3b8';
+            label.style.fontWeight = '600';
+        }
+    }
+
+    const track = document.getElementById('step-track');
+    if (track) {
+        const percentage = ((currentStep - 1) / 3) * 100;
+        track.style.width = percentage + '%';
+    }
+}
+
 
 async function handleConfirmQuote() {
     const id = document.getElementById('displayWId').innerText;
@@ -3220,11 +3331,12 @@ async function loadHtttPbh() {
     } catch (err) { console.error(err); }
 }
 
-function renderRepairDetails(details, total, laborFee = 0) {
+function renderRepairDetails(details, total, laborFee = 0, status = '') {
     const tbody = document.getElementById('repairDetailTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    const isLocked = ['Đã xong', 'Đã trả máy'].includes(status);
     let partsSubtotal = 0;
 
     if ((!details || details.length === 0)) {
@@ -3232,13 +3344,18 @@ function renderRepairDetails(details, total, laborFee = 0) {
     } else {
         details.forEach(d => {
             const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f8fafc';
             const subtotal = d.soLuong * d.donGia;
             partsSubtotal += subtotal;
             tr.innerHTML = `
-                <td style="padding: 12px 15px;">${d.LinhKien?.tenLk || '—'}</td>
-                <td style="padding: 12px 15px; text-align: center;"><span style="background: #eef2ff; color: #4f46e5; padding: 2px 10px; border-radius: 6px; font-weight: 600;">${d.soLuong}</span></td>
-                <td style="padding: 12px 15px; text-align: right;">${Number(d.donGia).toLocaleString()}đ</td>
-                <td style="padding: 12px 15px; text-align: right; font-weight:700; color: #1e293b;">${subtotal.toLocaleString()}đ</td>
+                <td style="padding: 12px 16px; color: #1e293b; font-weight: 500;">${d.LinhKien?.tenLk || '—'}</td>
+                <td style="padding: 12px 16px; text-align: center;"><span style="color: #64748b; font-weight: 600;">${d.soLuong}</span></td>
+                <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: #1e293b;">${subtotal.toLocaleString()}đ</td>
+                <td style="padding: 12px 16px; text-align: center;">
+                    <button type="button" onclick="deleteRepairDetail('${d.id}')" ${isLocked ? 'disabled style="display:none;"' : ''} style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.9rem;" title="Xóa linh kiện">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -3265,6 +3382,35 @@ function renderRepairDetails(details, total, laborFee = 0) {
 
 function closeWarrantyDetailModal() {
     document.getElementById('warrantyDetailModal').style.display = 'none';
+}
+
+async function deleteRepairDetail(id) {
+    const maPbh = document.getElementById('displayWId').innerText;
+    const confirm = await Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: "Linh kiện sẽ được trả lại kho và chi phí sửa chữa sẽ giảm xuống.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Đồng ý xóa',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (confirm.isConfirmed) {
+        try {
+            const res = await fetch(`/api/warranties/repair-detail/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+            });
+            const result = await res.json();
+            if (result.success) {
+                Swal.fire({ icon: 'success', title: 'Đã xóa', text: result.message, timer: 1500 });
+                viewWarrantyDetail(maPbh);
+            } else {
+                Swal.fire('Lỗi', result.message, 'error');
+            }
+        } catch (err) { console.error(err); }
+    }
 }
 
 // --- INVENTORY INSPECTION (KIỂM KÊ) ---
@@ -3479,6 +3625,12 @@ window.closeInspectionDetailModal = () => { if (inspectionDetailModal) inspectio
 
 async function openAddRepairDetail() {
     const id = document.getElementById('displayWId').innerText;
+    const status = document.getElementById('displayWId').dataset.trangThai;
+
+    if (['Đã xong', 'Đã trả máy'].includes(status)) {
+        return Swal.fire('Thông báo', 'Phiếu đã hoàn thành hoặc đã trả khách, không thể thêm linh kiện mới.', 'warning');
+    }
+    
     if (!id) return;
 
     try {
@@ -3925,4 +4077,222 @@ async function savePermissionsMappings() {
             Swal.fire('Lỗi', result.message, 'error');
         }
     } catch (err) { console.error(err); }
+}
+
+// ------------------------------------------------------------------
+// QUẢN LÝ KHUYẾN MÃI
+async function loadPromotions() {
+    try {
+        const keyword = document.getElementById("searchPromotionInput") ? document.getElementById("searchPromotionInput").value : '';
+        const response = await fetch('/api/promotions', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            let data = result.data;
+            if (keyword) {
+                data = data.filter(p => p.tenKm.toLowerCase().includes(keyword.toLowerCase()) || p.maKm.toLowerCase().includes(keyword.toLowerCase()));
+            }
+            renderPromotionsTable(data);
+        }
+    } catch (error) {
+        console.error("Lỗi khi tải danh sách khuyến mãi:", error);
+    }
+}
+
+function renderPromotionsTable(promos) {
+    const container = document.getElementById("promotionTableBody");
+    if (!container) return;
+    container.innerHTML = "";
+
+    promos.forEach(p => {
+        const start = new Date(p.ngayBatDau).toLocaleDateString('vi-VN');
+        const end = new Date(p.ngayKetThuc).toLocaleDateString('vi-VN');
+        const val = p.loaiKm === 'Phần trăm' ? `${p.giaTriKm}%` : `${Number(p.giaTriKm).toLocaleString()}đ`;
+        const status = p.trangThai;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><strong>${p.maKm}</strong></td>
+            <td>${p.tenKm}</td>
+            <td>${p.loaiKm}</td>
+            <td><span style="color: #4f46e5; font-weight: 700;">${val}</span></td>
+            <td style="font-size: 0.85rem;">${start} - ${end}</td>
+            <td>
+                <span class="status-badge ${status ? 'status-active' : 'status-inactive'}" style="white-space: nowrap;">
+                    ${status ? 'Đang chạy' : 'Tạm dừng'}
+                </span>
+            </td>
+            <td>
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button class="btn-edit" onclick='openPromotionModal(${JSON.stringify(p).replace(/'/g, "&#39;")})' title="Sửa"><i class="fas fa-edit"></i></button>
+                    <button class="btn-delete" onclick="deletePromotion('${p.maKm}')" title="Xóa"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        `;
+        container.appendChild(tr);
+    });
+}
+
+async function deletePromotion(id) {
+    const result = await Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: "Dữ liệu khuyến mãi sẽ bị xóa vĩnh viễn!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const res = await fetch(`/api/promotions/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire('Đã xóa!', data.message, 'success');
+                loadPromotions();
+            } else {
+                Swal.fire('Lỗi', data.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Lỗi', 'Không thể kết nối đến server', 'error');
+        }
+    }
+}
+
+window.openPromotionModal = async (promo = null) => {
+    const isEdit = !!promo;
+    
+    // Load all models for selection
+    let allModels = [];
+    try {
+        const res = await fetch('/api/products?limit=500', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        const result = await res.json();
+        if (result.success) allModels = result.data;
+    } catch (e) { console.error('Lỗi tải model', e); }
+
+    // Pre-selected models if editing
+    const selectedModels = (promo?.DongMays || []).map(dm => dm.maModel);
+
+    Swal.fire({
+        title: isEdit ? 'Cập nhật khuyến mãi' : 'Thêm chương trình KM',
+        width: '700px',
+        html: `
+            <div style="text-align: left; padding: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">Mã khuyến mãi (Code) *</label>
+                        <input id="swalMaKm" class="swal2-input" style="width:100%; margin:0;" value="${promo?.maKm || ''}" ${isEdit ? 'disabled' : ''} placeholder="HELLO2024">
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">Tên chương trình *</label>
+                        <input id="swalTenKm" class="swal2-input" style="width:100%; margin:0;" value="${promo?.tenKm || ''}" placeholder="Giảm giá mùa hè">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">Loại KM</label>
+                        <select id="swalLoaiKm" class="swal2-input" style="width:100%; margin:0;">
+                            <option value="Phần trăm" ${promo?.loaiKm === 'Phần trăm' ? 'selected' : ''}>Phần trăm (%)</option>
+                            <option value="Số tiền cố định" ${promo?.loaiKm === 'Số tiền cố định' ? 'selected' : ''}>Số tiền (đ)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">Giá trị KM *</label>
+                        <input id="swalGiaTriKm" type="number" class="swal2-input" style="width:100%; margin:0;" value="${promo?.giaTriKm || 0}">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">Ngày bắt đầu</label>
+                        <input id="swalNgayBd" type="date" class="swal2-input" style="width:100%; margin:0;" value="${promo?.ngayBatDau ? new Date(promo.ngayBatDau).toISOString().split('T')[0] : ''}">
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">Ngày kết thúc</label>
+                        <input id="swalNgayKt" type="date" class="swal2-input" style="width:100%; margin:0;" value="${promo?.ngayKetThuc ? new Date(promo.ngayKetThuc).toISOString().split('T')[0] : ''}">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display:block; font-weight:600; margin-bottom:5px;">Chi tiêu tối thiểu (VNĐ)</label>
+                    <input id="swalMinSpend" type="number" class="swal2-input" style="width:100%; margin:0;" value="${promo?.dieuKienApDung || 0}">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display:block; font-weight:600; margin-bottom:5px;">Áp dụng cho dòng máy (Nếu để trống sẽ áp dụng cho toàn hệ thống)</label>
+                    <div style="max-height: 150px; overflow-y: auto; border: 1px solid #d1d5db; padding: 10px; border-radius: 5px; background: #f9fafb;">
+                        ${allModels.map(m => `
+                            <label style="display: flex; align-items: center; margin-bottom: 5px; cursor: pointer; font-size: 0.9rem;">
+                                <input type="checkbox" name="promoModels" value="${m.maModel}" ${selectedModels.includes(m.maModel) ? 'checked' : ''} style="margin-right: 10px;">
+                                ${m.tenModel} <span style="color: #94a3b8; font-size: 0.8rem; margin-left:10px;">(${m.maModel})</span>
+                            </label>
+                        `).join('')}
+                        ${allModels.length === 0 ? '<p style="color:#94a3b8; font-size:0.85rem; margin:0;">Đang tải danh sách dòng máy...</p>' : ''}
+                    </div>
+                </div>
+
+                <div>
+                     <label style="display:flex; align-items:center; font-weight:600; cursor:pointer;">
+                        <input id="swalStatusKm" type="checkbox" style="margin-right:10px;" ${promo?.trangThai !== false ? 'checked' : ''}> Đang kích hoạt
+                     </label>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: isEdit ? 'Cập nhật' : 'Thêm mới',
+        cancelButtonText: 'Hủy',
+        preConfirm: () => {
+            const selectedBoxes = document.querySelectorAll('input[name="promoModels"]:checked');
+            const modelIds = Array.from(selectedBoxes).map(cb => cb.value);
+
+            const data = {
+                maKm: document.getElementById('swalMaKm').value.trim().toUpperCase(),
+                tenKm: document.getElementById('swalTenKm').value.trim(),
+                loaiKm: document.getElementById('swalLoaiKm').value,
+                giaTriKm: Number(document.getElementById('swalGiaTriKm').value),
+                ngayBatDau: document.getElementById('swalNgayBd').value,
+                ngayKetThuc: document.getElementById('swalNgayKt').value,
+                dieuKienApDung: Number(document.getElementById('swalMinSpend').value),
+                trangThai: document.getElementById('swalStatusKm').checked,
+                modelIds: modelIds
+            };
+
+            if (!data.maKm || !data.tenKm || data.giaTriKm <= 0) {
+                Swal.showValidationMessage('Vui lòng hoàn thiện các thông tin bắt buộc');
+                return false;
+            }
+            return data;
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const url = isEdit ? `/api/promotions/${promo.maKm}` : '/api/promotions';
+                const method = isEdit ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(result.value)
+                });
+                const resData = await response.json();
+                if (resData.success) {
+                    Swal.fire('Thành công', resData.message, 'success');
+                    loadPromotions();
+                } else {
+                    Swal.fire('Lỗi', resData.message, 'error');
+                }
+            } catch (error) { console.error(error); }
+        }
+    });
 }

@@ -1,4 +1,4 @@
-﻿let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
 let currentCategory = "";
 let _currentProducts = [];
 let currentPage = 1;
@@ -94,7 +94,10 @@ function renderPagination(pagination) {
     prevBtn.className = "btn-secondary";
     prevBtn.style.padding = "10px 15px";
     prevBtn.disabled = currentPage === 1;
-    prevBtn.onclick = () => loadProducts(undefined, currentPage - 1);
+    prevBtn.onclick = () => {
+        loadProducts(undefined, currentPage - 1);
+        document.getElementById('sectionTitle').scrollIntoView({ behavior: 'smooth' });
+    };
     container.appendChild(prevBtn);
 
     // Page Numbers
@@ -110,7 +113,10 @@ function renderPagination(pagination) {
         btn.style.justifyContent = "center";
 
         if (i !== currentPage) {
-            btn.onclick = () => loadProducts(undefined, i);
+            btn.onclick = () => {
+                loadProducts(undefined, i);
+                document.getElementById('sectionTitle').scrollIntoView({ behavior: 'smooth' });
+            };
         }
         container.appendChild(btn);
     }
@@ -121,7 +127,10 @@ function renderPagination(pagination) {
     nextBtn.className = "btn-secondary";
     nextBtn.style.padding = "10px 15px";
     nextBtn.disabled = currentPage === totalPages;
-    nextBtn.onclick = () => loadProducts(undefined, currentPage + 1);
+    nextBtn.onclick = () => {
+        loadProducts(undefined, currentPage + 1);
+        document.getElementById('sectionTitle').scrollIntoView({ behavior: 'smooth' });
+    };
     container.appendChild(nextBtn);
 }
 
@@ -222,6 +231,7 @@ function addToCart(maModel) {
             id: maModel,
             name: product.tenModel,
             price: Number(product.giaBan || 0),
+            image: product.hinhAnh,
             quantity: 1,
             stock: stock
         });

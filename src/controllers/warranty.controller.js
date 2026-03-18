@@ -289,6 +289,49 @@ const checkWarranty = async (req, res) => {
     }
 };
 
+const deleteRepairDetail = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+
+        // 1. Tìm chi tiết sửa chữa
+        const detail = await ChiTietSuaChua.findByPk(id, { transaction: t });
+        if (!detail) {
+            await t.rollback();
+            return res.status(404).json({ success: false, message: "Không tìm thấy linh kiện này trong phiếu." });
+        }
+
+        const { maPbh, maLk, maKhoXuat, soLuong, donGia } = detail;
+
+        // 2. Trả lại số lượng tồn kho
+        const khoLk = await KhoLinhKien.findOne({
+            where: { maKho: maKhoXuat, maLk: maLk },
+            transaction: t
+        });
+        if (khoLk) {
+            await khoLk.increment('soLuongTon', { by: soLuong, transaction: t });
+        }
+
+        // 3. Xóa chi tiết
+        await detail.destroy({ transaction: t });
+
+        // 4. Cập nhật lại tổng tiền trên Phiếu Bảo Hành (Trừ bớt tiền linh kiện này)
+        const warranty = await PhieuBaoHanh.findByPk(maPbh, { transaction: t });
+        if (warranty) {
+            // Chi phí sửa chữa mới = Cũ - (số lượng * đơn giá)
+            const amountToSubtract = parseFloat(soLuong) * parseFloat(donGia);
+            const newTotal = Math.max(0, parseFloat(warranty.chiPhiSuaChua) - amountToSubtract);
+            await warranty.update({ chiPhiSuaChua: newTotal }, { transaction: t });
+        }
+
+        await t.commit();
+        res.json({ success: true, message: "Đã xóa linh kiện và hoàn lại kho." });
+    } catch (error) {
+        if (t) await t.rollback();
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllWarranties,
     getWarrantyById,
@@ -297,5 +340,6 @@ module.exports = {
     confirmQuote,
     verifyQC,
     addRepairDetail,
+    deleteRepairDetail,
     checkWarranty
 };

@@ -12,5 +12,6 @@ router.get('/financial', verifyToken, authorize('REPORT_VIEW'), reportController
 router.get('/inventory-advanced', verifyToken, authorize('REPORT_VIEW'), reportController.getInventoryAdvancedReport);
 router.get('/warranty-quality', verifyToken, authorize('REPORT_VIEW'), reportController.getWarrantyQualityReport);
 router.get('/performance', verifyToken, authorize('REPORT_VIEW'), reportController.getPerformanceAnalytics);
+router.get('/customer-growth', verifyToken, authorize('REPORT_VIEW'), reportController.getCustomerGrowth);
 
 module.exports = router;

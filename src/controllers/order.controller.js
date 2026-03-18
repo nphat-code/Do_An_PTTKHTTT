@@ -1,4 +1,4 @@
-const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon, ChiTietMay, HinhThucThanhToan, NhanVien } = require('../models/index');
+const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon, ChiTietMay, HinhThucThanhToan, NhanVien, ChuongTrinhKm } = require('../models/index');
 const { Op } = require('sequelize');
 
 const generateOrderCode = () => {
@@ -99,7 +99,51 @@ const createOrder = async (req, res) => {
             }, { transaction: t });
         }
 
-        // 4. Tạo hóa đơn chính
+        // 4. Tính toán giảm giá (Khuyến mãi)
+        let discountAmount = 0;
+        let promotion = null;
+        if (maKm) {
+            promotion = await ChuongTrinhKm.findByPk(maKm, {
+                include: [{ model: DongMay, attributes: ['maModel'], through: { attributes: [] } }],
+                transaction: t
+            });
+
+            if (promotion && promotion.trangThai) {
+                const now = new Date();
+                const startDate = new Date(promotion.ngayBatDau);
+                const endDate = new Date(promotion.ngayKetThuc);
+
+                if (now >= startDate && now <= endDate) {
+                    const minSpend = parseFloat(promotion.dieuKienApDung || 0);
+                    
+                    // Kiểm tra xem KM này dành cho toàn bộ hay chỉ một số Model
+                    const appliedModels = (promotion.DongMays || []).map(dm => dm.maModel);
+                    let subtotalForDiscount = 0;
+
+                    if (appliedModels.length > 0) {
+                        // Chỉ tính trên các Model được chỉ định
+                        subtotalForDiscount = itemsToCreate
+                            .filter(item => appliedModels.includes(item.maModel))
+                            .reduce((sum, item) => sum + item.thanhTien, 0);
+                    } else {
+                        // Áp dụng cho toàn bộ hóa đơn
+                        subtotalForDiscount = totalAmount;
+                    }
+
+                    if (subtotalForDiscount >= minSpend && subtotalForDiscount > 0) {
+                        if (promotion.loaiKm === 'Phần trăm') {
+                            discountAmount = (subtotalForDiscount * parseFloat(promotion.giaTriKm)) / 100;
+                        } else if (promotion.loaiKm === 'Số tiền cố định') {
+                            discountAmount = parseFloat(promotion.giaTriKm);
+                        }
+                    }
+                }
+            }
+        }
+
+        const finalAmount = Math.max(0, totalAmount - discountAmount);
+
+        // 5. Tạo hóa đơn chính
         const maHd = generateOrderCode();
         // Validate maHttt - only use if it's a valid FK, otherwise null
         let validMaHttt = null;
@@ -110,13 +154,13 @@ const createOrder = async (req, res) => {
         const order = await HoaDon.create({
             maHd: maHd,
             ngayLap: new Date(),
-            tongTien: totalAmount,
+            tongTien: finalAmount,
             ghiChu: customerInfo.ghiChu || '',
             trangThai: 'Chờ xử lý',
             maKh: customer.maKh,
             maNv: req.user ? req.user.maNv : null, // Record creator staff
             maHttt: validMaHttt,
-            maKm: maKm || null,
+            maKm: (promotion && discountAmount > 0) ? promotion.maKm : null,
         }, { transaction: t });
 
         // 5. Lưu chi tiết các sản phẩm vào bảng CtHoaDon
@@ -252,6 +296,10 @@ const getOrderById = async (req, res) => {
                 {
                     model: DongMay,
                     through: { attributes: ['soLuong', 'donGia', 'thanhTien'] },
+                    required: false
+                },
+                {
+                    model: ChuongTrinhKm,
                     required: false
                 }
             ]
@@ -437,10 +485,16 @@ const getMyOrders = async (req, res) => {
 
         const orders = await HoaDon.findAll({
             where: { maKh },
-            include: [{
-                model: DongMay,
-                through: { attributes: ['soLuong', 'donGia', 'thanhTien'] }
-            }],
+            include: [
+                {
+                    model: DongMay,
+                    through: { attributes: ['soLuong', 'donGia', 'thanhTien'] }
+                },
+                {
+                    model: ChuongTrinhKm,
+                    required: false
+                }
+            ],
             order: [['ngayLap', 'DESC']]
         });
 

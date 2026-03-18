@@ -2,6 +2,8 @@
 
 // Load cart from localStorage
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let appliedMaKm = null;
+let discountAmountValue = 0;
 
 function initCheckout() {
     if (cart.length === 0) {
@@ -30,17 +32,17 @@ function setVal(id, val) {
 }
 
 // Hiển thị danh sách sản phẩm trong đơn hàng
-function renderOrderSummary() {
+async function renderOrderSummary() {
     const container = document.getElementById('orderItems');
     const totalEl = document.getElementById('orderTotal');
     const subtotalEl = document.getElementById('subtotal');
     const itemCountEl = document.getElementById('itemCount');
-    let total = 0;
+    let subtotal = 0;
     let totalQty = 0;
 
     container.innerHTML = cart.map(item => {
         const lineTotal = item.price * item.quantity;
-        total += lineTotal;
+        subtotal += lineTotal;
         totalQty += item.quantity;
 
         // Tìm ảnh sản phẩm (nếu có trong cart data)
@@ -60,9 +62,11 @@ function renderOrderSummary() {
         `;
     }).join('');
 
-    totalEl.innerText = total.toLocaleString() + 'đ';
-    if (subtotalEl) subtotalEl.innerText = total.toLocaleString() + 'đ';
+    if (subtotalEl) subtotalEl.innerText = subtotal.toLocaleString() + 'đ';
     if (itemCountEl) itemCountEl.innerText = totalQty;
+
+    // Tự động kiểm tra và áp dụng khuyến mãi
+    await checkAutoPromotions(subtotal);
 }
 
 // Tải phương thức thanh toán từ API
@@ -117,6 +121,83 @@ function selectPayment(el) {
     el.querySelector('input[type="radio"]').checked = true;
 }
 
+// Kiểm tra và áp dụng khuyến mãi tự động (Giống POS)
+async function checkAutoPromotions(subtotal) {
+    try {
+        const response = await fetch('/api/promotions');
+        const result = await response.json();
+        if (!result.success || !result.data) return;
+
+        const now = new Date();
+        // Lọc các chương trình đang chạy và còn hiệu lực
+        const activePromos = result.data.filter(p => {
+            const start = new Date(p.ngayBatDau);
+            const end = new Date(p.ngayKetThuc);
+            return p.trangThai && now >= start && now <= end;
+        });
+
+        let bestPromo = null;
+        let maxDiscount = 0;
+
+        for (const promo of activePromos) {
+            const minSpend = parseFloat(promo.dieuKienApDung || 0);
+            let promoAmount = 0;
+
+            // Kiểm tra xem KM có dành riêng cho Model nào không
+            const appliedModels = (promo.DongMays || []).map(dm => dm.maModel);
+            let relevantSubtotal = 0;
+
+            if (appliedModels.length > 0) {
+                // Chỉ tính trên các Model được chỉ định trong cart
+                relevantSubtotal = cart
+                    .filter(item => appliedModels.includes(item.id))
+                    .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            } else {
+                // Áp dụng cho toàn bộ giỏ hàng
+                relevantSubtotal = subtotal;
+            }
+
+            if (relevantSubtotal >= minSpend && relevantSubtotal > 0) {
+                if (promo.loaiKm === 'Phần trăm') {
+                    promoAmount = (relevantSubtotal * parseFloat(promo.giaTriKm)) / 100;
+                } else if (promo.loaiKm === 'Số tiền cố định') {
+                    promoAmount = parseFloat(promo.giaTriKm);
+                }
+            }
+
+            // Chọn chương trình có mức giảm cao nhất
+            if (promoAmount > maxDiscount) {
+                maxDiscount = promoAmount;
+                bestPromo = promo;
+            }
+        }
+
+        const promoRow = document.getElementById('promoRow');
+        const promoName = document.getElementById('promoName');
+        const discountAmountEl = document.getElementById('discountAmount');
+        const totalEl = document.getElementById('orderTotal');
+
+        if (bestPromo && maxDiscount > 0) {
+            appliedMaKm = bestPromo.maKm;
+            discountAmountValue = maxDiscount;
+
+            if (promoRow) promoRow.style.display = 'flex';
+            if (promoName) promoName.innerText = `Khuyến mãi (${bestPromo.tenKm})`;
+            if (discountAmountEl) discountAmountEl.innerText = `-${maxDiscount.toLocaleString()}đ`;
+
+            const finalTotal = Math.max(0, subtotal - maxDiscount);
+            totalEl.innerText = finalTotal.toLocaleString() + 'đ';
+        } else {
+            appliedMaKm = null;
+            discountAmountValue = 0;
+            if (promoRow) promoRow.style.display = 'none';
+            totalEl.innerText = subtotal.toLocaleString() + 'đ';
+        }
+    } catch (error) {
+        console.error('Lỗi tự động tính khuyến mãi:', error);
+    }
+}
+
 // Gửi đơn hàng
 async function submitOrder() {
     const form = document.getElementById('checkoutForm');
@@ -143,7 +224,8 @@ async function submitOrder() {
             ghiChu: document.getElementById('cusNote').value.trim()
         },
         cartItems: cart.map(item => ({ id: item.id, quantity: item.quantity })),
-        maHttt: paymentMethod
+        maHttt: paymentMethod,
+        maKm: appliedMaKm // Tự động gửi mã khuyến mãi tốt nhất tìm được
     };
 
     // Loading state
@@ -172,6 +254,7 @@ async function submitOrder() {
                     <div style="text-align: left; padding: 10px 0;">
                         <p style="margin: 8px 0;"><strong>Mã đơn hàng:</strong> #${result.orderId}</p>
                         <p style="margin: 8px 0;"><strong>Tổng tiền:</strong> <span style="color:#dc2626; font-weight:700;">${Number(result.totalAmount || 0).toLocaleString()}đ</span></p>
+                        ${appliedMaKm ? `<p style="margin: 8px 0; color: #16a34a;"><i class="fas fa-gift"></i> Đã áp dụng khuyến mãi tự động!</p>` : ''}
                         <p style="margin: 8px 0; color: #64748b; font-size: 0.9rem;">Chúng tôi sẽ liên hệ bạn sớm nhất để xác nhận đơn hàng.</p>
                     </div>
                 `,

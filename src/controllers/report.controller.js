@@ -270,17 +270,28 @@ const getWarrantyQualityReport = async (req, res) => {
         const modelStats = await DongMay.findAll({
             include: [{
                 model: ChiTietMay,
-                attributes: ['trangThai']
+                attributes: ['trangThai', 'soSerial']
             }]
         });
 
         // 1. Individual Model Failure Rates (Total PBH / Total Sold)
         const pbhCounts = await PhieuBaoHanh.findAll({
-            attributes: ['soSerial'],
+            attributes: ['soSerial', 'ngayLap'],
             raw: true
         });
+
+        // Deduplicate tickets: Serial + Date -> 1 Case
+        const uniquePbh = pbhCounts.filter((t, index, self) =>
+            index === self.findIndex((u) => (
+                u.soSerial === t.soSerial &&
+                new Date(u.ngayLap).toDateString() === new Date(t.ngayLap).toDateString()
+            ))
+        );
+
         const serialFailMap = {};
-        pbhCounts.forEach(p => { serialFailMap[p.soSerial] = (serialFailMap[p.soSerial] || 0) + 1; });
+        uniquePbh.forEach(p => {
+            serialFailMap[p.soSerial] = (serialFailMap[p.soSerial] || 0) + 1;
+        });
 
         const failureRates = modelStats.map(m => {
             const items = m.ChiTietMays || [];
@@ -297,9 +308,10 @@ const getWarrantyQualityReport = async (req, res) => {
             return {
                 maModel: m.maModel,
                 name: m.tenModel,
-                rate: parseFloat(rate.toFixed(2))
+                rate: parseFloat(rate.toFixed(2)),
+                totalUnits // Included for potential future use or filtering
             };
-        }).sort((a, b) => b.rate - a.rate).slice(0, 5); // Just top 5 for cleaner chart
+        }).sort((a, b) => b.rate - a.rate);
 
         // 2. High Pillar Metrics (Service Quality)
         const allTickets = await PhieuBaoHanh.findAll();
@@ -311,11 +323,11 @@ const getWarrantyQualityReport = async (req, res) => {
 
         // No Rework Rate (using same logic as performance)
         let reworkCount = 0;
-        allTickets.forEach(p => {
+        uniquePbh.forEach(p => {
             if (p.ngayTraMay) {
                 const thirtyDaysAfter = new Date(p.ngayTraMay);
                 thirtyDaysAfter.setDate(thirtyDaysAfter.getDate() + 30);
-                const isRework = allTickets.some(otherP =>
+                const isRework = uniquePbh.some(otherP =>
                     otherP.maPbh !== p.maPbh &&
                     otherP.soSerial === p.soSerial &&
                     new Date(otherP.ngayLap) > new Date(p.ngayTraMay) &&
@@ -324,7 +336,7 @@ const getWarrantyQualityReport = async (req, res) => {
                 if (isRework) reworkCount++;
             }
         });
-        const technicalQuality = totalTickets > 0 ? (1 - reworkCount / totalTickets) * 100 : 100;
+        const technicalQuality = uniquePbh.length > 0 ? (1 - reworkCount / uniquePbh.length) * 100 : 100;
 
         // Parts Availability
         const parts = await LinhKien.findAll({ attributes: ['soLuongTon'] });
@@ -403,15 +415,24 @@ const getPerformanceAnalytics = async (req, res) => {
 
         const techStats = staff.map(nv => {
             const tickets = nv.PhieuSuaChua || [];
-            const total = tickets.length;
-            const done = tickets.filter(p => ['Đã xong', 'Đã trả máy'].includes(p.trangThai)).length;
+
+            // Deduplicate: same serial + same day = 1 Case
+            const uniqueTickets = tickets.filter((t, index, self) =>
+                index === self.findIndex((u) => (
+                    u.soSerial === t.soSerial &&
+                    new Date(u.ngayLap).toDateString() === new Date(t.ngayLap).toDateString()
+                ))
+            );
+
+            const total = uniqueTickets.length;
+            const done = uniqueTickets.filter(p => ['Đã xong', 'Đã trả máy'].includes(p.trangThai)).length;
 
             let reworkCount = 0;
-            tickets.forEach(p => {
+            uniqueTickets.forEach(p => {
                 if (p.ngayTraMay) {
                     const thirtyDaysAfter = new Date(p.ngayTraMay);
                     thirtyDaysAfter.setDate(thirtyDaysAfter.getDate() + 30);
-                    const isRework = tickets.some(otherP =>
+                    const isRework = uniqueTickets.some(otherP =>
                         otherP.maPbh !== p.maPbh &&
                         otherP.soSerial === p.soSerial &&
                         new Date(otherP.ngayLap) > new Date(p.ngayTraMay) &&
@@ -429,7 +450,7 @@ const getPerformanceAnalytics = async (req, res) => {
                 reworkCount,
                 qualityRate: total > 0 ? (100 - (reworkCount / total) * 100).toFixed(2) : 100
             };
-        }).filter(s => s.total > 0);
+        }).filter(s => s.total > 0).sort((a, b) => b.done - a.done);
 
         const salesStats = staff.map(nv => {
             const orders = nv.HoaDons || [];
@@ -441,7 +462,7 @@ const getPerformanceAnalytics = async (req, res) => {
                 totalRevenue,
                 avgOrderValue: orders.length > 0 ? (totalRevenue / orders.length).toFixed(0) : 0
             };
-        }).filter(s => s.orderCount > 0);
+        }).filter(s => s.orderCount > 0).sort((a, b) => b.totalRevenue - a.totalRevenue);
 
         const customers = await KhachHang.findAll({
             include: [{
@@ -466,6 +487,60 @@ const getPerformanceAnalytics = async (req, res) => {
     }
 };
 
+// Báo cáo tăng trưởng khách hàng (theo tháng)
+const getCustomerGrowth = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const now = new Date();
+        // Default to start of current year to ensure January, February etc. are included
+        const start = startDate ? new Date(startDate) : new Date(now.getFullYear(), 0, 1);
+        const end = endDate ? new Date(endDate) : now;
+
+        const growth = await KhachHang.findAll({
+            where: {
+                createdAt: { [Op.between]: [start, end] }
+            },
+            attributes: [
+                [sequelize.fn('date_trunc', 'month', sequelize.col('createdAt')), 'month'],
+                [sequelize.fn('COUNT', sequelize.col('maKh')), 'count']
+            ],
+            group: [sequelize.fn('date_trunc', 'month', sequelize.col('createdAt'))],
+            order: [[sequelize.fn('date_trunc', 'month', sequelize.col('createdAt')), 'ASC']],
+            raw: true
+        });
+
+        // 1. Generate all months in the requested range
+        const months = [];
+        let curr = new Date(start.getFullYear(), start.getMonth(), 1);
+        const last = new Date(end.getFullYear(), end.getMonth(), 1);
+
+        while (curr <= last) {
+            months.push(new Date(curr));
+            curr.setMonth(curr.getMonth() + 1);
+        }
+
+        // 2. Map existing growth data to a lookup map
+        const dataMap = new Map();
+        growth.forEach(g => {
+            const d = new Date(g.month);
+            dataMap.set(`${d.getFullYear()}-${d.getMonth()}`, parseInt(g.count));
+        });
+
+        // 3. Fill the result with 0 for missing months
+        const result = months.map(m => {
+            const count = dataMap.get(`${m.getFullYear()}-${m.getMonth()}`) || 0;
+            return {
+                month: m.toISOString(),
+                count: count
+            };
+        });
+
+        res.json({ success: true, data: result });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getSalesReport,
     getInventoryReport,
@@ -473,5 +548,6 @@ module.exports = {
     getFinancialReport,
     getInventoryAdvancedReport,
     getWarrantyQualityReport,
-    getPerformanceAnalytics
+    getPerformanceAnalytics,
+    getCustomerGrowth
 };

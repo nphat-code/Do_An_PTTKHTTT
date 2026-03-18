@@ -1,0 +1,17 @@
+﻿[dotenv@17.2.3] injecting env (6) from .env -- tip: ΓÜÖ∩╕Å  write to custom object with { processEnv: myObject }
+Total Tickets: 6
+Total Serials: 172
+Total Models: 16
+Matching Serials (found in both): 6
+Model LENOVO_LEGION_5: Active=1, Claims=0, Rate=0.00%
+Model ASUS_VIVOBOOK_15: Active=2, Claims=2, Rate=100.00%
+Model MACBOOK_AIR_M3: Active=2, Claims=1, Rate=50.00%
+Model MSI_KATANA_15: Active=2, Claims=1, Rate=50.00%
+Model DELL_XPS_13: Active=2, Claims=2, Rate=100.00%
+Model DELL_INSPIRON_15: Active=2, Claims=0, Rate=0.00%
+Model ASUS_ROG_G16: Active=3, Claims=0, Rate=0.00%
+Model ASUS-ROG-G614: Active=1, Claims=0, Rate=0.00%
+Model APPLE-MBA-M3: Active=2, Claims=0, Rate=0.00%
+Model HP_VICTUS_16: Active=4, Claims=0, Rate=0.00%
+Model ACER-NITRO-AN515: Active=4, Claims=0, Rate=0.00%
+Model ACER_NITRO_V: Active=5, Claims=0, Rate=0.00%

@@ -1,0 +1,44 @@
+--- Simulating getPerformanceAnalytics ---
+Found 6 staff members.
+Found 7 total tickets in global map.
+
+Technician: Lý Thanh Tùng (NV005)
+  Tickets count: 7
+    Checking Ticket: BH20260317004, Status: [Đã trả máy], SN: [MAN0CV123456790]
+      Finish: 2026-03-19T00:00:00.000Z, Rework Deadline: 2026-04-18T00:00:00.000Z
+      Found 3 global tickets for SN MAN0CV123456790
+        Comparing with: BH20260317003, Date: 2026-03-17T15:10:06.534Z
+          isAfter: false, isWithin30: true
+        Comparing with: BH20260316001, Date: 2026-03-16T08:58:28.684Z
+          isAfter: false, isWithin30: true
+    Checking Ticket: BH20260316001, Status: [Đã trả máy], SN: [MAN0CV123456790]
+      Finish: 2026-04-01T00:00:00.000Z, Rework Deadline: 2026-05-01T00:00:00.000Z
+      Found 3 global tickets for SN MAN0CV123456790
+        Comparing with: BH20260317003, Date: 2026-03-17T15:10:06.534Z
+          isAfter: false, isWithin30: true
+        Comparing with: BH20260317004, Date: 2026-03-17T15:12:26.656Z
+          isAfter: false, isWithin30: true
+    Checking Ticket: BH20260317003, Status: [Đã trả máy], SN: [MAN0CV123456790]
+      Finish: 2026-03-20T00:00:00.000Z, Rework Deadline: 2026-04-19T00:00:00.000Z
+      Found 3 global tickets for SN MAN0CV123456790
+        Comparing with: BH20260316001, Date: 2026-03-16T08:58:28.684Z
+          isAfter: false, isWithin30: true
+        Comparing with: BH20260317004, Date: 2026-03-17T15:12:26.656Z
+          isAfter: false, isWithin30: true
+    Checking Ticket: BH20260317002, Status: [Đã trả máy], SN: [PF1ABC23]
+      Finish: 2026-03-18T00:00:00.000Z, Rework Deadline: 2026-04-17T00:00:00.000Z
+      Found 2 global tickets for SN PF1ABC23
+        Comparing with: BH20260317001, Date: 2026-03-17T08:28:29.711Z
+          isAfter: false, isWithin30: true
+    Checking Ticket: BH20260316002, Status: [Đã trả máy], SN: [J8K9L03]
+      Finish: 2026-03-17T00:00:00.000Z, Rework Deadline: 2026-04-16T00:00:00.000Z
+      Found 1 global tickets for SN J8K9L03
+    Checking Ticket: BH20260316003, Status: [Đã trả máy], SN: [5CG2345679]
+      Finish: 2026-03-17T00:00:00.000Z, Rework Deadline: 2026-04-16T00:00:00.000Z
+      Found 1 global tickets for SN 5CG2345679
+    Checking Ticket: BH20260317001, Status: [Đã trả máy], SN: [PF1ABC23]
+      Finish: 2026-03-19T00:00:00.000Z, Rework Deadline: 2026-04-18T00:00:00.000Z
+      Found 2 global tickets for SN PF1ABC23
+        Comparing with: BH20260317002, Date: 2026-03-17T14:59:31.429Z
+          isAfter: false, isWithin30: true
+  Final Rework Count for Lý Thanh Tùng: 0

@@ -40,6 +40,8 @@ function renderOrdersTable(orders) {
 let posAllProducts = [];
 let posCart = {};
 let currentOrderDetailId = null;
+let posPromotions = []; // Store active promotions
+let bestMaKm = null; // Store automatically selected best promotion
 
 async function openPOSModal() {
     posCart = {};
@@ -63,6 +65,25 @@ async function openPOSModal() {
         }
     } catch (e) {
         console.error('L\u1ed7i t\u1ea3i HTTT', e);
+    }
+
+    // Load promotions
+    try {
+        const promoRes = await fetch('/api/promotions', {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        const promoResult = await promoRes.json();
+        if (promoResult.success) {
+            const now = new Date();
+            // Filter only active and in-range promotions
+            posPromotions = promoResult.data.filter(p => {
+                const start = new Date(p.ngayBatDau);
+                const end = new Date(p.ngayKetThuc);
+                return p.trangThai && now >= start && now <= end;
+            });
+        }
+    } catch (e) {
+        console.error('Lỗi tải khuyến mãi', e);
     }
 
     // Load products
@@ -245,7 +266,54 @@ function renderPOSCart() {
             </div>
         </div>`;
     }).join('');
-    document.getElementById('posTotalAmount').innerHTML = total.toLocaleString() + ' &#8363;';
+
+    // Automatic best promotion logic
+    let maxDiscount = 0;
+    bestMaKm = null;
+    let appliedPromoName = '';
+
+    posPromotions.forEach(promo => {
+        const minSpend = parseFloat(promo.dieuKienApDung || 0);
+        const appliedModels = (promo.DongMays || []).map(dm => dm.maModel);
+        
+        let subtotalForDiscount = 0;
+        if (appliedModels.length > 0) {
+            // Model-specific promotion
+            subtotalForDiscount = items.filter(item => appliedModels.includes(item.product.maModel))
+                                       .reduce((sum, item) => sum + (Number(item.product.giaBan || 0) * item.qty), 0);
+        } else {
+            // Global promotion
+            subtotalForDiscount = total;
+        }
+
+        if (subtotalForDiscount >= minSpend && subtotalForDiscount > 0) {
+            let currentDiscount = 0;
+            if (promo.loaiKm === 'Phần trăm') {
+                currentDiscount = (subtotalForDiscount * parseFloat(promo.giaTriKm)) / 100;
+            } else {
+                currentDiscount = parseFloat(promo.giaTriKm);
+            }
+
+            if (currentDiscount > maxDiscount) {
+                maxDiscount = currentDiscount;
+                bestMaKm = promo.maKm;
+                appliedPromoName = promo.tenKm;
+            }
+        }
+    });
+
+    const finalTotal = Math.max(0, total - maxDiscount);
+
+    document.getElementById('posSubtotal').innerHTML = total.toLocaleString() + ' &#8363;';
+    document.getElementById('posDiscount').innerHTML = (maxDiscount > 0 ? '-' : '') + (maxDiscount || 0).toLocaleString() + ' &#8363;';
+    document.getElementById('posTotalAmount').innerHTML = finalTotal.toLocaleString() + ' &#8363;';
+    
+    // Optional: add a small notice about the applied promotion if desired
+    if (bestMaKm) {
+        document.getElementById('posDiscount').title = `Áp dụng: ${appliedPromoName}`;
+    } else {
+        document.getElementById('posDiscount').title = '';
+    }
 }
 
 async function submitPOSOrder() {
@@ -279,7 +347,8 @@ async function submitPOSOrder() {
                 cartItems: items.map(({ product: p, qty, serials }) => ({
                     id: p.maModel, quantity: qty, price: Number(p.giaBan || 0), serials: serials
                 })),
-                maHttt: document.getElementById('posPaymentMethod').value || null
+                maHttt: document.getElementById('posPaymentMethod').value || null,
+                maKm: bestMaKm
             })
         });
         const result = await res.json();

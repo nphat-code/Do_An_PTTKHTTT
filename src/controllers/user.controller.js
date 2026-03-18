@@ -32,15 +32,32 @@ const createCustomer = async (req, res) => {
     }
 };
 
+// Helper to get customer rank
+const getCustomerRank = (total) => {
+    if (total >= 150000000) return { name: 'Bạch Kim', color: '#7c3aed', icon: 'fa-crown' }; // Platinum
+    if (total >= 50000000) return { name: 'Vàng', color: '#d97706', icon: 'fa-award' };      // Gold
+    if (total >= 20000000) return { name: 'Bạc', color: '#4b5563', icon: 'fa-medal' };      // Silver
+    return { name: 'Thành viên', color: '#64748b', icon: 'fa-user' };                        // Standard
+};
+
 // 1. Lấy danh sách toàn bộ khách hàng (Dành cho Admin)
 const getAllUsers = async (req, res) => {
     try {
         const users = await KhachHang.findAll({
+            include: [{ model: HoaDon, attributes: ['tongTien'] }],
             order: [['maKh', 'ASC']]
         });
+        
         const formattedUsers = users.map(user => {
             const data = user.toJSON();
             if (data.trangThai === null) data.trangThai = true;
+            
+            // Calculate total spending
+            const totalSpending = (data.HoaDons || []).reduce((sum, hd) => sum + Number(hd.tongTien || 0), 0);
+            data.totalSpending = totalSpending;
+            data.rank = getCustomerRank(totalSpending);
+            
+            delete data.HoaDons; // Clean up response
             return data;
         });
 
@@ -76,6 +93,11 @@ const getUserDetails = async (req, res) => {
 
         const userData = user.toJSON();
         if (userData.trangThai === null) userData.trangThai = true;
+
+        // Calculate total spending and rank
+        const totalSpending = (userData.HoaDons || []).reduce((sum, hd) => sum + Number(hd.tongTien || 0), 0);
+        userData.totalSpending = totalSpending;
+        userData.rank = getCustomerRank(totalSpending);
 
         return res.status(200).json({
             success: true,
@@ -195,7 +217,42 @@ const resetUserPassword = async (req, res) => {
     }
 };
 
-// 7. Lấy mã khách hàng tiếp theo
+// 7. Khách hàng tự đổi mật khẩu
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const maKh = req.user.maKh; // Lấy từ verifyToken middleware
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới" });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: "Mật khẩu mới phải có ít nhất 6 ký tự" });
+        }
+
+        const user = await KhachHang.findByPk(maKh);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+        }
+
+        // Kiểm tra mật khẩu cũ
+        const isMatch = await bcrypt.compare(currentPassword, user.matKhau);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: "Mật khẩu hiện tại không chính xác" });
+        }
+
+        // Mã hóa và cập nhật mật khẩu mới
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        await user.update({ matKhau: hashedNewPassword });
+
+        return res.status(200).json({ success: true, message: "Đổi mật khẩu thành công" });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// 8. Lấy mã khách hàng tiếp theo
 const getNextMaKh = async (req, res) => {
     try {
         const lastUser = await KhachHang.findOne({
@@ -225,5 +282,6 @@ module.exports = {
     toggleUserLock,
     deleteUser,
     resetUserPassword,
+    changePassword,
     getNextMaKh
 };

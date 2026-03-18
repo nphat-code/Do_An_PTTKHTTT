@@ -112,6 +112,7 @@
                 <ul>
                     <li><a href="#" data-tab="orders"><i class="fas fa-shopping-cart"></i> Đơn hàng</a></li>
                     <li><a href="#" data-tab="customers"><i class="fas fa-users"></i> Khách hàng</a></li>
+                    <li><a href="#" data-tab="promotions"><i class="fas fa-gift"></i> Khuyến mãi</a></li>
                 </ul>
 
                 <div class="nav-group-title">SẢN PHẨM & KHO</div>
@@ -149,6 +150,39 @@
         </aside>
 
         <main class="main-content">
+            <section id="promotions-content" class="tab-section" style="display: none;">
+                <header>
+                    <h1>Quản lý chương trình khuyến mãi</h1>
+                    <button class="btn-add" onclick="openPromotionModal()">
+                        <i class="fas fa-plus" style="margin-right: 8px;"></i> Thêm khuyến mãi
+                    </button>
+                </header>
+
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchPromotionInput" placeholder="Tìm kiếm chương trình..."
+                        oninput="loadPromotions()">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Mã KM</th>
+                                <th style="min-width: 200px;">Tên chương trình</th>
+                                <th style="width: 120px;">Loại</th>
+                                <th style="width: 150px;">Giá trị</th>
+                                <th style="width: 160px;">Thời gian</th>
+                                <th style="width: 140px;">Trạng thái</th>
+                                <th style="width: 140px;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="promotionTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <section id="overview-content" class="tab-section">
                 <h1>Báo cáo tổng quan</h1>
                 <section class="stats-grid">
@@ -308,10 +342,9 @@
                                 <th style="width: 80px;">ID</th>
                                 <th style="width: 200px;">Họ tên</th>
                                 <th style="width: 200px;">Số điện thoại</th>
-                                <th style="min-width: 230px;">Địa chỉ</th>
-                                <th style="width: 160px;">Ngày tham gia</th>
-                                <th style="width: 300px;">Trạng thái</th>
-                                <th style="width: 100px;">Thao tác</th>
+                                <th style="width: 150px;">Hạng</th>
+                                <th style="width: 140px;">Trạng thái</th>
+                                <th style="width: 120px;">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="customerTableBody">
@@ -609,9 +642,21 @@
                         </div>
                         <div class="section-box" style="padding: 24px; border: 1px solid #edf2f7; border-radius: 16px;">
                             <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #1e293b;"><i
-                                    class="fas fa-shield-virus" style="color:#10b981; margin-right:8px;"></i>Chất lượng
-                                & Bảo hành</h3>
-                            <canvas id="qualityChart" height="250"></canvas>
+                                    class="fas fa-shield-virus" style="color:#10b981; margin-right:8px;"></i>Tỉ lệ Bảo hành theo Model</h3>
+                            <div id="qualityMetricsList" style="display: flex; flex-direction: column; gap: 15px; max-height: 280px; overflow-y: auto; padding-right: 10px;">
+                                <div style="text-align: center; padding: 40px; color: #94a3b8;">Đang tải chỉ số chất lượng...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Growth Chart -->
+                    <div class="section-box" style="margin-bottom: 24px; padding: 25px; border: 1px solid #e2e8f0; box-shadow: none;">
+                        <h3 style="margin-bottom: 20px; color: #334155; display: flex; align-items: center;">
+                            <i class="fas fa-users-line" style="margin-right: 12px; color: #6366f1;"></i>
+                            Biểu đồ Tăng trưởng Khách hàng mới
+                        </h3>
+                        <div style="height: 350px; position: relative;">
+                            <canvas id="customerGrowthChart"></canvas>
                         </div>
                     </div>
 
@@ -623,6 +668,7 @@
                             <table>
                                 <thead>
                                     <tr>
+                                        <th style="width: 60px;">Hạng</th>
                                         <th>Nhân viên</th>
                                         <th>Số đơn</th>
                                         <th>Doanh thu</th>
@@ -643,6 +689,7 @@
                             <table>
                                 <thead>
                                     <tr>
+                                        <th style="width: 60px;">Hạng</th>
                                         <th>Kỹ thuật viên</th>
                                         <th>Tổng ca</th>
                                         <th>Xong</th>
@@ -1068,10 +1115,25 @@
 
                     <!-- Tổng cộng -->
                     <div
-                        style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; padding: 16px 20px; background: #f8fafc; border-radius: 12px;">
-                        <span style="font-size: 1rem; color: #64748b; margin-right: 12px;">Tổng cộng:</span>
-                        <span id="orderTotalDetail"
-                            style="font-size: 1.4rem; font-weight: 800; color: #dc2626;">0đ</span>
+                        style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px; padding: 16px 20px; background: #f8fafc; border-radius: 12px; align-items: flex-end;">
+                        <div style="display: flex; align-items: center;">
+                            <span style="font-size: 0.9rem; color: #64748b; margin-right: 12px;">Tạm tính:</span>
+                            <span id="orderSubtotalDetail"
+                                style="font-size: 1rem; font-weight: 600; color: #1e293b;">0đ</span>
+                        </div>
+                        <div id="orderPromotionRow" style="display: none; align-items: center;">
+                            <span style="font-size: 0.9rem; color: #64748b; margin-right: 12px;">Khuyến mãi (<span
+                                    id="orderPromotionName"></span>):</span>
+                            <span id="orderDiscountDetail"
+                                style="font-size: 1rem; font-weight: 600; color: #ef4444;">-0đ</span>
+                        </div>
+                        <div
+                            style="display: flex; align-items: center; margin-top: 4px; border-top: 1px dashed #e2e8f0; padding-top: 8px; width: 100%; justify-content: flex-end;">
+                            <span style="font-size: 1rem; color: #1e293b; font-weight: 700; margin-right: 12px;">Tổng
+                                cộng:</span>
+                            <span id="orderTotalDetail"
+                                style="font-size: 1.4rem; font-weight: 800; color: #dc2626;">0đ</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1235,20 +1297,31 @@
                             </div>
                             <input type="text" id="posCustomerAddress" placeholder="Địa chỉ"
                                 style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box; margin-bottom:8px;">
-                            <select id="posPaymentMethod"
-                                style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; background:white;">
-                                <option value="">-- Đang tải... --</option>
-                            </select>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                                <select id="posPaymentMethod"
+                                    style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; background:white;">
+                                    <option value="">-- Hình thức thanh toán --</option>
+                                </select>
+                                <div style="display:flex; align-items:center; padding:0 10px; background:#f1f5f9; border-radius:6px; border:1px solid #e2e8f0; font-size:0.75rem; color:#64748b;">
+                                    <i class="fas fa-magic" style="margin-right:6px; color:#6366f1;"></i> KM tự động
+                                </div>
+                            </div>
                             <textarea id="posOrderNote" placeholder="Ghi chú đơn hàng (Giao hàng, yêu cầu đặc biệt...)"
-                                style="width:100%; height:60px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box; margin-top:8px; resize:none; font-family:inherit;"></textarea>
+                                style="width:100%; height:45px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem; box-sizing:border-box; margin-top:2px; resize:none; font-family:inherit;"></textarea>
                         </div>
                         <!-- Tổng tiền + Xác nhận -->
                         <div style="padding:14px 16px; background:#1e293b; flex-shrink:0;">
-                            <div
-                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <span style="color:#94a3b8; font-size:0.95rem;">Tổng cộng:</span>
-                                <span id="posTotalAmount" style="color:#4ade80; font-weight:700; font-size:1.4rem;">0
-                                    &#x20ab;</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="color:#94a3b8; font-size:0.85rem;">Tạm tính:</span>
+                                <span id="posSubtotal" style="color:#cbd5e1; font-weight:600; font-size:1rem;">0 ₫</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom: 1px dashed #475569; padding-bottom: 8px;">
+                                <span style="color:#94a3b8; font-size:0.85rem;">Giảm giá:</span>
+                                <span id="posDiscount" style="color:#fb7185; font-weight:600; font-size:1rem;">-0 ₫</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                <span style="color:#94a3b8; font-size:1rem; font-weight: 700;">TỔNG CỘNG:</span>
+                                <span id="posTotalAmount" style="color:#4ade80; font-weight:800; font-size:1.6rem;">0 ₫</span>
                             </div>
                             <button onclick="submitPOSOrder()"
                                 style="width:100%; padding:12px; background:linear-gradient(135deg,#10b981,#059669); color:white; border:none; border-radius:8px; font-size:1rem; font-weight:700; cursor:pointer;">
@@ -1367,141 +1440,139 @@
 
     <!-- Warranty Detail / Repair Modal -->
     <div id="warrantyDetailModal" class="modal">
-        <div class="modal-content" style="max-width: 850px; border-radius: 16px;">
-            <div class="modal-header"
-                style="background: linear-gradient(135deg, #1e293b, #334155); color: white; border-radius: 16px 16px 0 0;">
-                <h2 style="color: white;"><i class="fas fa-toolbox" style="margin-right: 12px; color: #60a5fa;"></i>Chi
-                    Tiết Bảo Hành <strong id="displayWId"></strong></h2>
-                <span class="close-btn" onclick="closeWarrantyDetailModal()"
-                    style="color: white; opacity: 0.8;">&times;</span>
+        <div class="modal-content" style="max-width: 1000px; border-radius: 12px; border: none; overflow-y: auto; max-height: 90vh; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <div class="modal-header" style="background: #1e293b; color: white; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; border: none;">
+                <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; color: white;">
+                    <i class="fas fa-briefcase" style="color: #6366f1;"></i> Chi Tiết Bảo Hành <span id="displayWId" style="color: #cbd5e1; margin-left: 4px;"></span>
+                </h2>
+                <span class="close-btn" onclick="closeWarrantyDetailModal()" style="color: white; opacity: 0.7; font-size: 1.5rem; cursor: pointer;">&times;</span>
             </div>
-            <div class="modal-body" style="padding: 25px; display: flex; flex-direction: column; gap: 30px;">
-                <!-- Section 1: General Info -->
-                <section>
-                    <h4
-                        style="color: #4f46e5; border-bottom: 2px solid #eef2ff; padding-bottom: 8px; margin-bottom: 15px; display: flex; align-items: center;">
-                        <i class="fas fa-info-circle" style="margin-right: 8px;"></i>Thông tin chung & Tình trạng lỗi
-                    </h4>
-                    <div id="warrantyGeneralInfo"
-                        style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    </div>
-                </section>
 
-                <!-- Section 2: Repair Details (Moved up) -->
-                <section>
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eef2ff; padding-bottom: 8px; margin-bottom: 15px;">
-                        <h4 style="color: #4f46e5; margin: 0; display: flex; align-items: center;">
-                            <i class="fas fa-tools" style="margin-right: 8px;"></i>Linh kiện & Vật tư thay thế
-                        </h4>
-                        <button type="button" class="btn-add"
-                            style="padding: 8px 18px; font-size: 0.85rem; border-radius: 20px; background: #10b981; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);"
-                            onclick="openAddRepairDetail()"><i class="fas fa-plus-circle"
-                                style="margin-right: 6px;"></i>Thêm linh kiện</button>
+            <div class="modal-body" style="padding: 30px; background: #fff;">
+                <!-- Stepper Progress Track -->
+                <div class="warranty-stepper" style="display: flex; justify-content: space-between; margin-bottom: 40px; position: relative;">
+                    <div style="position: absolute; top: 15px; left: 50px; right: 50px; height: 2px; background: #e2e8f0; z-index: 1;"></div>
+                    <div id="step-track" style="position: absolute; top: 15px; left: 50px; width: 0%; height: 2px; background: #6366f1; z-index: 2; transition: width 0.4s ease;"></div>
+                    
+                    <div class="step-item" id="step1" style="z-index: 3; text-align: center; width: 100px;">
+                        <div class="step-dot" style="width: 32px; height: 32px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: white; font-weight: 700; font-size: 0.9rem; border: 4px solid #fff; box-shadow: 0 0 0 1px #6366f1;">1</div>
+                        <div class="step-label" style="font-size: 0.75rem; font-weight: 600; color: #1e293b;">Tiếp nhận</div>
                     </div>
-                    <div class="table-container"
-                        style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-                        <table style="font-size: 0.95rem;">
-                            <thead style="background: #f8fafc;">
+                    <div class="step-item" id="step2" style="z-index: 3; text-align: center; width: 100px;">
+                        <div class="step-dot" style="width: 32px; height: 32px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #94a3b8; font-weight: 700; font-size: 0.9rem; border: 4px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;">2</div>
+                        <div class="step-label" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">Kiểm tra</div>
+                    </div>
+                    <div class="step-item" id="step3" style="z-index: 3; text-align: center; width: 100px;">
+                        <div class="step-dot" style="width: 32px; height: 32px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #94a3b8; font-weight: 700; font-size: 0.9rem; border: 4px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;">3</div>
+                        <div class="step-label" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">Sửa chữa</div>
+                    </div>
+                    <div class="step-item" id="step4" style="z-index: 3; text-align: center; width: 100px;">
+                        <div class="step-dot" style="width: 32px; height: 32px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #94a3b8; font-weight: 700; font-size: 0.9rem; border: 4px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;">4</div>
+                        <div class="step-label" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">Hoàn tất</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px;">
+                    <!-- Left: Device & Customer Info -->
+                    <div style="background: #f8fafc; border-radius: 12px; padding: 24px; border: 1px solid #f1f5f9;">
+                        <h4 style="margin: 0 0 20px; font-size: 0.85rem; color: #6366f1; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-info-circle"></i> Thông tin thiết bị & Khách hàng
+                        </h4>
+                        <div id="warrantyGeneralInfo">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Technical Progress Update -->
+                    <div style="background: #f8fafc; border-radius: 12px; padding: 24px; border: 1px solid #f1f5f9;">
+                        <h4 style="margin: 0 0 20px; font-size: 0.85rem; color: #6366f1; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-tools"></i> Cập nhật tiến độ kỹ thuật
+                        </h4>
+                        <form id="updateWarrantyForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div style="grid-column: span 2;">
+                                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 6px;">Kết luận kỹ thuật / Phân tích:</label>
+                                <textarea id="ketLuanKyThuat" style="width: 100%; height: 80px; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem; resize: none;" placeholder="Nhập kết luận sau khi kiểm tra máy..."></textarea>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 6px;">Kỹ thuật viên:</label>
+                                <select id="maNvKyThuat" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; background: white;"></select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 6px;">Trạng thái:</label>
+                                <select id="trangThaiPbh" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; background: white;">
+                                    <option value="Chờ kiểm tra">Chờ kiểm tra</option>
+                                    <option value="Đang sửa">Đang sửa</option>
+                                    <option value="Đã xong">Đã xong</option>
+                                    <option value="Đã trả máy">Đã trả máy</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 6px;">Phí DV (VNĐ):</label>
+                                <input type="number" id="phiDichVuPbh" value="0" min="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 6px;">HT Thanh toán:</label>
+                                <select id="maHtttPbh" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; background: white;"></select>
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 6px;">Ngày hẹn trả / Trả thực tế:</label>
+                                <input type="date" id="ngayTraMay" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem;">
+                            </div>
+                            <div style="grid-column: span 2; margin-top: 8px;">
+                                <button type="submit" style="width: 100%; background: #6366f1; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);">
+                                    <i class="fas fa-save"></i> Cập nhật phiếu
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Spare Parts Table -->
+                <div style="margin-top: 40px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h4 style="margin: 0; font-size: 0.9rem; color: #6366f1; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-cog"></i> Linh kiện & Vật tư thay thế
+                        </h4>
+                        <button type="button" onclick="openAddRepairDetail()" style="background: #6366f1; color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-plus-circle"></i> Thêm linh kiện
+                        </button>
+                    </div>
+                    <div style="border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <thead style="background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid #f1f5f9;">
                                 <tr>
-                                    <th style="padding: 15px 20px;">Tên linh kiện / Vật tư</th>
-                                    <th style="padding: 15px 20px; text-align: center; width: 100px;">Số lượng</th>
-                                    <th style="padding: 15px 20px; text-align: right; width: 150px;">Đơn giá</th>
-                                    <th style="padding: 15px 20px; text-align: right; width: 150px;">Thành tiền</th>
+                                    <th style="padding: 12px 16px; text-align: left; font-weight: 700;">Tên linh kiện</th>
+                                    <th style="padding: 12px 16px; text-align: center; font-weight: 700; width: 60px;">SL</th>
+                                    <th style="padding: 12px 16px; text-align: right; font-weight: 700;">Thành tiền</th>
+                                    <th style="padding: 12px 16px; text-align: center; font-weight: 700; width: 60px;"></th>
                                 </tr>
                             </thead>
-                            <tbody id="repairDetailTableBody"></tbody>
+                            <tbody id="repairDetailTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
                         </table>
                     </div>
+                </div>
 
-                </section>
-
-                <!-- Section 3: Update Form -->
-                <section>
-                    <h4
-                        style="color: #4f46e5; border-bottom: 2px solid #eef2ff; padding-bottom: 8px; margin-bottom: 15px; display: flex; align-items: center;">
-                        <i class="fas fa-edit" style="margin-right: 8px;"></i>Cập nhật tiến trình sửa chữa
-                    </h4>
-                    <form id="updateWarrantyForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div class="form-group" style="grid-column: span 2; margin-bottom: 0;">
-                            <label style="font-weight: 600; font-size: 0.85rem;">Kết luận kỹ thuật / Phân tích nguyên
-                                nhân:</label>
-                            <textarea id="ketLuanKyThuat"
-                                style="width:100%; height:70px; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;"
-                                placeholder="Nhập kết luận sau khi kiểm tra máy..."></textarea>
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-weight: 600; font-size: 0.85rem;">Nhân viên kỹ thuật phụ trách:</label>
-                            <select id="maNvKyThuat"
-                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white;"></select>
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-weight: 600; font-size: 0.85rem;">Trạng thái phiếu:</label>
-                            <select id="trangThaiPbh"
-                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white;">
-                                <option value="Chờ kiểm tra">Chờ kiểm tra</option>
-                                <option value="Đang sửa">Đang sửa</option>
-                                <option value="Đã xong">Đã xong</option>
-                                <option value="Đã trả máy">Đã trả máy</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-weight: 600; font-size: 0.85rem;">Ngày hẹn/thực tế trả máy:</label>
-                            <input type="date" id="ngayTraMay"
-                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-weight: 600; font-size: 0.85rem;">Hình thức thanh toán (HTTT):</label>
-                            <select id="maHtttPbh"
-                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white;"></select>
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-weight: 600; font-size: 0.85rem;">Phí dịch vụ kỹ thuật (VNĐ):</label>
-                            <input type="number" id="phiDichVuPbh" value="0" min="0"
-                                style="width:100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
-                        </div>
-
-                        <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 10px;">
-                            <button type="submit" class="btn-primary"
-                                style="padding: 12px 30px; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #4338ca); border-radius: 8px; min-width: 200px;">
-                                <i class="fas fa-save" style="margin-right: 8px;"></i>Cập nhật thông tin phiếu
-                            </button>
-                        </div>
-                    </form>
-                </section>
-
-                <!-- Final Summary (Total Cost & Workflow Actions) -->
-                <div
-                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 10px; border-top: 2px solid #f1f5f9; padding-top: 25px;">
+                <!-- Footer / Total -->
+                <div style="margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 24px; display: flex; justify-content: space-between; align-items: center;">
                     <div id="warrantyWorkflowActions" style="display: flex; gap: 12px;">
-                        <button id="btnConfirmQuote" type="button" class="btn-primary"
-                            style="background: #f59e0b; border: none; display: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);"
-                            onclick="handleConfirmQuote()">
+                        <button id="btnConfirmQuote" type="button" class="btn-primary" style="background: #f59e0b; border: none; display: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 0.85rem;" onclick="handleConfirmQuote()">
                             <i class="fas fa-check-double" style="margin-right: 8px;"></i>Khách đã đồng ý báo giá
                         </button>
-                        <button id="btnVerifyQC" type="button" class="btn-primary"
-                            style="background: #10b981; border: none; display: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);"
-                            onclick="handleVerifyQC()">
+                        <button id="btnVerifyQC" type="button" class="btn-primary" style="background: #10b981; border: none; display: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 0.85rem;" onclick="handleVerifyQC()">
                             <i class="fas fa-clipboard-check" style="margin-right: 8px;"></i>Xác nhận hoàn tất & QC
                         </button>
                     </div>
-                    <div
-                        style="text-align: right; padding: 20px; background: #fff1f2; border-radius: 12px; border: 1px solid #ffe4e6; min-width: 300px;">
-                        <div style="color: #9f1239; font-size: 0.9rem; margin-bottom: 5px; font-weight: 500;">TỔNG CHI
-                            PHÍ SỬA CHỮA</div>
-                        <div id="totalRepairCost"
-                            style="color: #e11d48; font-size: 2rem; font-weight: 800; letter-spacing: -1px;">0đ
-                        </div>
+                    <div style="text-align: right;">
+                        <span style="display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase;">Tổng chi phí dự kiến</span>
+                        <div id="totalRepairCost" style="font-size: 2rem; font-weight: 800; color: #ef4444; line-height: 1;">0đ</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
 
     <!-- Add Repair Detail Modal -->
     <div id="addRepairDetailModal" class="modal">

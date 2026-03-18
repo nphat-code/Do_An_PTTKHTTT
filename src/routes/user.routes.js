@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user.controller');
+const { verifyToken } = require('../middleware/auth.middleware');
 
 // Đường dẫn gốc: /api/users
 
@@ -22,5 +23,6 @@ router.put('/:id', userController.updateUser);
 router.delete('/:id', userController.deleteUser);
 router.put('/:id/lock', userController.toggleUserLock);
 router.put('/:id/reset-password', userController.resetUserPassword);
+router.post('/change-password', verifyToken, userController.changePassword);
 
 module.exports = router;

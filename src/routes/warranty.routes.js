@@ -13,4 +13,6 @@ router.put('/:id/verify-qc', verifyToken, authorize('WARRANTY_MANAGE'), warranty
 router.post('/repair-detail', verifyToken, authorize('WARRANTY_MANAGE'), warrantyController.addRepairDetail);
 router.get('/check/:serial', warrantyController.checkWarranty);
 
+router.delete('/repair-detail/:id', verifyToken, authorize('WARRANTY_MANAGE'), warrantyController.deleteRepairDetail);
+
 module.exports = router;

@@ -10,7 +10,17 @@ const KhachHang = sequelize.define('KhachHang', {
     email: { type: DataTypes.STRING },
     diaChi: { type: DataTypes.TEXT },
     matKhau: { type: DataTypes.STRING },
-    trangThai: { type: DataTypes.BOOLEAN, defaultValue: true }
-}, { tableName: 'KHACH_HANG', timestamps: false });
+    trangThai: { type: DataTypes.BOOLEAN, defaultValue: true },
+    createdAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: DataTypes.NOW
+    },
+    updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: DataTypes.NOW
+    }
+}, { tableName: 'KHACH_HANG', timestamps: true });
 
 module.exports = KhachHang;

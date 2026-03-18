@@ -119,7 +119,22 @@ async function loadMyOrders() {
             const status = statusMap[order.trangThai] || { class: 'status-pending', icon: '⏳' };
             const ngayLap = order.ngayLap ? new Date(order.ngayLap).toLocaleDateString('vi-VN') : '';
 
-            const itemsHtml = (order.DongMays || []).map(item => {
+            const orderItems = order.DongMays || [];
+            let originalSum = 0;
+            orderItems.forEach(item => {
+                const ct = item.CtHoaDon || {};
+                originalSum += Number(ct.thanhTien || 0);
+            });
+
+            const finalTotal = Number(order.tongTien || 0);
+            const discount = originalSum - finalTotal;
+            const promoHtml = (order.ChuongTrinhKm && discount > 0)
+                ? `<div class="order-promo" style="color: #ef4444; font-size: 0.9rem; margin-bottom: 8px; text-align: right;">
+                    <i class="fas fa-tag"></i> Khuyến mãi: -${discount.toLocaleString()}đ (${order.ChuongTrinhKm.tenKm})
+                   </div>`
+                : '';
+
+            const itemsHtml = orderItems.map(item => {
                 const ct = item.CtHoaDon || {};
                 return `
                     <div class="order-item">
@@ -143,7 +158,8 @@ async function loadMyOrders() {
                         <span class="order-status ${status.class}">${status.icon} ${order.trangThai || 'Chờ xử lý'}</span>
                     </div>
                     <div class="order-items">${itemsHtml}</div>
-                    <div class="order-total">Tổng: ${Number(order.tongTien || 0).toLocaleString()}đ</div>
+                    ${promoHtml}
+                    <div class="order-total">Tổng: ${finalTotal.toLocaleString()}đ</div>
                 </div>`;
         }).join('');
 
@@ -156,3 +172,52 @@ async function loadMyOrders() {
 // Init
 setupAuth();
 loadProfile();
+
+// Password change
+const changePasswordForm = document.getElementById('changePasswordForm');
+if (changePasswordForm) {
+    changePasswordForm.onsubmit = async (e) => {
+        e.preventDefault();
+
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (newPassword !== confirmPassword) {
+            return Swal.fire('Lỗi', 'Mật khẩu mới và xác nhận mật khẩu không khớp', 'error');
+        }
+
+        if (newPassword.length < 6) {
+            return Swal.fire('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự', 'error');
+        }
+
+        try {
+            const response = await fetch('/api/users/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công!',
+                    text: result.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                changePasswordForm.reset();
+                // Optionally switch back to profile info
+                switchProfileTab('info');
+            } else {
+                Swal.fire('Lỗi', result.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+        }
+    };
+}

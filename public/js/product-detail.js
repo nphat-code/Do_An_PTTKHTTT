@@ -138,6 +138,7 @@ function addToCartDetail() {
             id: currentProduct.maModel,
             name: currentProduct.tenModel,
             price: Number(currentProduct.giaBan),
+            image: currentProduct.hinhAnh,
             quantity: 1,
             stock: currentProduct.soLuongTon || 0
         });
