@@ -11,6 +11,9 @@ router.post('/', userController.createCustomer);
 // 2. Lấy mã khách hàng tiếp theo
 router.get('/next-id', userController.getNextMaKh);
 
+// 3. Tìm kiếm khách hàng theo số điện thoại (Dành cho POS)
+router.get('/check-phone/:phone', userController.getUserByPhone);
+
 // 3. Tìm kiếm khách hàng (Phải đặt trước các route có tham số)
 router.get('/search', userController.searchUsers);
 

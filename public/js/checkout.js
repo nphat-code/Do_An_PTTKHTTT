@@ -4,8 +4,10 @@
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
 let appliedMaKm = null;
 let discountAmountValue = 0;
+let rankDiscountAmountValue = 0;
+let customerRankRate = 0;
 
-function initCheckout() {
+async function initCheckout() {
     if (cart.length === 0) {
         document.getElementById('checkoutContent').style.display = 'none';
         document.getElementById('emptyCartMsg').style.display = 'block';
@@ -22,8 +24,15 @@ function initCheckout() {
         setVal('cusAddress', user.address);
     }
 
-    renderOrderSummary();
+    await renderOrderSummary();
     loadPaymentMethods();
+
+    const phoneInput = document.getElementById('cusPhone');
+    const phone = phoneInput.value.trim();
+    if (phone) checkCustomerRank(phone);
+
+    // Bắt sự kiện nhập số điện thoại để cập nhật rank tức thì
+    phoneInput.oninput = (e) => checkCustomerRank(e.target.value.trim());
 }
 
 function setVal(id, val) {
@@ -34,7 +43,6 @@ function setVal(id, val) {
 // Hiển thị danh sách sản phẩm trong đơn hàng
 async function renderOrderSummary() {
     const container = document.getElementById('orderItems');
-    const totalEl = document.getElementById('orderTotal');
     const subtotalEl = document.getElementById('subtotal');
     const itemCountEl = document.getElementById('itemCount');
     let subtotal = 0;
@@ -175,26 +183,79 @@ async function checkAutoPromotions(subtotal) {
         const promoRow = document.getElementById('promoRow');
         const promoName = document.getElementById('promoName');
         const discountAmountEl = document.getElementById('discountAmount');
+        const rankPromoRow = document.getElementById('rankPromoRow');
+        const rankDiscountAmountEl = document.getElementById('rankDiscountAmount');
         const totalEl = document.getElementById('orderTotal');
 
+        let promoAmount = 0;
         if (bestPromo && maxDiscount > 0) {
             appliedMaKm = bestPromo.maKm;
+            promoAmount = maxDiscount;
             discountAmountValue = maxDiscount;
 
             if (promoRow) promoRow.style.display = 'flex';
             if (promoName) promoName.innerText = `Khuyến mãi (${bestPromo.tenKm})`;
             if (discountAmountEl) discountAmountEl.innerText = `-${maxDiscount.toLocaleString()}đ`;
-
-            const finalTotal = Math.max(0, subtotal - maxDiscount);
-            totalEl.innerText = finalTotal.toLocaleString() + 'đ';
         } else {
             appliedMaKm = null;
             discountAmountValue = 0;
             if (promoRow) promoRow.style.display = 'none';
-            totalEl.innerText = subtotal.toLocaleString() + 'đ';
         }
+
+        // Calculate Rank Discount on amount after promotion
+        const afterPromo = subtotal - promoAmount;
+        rankDiscountAmountValue = Math.floor(afterPromo * customerRankRate);
+
+        if (rankDiscountAmountValue > 0) {
+            if (rankPromoRow) rankPromoRow.style.display = 'flex';
+            const rankLabel = document.getElementById('rankDiscountName');
+            if (rankLabel && result.data && result.data.rank) {
+                rankLabel.innerText = `Giảm giá hạng (${result.data.rank.name})`;
+            }
+            if (rankDiscountAmountEl) rankDiscountAmountEl.innerText = `-${rankDiscountAmountValue.toLocaleString()}đ`;
+        } else {
+            if (rankPromoRow) rankPromoRow.style.display = 'none';
+        }
+
+        const finalTotal = Math.max(0, afterPromo - rankDiscountAmountValue);
+        if (totalEl) totalEl.innerText = finalTotal.toLocaleString() + 'đ';
     } catch (error) {
         console.error('Lỗi tự động tính khuyến mãi:', error);
+    }
+}
+
+async function checkCustomerRank(phone) {
+    if (!phone || !/^0\d{8,10}$/.test(phone.replace(/\s/g, ''))) {
+        customerRankRate = 0;
+        const subtotalEl = document.getElementById('subtotal');
+        if (subtotalEl) {
+            const subtotal = parseFloat(subtotalEl.innerText.replace(/\D/g, '')) || 0;
+            checkAutoPromotions(subtotal);
+        }
+        return;
+    }
+    try {
+        const response = await fetch(`/api/users/check-phone/${phone}`);
+        const result = await response.json();
+        if (result.success && result.data) {
+            // getUserByPhone returns { rank: { name, discountRate, ... } }
+            if (result.data.rank) {
+                customerRankRate = parseFloat(result.data.rank.discountRate || 0) / 100;
+                console.log(`Customer Rank for ${phone}: ${result.data.rank.name} (${customerRankRate * 100}%)`);
+            } else {
+                customerRankRate = 0;
+            }
+        } else {
+            customerRankRate = 0;
+        }
+        // Re-calculate after getting rank
+        const subtotalEl = document.getElementById('subtotal');
+        if (subtotalEl) {
+            const subtotal = parseFloat(subtotalEl.innerText.replace(/\D/g, '')) || 0;
+            checkAutoPromotions(subtotal);
+        }
+    } catch (e) {
+        console.error('Lỗi kiểm tra hạng khách hàng:', e);
     }
 }
 

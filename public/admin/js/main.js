@@ -873,7 +873,7 @@ async function viewOrderDetails(orderId) {
                 });
             }
 
-            // 4. Tính toán và hiển thị tổng tiền, khuyến mãi
+            // 4. Totals & Discounts breakdown
             let subtotal = 0;
             orderItems.forEach(p => {
                 const ct = p.CtHoaDon || p.ctHoaDon || {};
@@ -881,17 +881,26 @@ async function viewOrderDetails(orderId) {
             });
 
             const finalTotal = Number(order.tongTien || 0);
-            const discount = subtotal - finalTotal;
-
             document.getElementById("orderSubtotalDetail").innerText = subtotal.toLocaleString() + "đ";
-
+            
+            // Promotion Discount
             const promoRow = document.getElementById("orderPromotionRow");
-            if (order.ChuongTrinhKm && discount > 0) {
-                document.getElementById("orderPromotionName").innerText = order.ChuongTrinhKm.tenKm;
-                document.getElementById("orderDiscountDetail").innerText = "-" + discount.toLocaleString() + "đ";
+            if (order.soTienGiamGia > 0) {
                 promoRow.style.display = "flex";
+                document.getElementById("orderPromotionName").innerText = order.ChuongTrinhKm ? order.ChuongTrinhKm.tenKm : 'Khuyến mãi';
+                document.getElementById("orderDiscountDetail").innerText = "-" + Number(order.soTienGiamGia).toLocaleString() + "đ";
             } else {
                 promoRow.style.display = "none";
+            }
+
+            // Rank Discount
+            const rankRow = document.getElementById("orderRankRow");
+            const rankDiscount = Number(order.soTienGiamGiaHang || 0);
+            if (rankDiscount > 0) {
+                rankRow.style.display = "flex";
+                document.getElementById("orderRankDiscountDetail").innerText = "-" + rankDiscount.toLocaleString() + "đ";
+            } else {
+                rankRow.style.display = "none";
             }
 
             document.getElementById("orderTotalDetail").innerText = finalTotal.toLocaleString() + "đ";

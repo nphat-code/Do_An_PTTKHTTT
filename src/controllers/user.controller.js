@@ -1,6 +1,7 @@
 const { KhachHang, HoaDon, CtHoaDon, DongMay } = require('../models/index');
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const { getCustomerRankInfo } = require('../utils/customerRank');
 
 // 0. Tạo khách hàng mới (Dành cho Admin)
 const createCustomer = async (req, res) => {
@@ -32,14 +33,6 @@ const createCustomer = async (req, res) => {
     }
 };
 
-// Helper to get customer rank
-const getCustomerRank = (total) => {
-    if (total >= 150000000) return { name: 'Bạch Kim', color: '#7c3aed', icon: 'fa-crown' }; // Platinum
-    if (total >= 50000000) return { name: 'Vàng', color: '#d97706', icon: 'fa-award' };      // Gold
-    if (total >= 20000000) return { name: 'Bạc', color: '#4b5563', icon: 'fa-medal' };      // Silver
-    return { name: 'Thành viên', color: '#64748b', icon: 'fa-user' };                        // Standard
-};
-
 // 1. Lấy danh sách toàn bộ khách hàng (Dành cho Admin)
 const getAllUsers = async (req, res) => {
     try {
@@ -55,7 +48,7 @@ const getAllUsers = async (req, res) => {
             // Calculate total spending
             const totalSpending = (data.HoaDons || []).reduce((sum, hd) => sum + Number(hd.tongTien || 0), 0);
             data.totalSpending = totalSpending;
-            data.rank = getCustomerRank(totalSpending);
+            data.rank = getCustomerRankInfo(totalSpending);
             
             delete data.HoaDons; // Clean up response
             return data;
@@ -97,7 +90,7 @@ const getUserDetails = async (req, res) => {
         // Calculate total spending and rank
         const totalSpending = (userData.HoaDons || []).reduce((sum, hd) => sum + Number(hd.tongTien || 0), 0);
         userData.totalSpending = totalSpending;
-        userData.rank = getCustomerRank(totalSpending);
+        userData.rank = getCustomerRankInfo(totalSpending);
 
         return res.status(200).json({
             success: true,
@@ -273,6 +266,35 @@ const getNextMaKh = async (req, res) => {
     }
 };
 
+const getUserByPhone = async (req, res) => {
+    try {
+        const { phone } = req.params;
+        const user = await KhachHang.findOne({
+            where: { sdt: phone },
+            include: [{ 
+                model: HoaDon, 
+                attributes: ['tongTien'],
+                where: { trangThai: { [Op.ne]: 'Đã hủy' } },
+                required: false
+            }]
+        });
+
+        if (!user) {
+            return res.json({ success: false, message: "Không tìm thấy khách hàng" });
+        }
+
+        const data = user.toJSON();
+        const totalSpending = (data.HoaDons || []).reduce((sum, hd) => sum + Number(hd.tongTien || 0), 0);
+        data.totalSpending = totalSpending;
+        data.rank = getCustomerRankInfo(totalSpending);
+
+        delete data.HoaDons;
+        return res.json({ success: true, data });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     createCustomer,
     getAllUsers,
@@ -283,5 +305,6 @@ module.exports = {
     deleteUser,
     resetUserPassword,
     changePassword,
-    getNextMaKh
+    getNextMaKh,
+    getUserByPhone
 };

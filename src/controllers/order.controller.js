@@ -1,6 +1,8 @@
 const { sequelize, DongMay, KhachHang, HoaDon, CtHoaDon, ChiTietMay, HinhThucThanhToan, NhanVien, ChuongTrinhKm } = require('../models/index');
 const { Op } = require('sequelize');
 
+const { getCustomerRankInfo } = require('../utils/customerRank');
+
 const generateOrderCode = () => {
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
@@ -141,7 +143,15 @@ const createOrder = async (req, res) => {
             }
         }
 
-        const finalAmount = Math.max(0, totalAmount - discountAmount);
+        // 4.5 Tính toán giảm giá theo hạng khách hàng
+        const customerTotalSpending = await HoaDon.sum('tongTien', { 
+            where: { maKh: customer.maKh, trangThai: { [Op.ne]: 'Đã hủy' } },
+            transaction: t
+        }) || 0;
+        const rankInfo = getCustomerRankInfo(customerTotalSpending);
+        const rankDiscountAmount = (totalAmount * rankInfo.discountRate) / 100;
+
+        const finalAmount = Math.max(0, totalAmount - discountAmount - rankDiscountAmount);
 
         // 5. Tạo hóa đơn chính
         const maHd = generateOrderCode();
@@ -155,6 +165,9 @@ const createOrder = async (req, res) => {
             maHd: maHd,
             ngayLap: new Date(),
             tongTien: finalAmount,
+            tiLeGiamGiaHang: rankInfo.discountRate,
+            soTienGiamGiaHang: rankDiscountAmount,
+            soTienGiamGia: discountAmount,
             ghiChu: customerInfo.ghiChu || '',
             trangThai: 'Chờ xử lý',
             maKh: customer.maKh,
@@ -226,7 +239,7 @@ const createOrder = async (req, res) => {
             success: true,
             message: "Đặt hàng thành công!",
             orderId: order.maHd,
-            totalAmount: totalAmount
+            totalAmount: finalAmount
         });
 
     } catch (error) {

@@ -42,15 +42,23 @@ let posCart = {};
 let currentOrderDetailId = null;
 let posPromotions = []; // Store active promotions
 let bestMaKm = null; // Store automatically selected best promotion
+let posCustomerRank = { name: 'Thành viên', discountRate: 0, color: '#64748b' };
 
 async function openPOSModal() {
     posCart = {};
+    posCustomerRank = { name: 'Thành viên', discountRate: 0, color: '#64748b' };
     renderPOSCart();
     ['posCustomerName', 'posCustomerPhone', 'posCustomerAddress', 'posSearchInput', 'posOrderNote'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
     document.getElementById('posModal').style.display = 'flex';
+
+    // Add phone lookup listener
+    const phoneInput = document.getElementById('posCustomerPhone');
+    if (phoneInput) {
+        phoneInput.onblur = () => lookupPOSCustomer(phoneInput.value);
+    }
 
     // Load payment methods
     try {
@@ -135,6 +143,39 @@ function renderPOSProductGrid(products) {
             </div>
         </div>`;
     }).join('');
+}
+
+async function lookupPOSCustomer(phone) {
+    if (!phone || phone.length < 10) return;
+    try {
+        const res = await fetch(`/api/users/check-phone/${phone}`);
+        const result = await res.json();
+        if (result.success) {
+            const kh = result.data;
+            document.getElementById('posCustomerName').value = kh.hoTen || '';
+            document.getElementById('posCustomerAddress').value = kh.diaChi || '';
+            posCustomerRank = kh.rank || { name: 'Thành viên', discountRate: 0, color: '#64748b' };
+            
+            // Show a small toast or notification about the rank
+            Swal.fire({
+                icon: 'info',
+                title: `Khách hàng: ${kh.hoTen}`,
+                html: `Hạng: <span style="color:${posCustomerRank.color}; font-weight:700;">${posCustomerRank.name}</span> (Giảm ${posCustomerRank.discountRate}%)`,
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+            
+            renderPOSCart();
+        } else {
+            // New customer or not found, reset rank
+            posCustomerRank = { name: 'Thành viên', discountRate: 0, color: '#64748b' };
+            renderPOSCart();
+        }
+    } catch (e) {
+        console.error('Error looking up customer', e);
+    }
 }
 
 async function addToPOSCart(maModel) {
@@ -302,10 +343,32 @@ function renderPOSCart() {
         }
     });
 
-    const finalTotal = Math.max(0, total - maxDiscount);
+    // Rank-based discount
+    const rankDiscount = (total * (posCustomerRank.discountRate || 0)) / 100;
+    const totalDiscount = maxDiscount + rankDiscount;
+    const finalTotal = Math.max(0, total - totalDiscount);
 
     document.getElementById('posSubtotal').innerHTML = total.toLocaleString() + ' &#8363;';
-    document.getElementById('posDiscount').innerHTML = (maxDiscount > 0 ? '-' : '') + (maxDiscount || 0).toLocaleString() + ' &#8363;';
+    
+    // Show/Hide and Update Promotion Discount
+    const promoRow = document.getElementById('posPromoRow');
+    if (maxDiscount > 0) {
+        promoRow.style.display = 'flex';
+        document.getElementById('posDiscount').innerHTML = `-${maxDiscount.toLocaleString()} &#8363;`;
+    } else {
+        promoRow.style.display = 'none';
+    }
+
+    // Show/Hide and Update Rank Discount
+    const rankRow = document.getElementById('posRankRow');
+    if (rankDiscount > 0) {
+        rankRow.style.display = 'flex';
+        document.getElementById('posRankLabel').innerHTML = `Giảm hạng (${posCustomerRank.name}):`;
+        document.getElementById('posRankDiscount').innerHTML = `-${rankDiscount.toLocaleString()} &#8363;`;
+    } else {
+        rankRow.style.display = 'none';
+    }
+
     document.getElementById('posTotalAmount').innerHTML = finalTotal.toLocaleString() + ' &#8363;';
     
     // Optional: add a small notice about the applied promotion if desired
@@ -390,8 +453,33 @@ async function viewOrderDetail(maHd) {
             <div style="background:#f8fafc;padding:10px;border-radius:8px;"><strong>\u0110\u1ecba ch\u1ec9:</strong><br>${kh.diaChi || '&mdash;'}</div>
             <div style="background:#f8fafc;padding:10px;border-radius:8px;"><strong>Ng\u00e0y l\u1eadp:</strong><br>${new Date(o.ngayLap).toLocaleString('vi-VN')}</div>`;
 
-        document.getElementById('orderDetailStatusSelect').value = o.trangThai;
-        document.getElementById('orderDetailTotal').innerHTML = Number(o.tongTien).toLocaleString() + ' &#8363;';
+        document.getElementById( 'orderDetailStatusSelect' ).value = o.trangThai;
+
+        // Populate Totals & Discounts breakdown
+        const subtotal = (o.DongMays || []).reduce((sum, p) => sum + Number((p.CtHoaDon && p.CtHoaDon.thanhTien) || 0), 0);
+        document.getElementById('orderSubtotalDetail').textContent = subtotal.toLocaleString() + 'đ';
+
+        // Promotion Discount Row
+        const promoRow = document.getElementById('orderPromotionRow');
+        if (o.soTienGiamGia > 0) {
+            promoRow.style.display = 'flex';
+            document.getElementById('orderPromotionName').textContent = o.ChuongTrinhKm ? o.ChuongTrinhKm.tenKm : 'Khuyến mãi';
+            document.getElementById('orderDiscountDetail').textContent = '-' + Number(o.soTienGiamGia).toLocaleString() + 'đ';
+        } else {
+            promoRow.style.display = 'none';
+        }
+
+        // Rank Discount Row
+        const rankRow = document.getElementById('orderRankRow');
+        const rankDiscount = Number(o.soTienGiamGiaHang || 0);
+        if (rankDiscount > 0) {
+            rankRow.style.display = 'flex';
+            document.getElementById('orderRankDiscountDetail').textContent = '-' + rankDiscount.toLocaleString() + 'đ';
+        } else {
+            rankRow.style.display = 'none';
+        }
+
+        document.getElementById('orderTotalDetail').textContent = Number(o.tongTien).toLocaleString() + 'đ';
 
         if (o.DongMays && o.DongMays.length) {
             const rows = await Promise.all(o.DongMays.map(async p => {
