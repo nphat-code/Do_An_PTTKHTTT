@@ -1,4 +1,4 @@
-const { PhieuKiemKe, CtKiemKeLk, CtKiemKeMay, NhanVien, Kho, ChiTietMay, LinhKien, KhoLinhKien, sequelize } = require('../models');
+const { PhieuKiemKe, CtKiemKeLk, CtKiemKeMay, NhanVien, Kho, ChiTietMay, LinhKien, KhoLinhKien, DongMay, sequelize } = require('../models');
 
 const inspectionController = {
     getAllInspections: async (req, res) => {
@@ -68,11 +68,27 @@ const inspectionController = {
 
                     // Update status if discrepancy found
                     if (item.ttHeThong !== item.ttThucTe) {
-                        await ChiTietMay.update(
-                            { trangThai: item.ttThucTe },
-                            { where: { soSerial: item.soSerial }, transaction: t }
-                        );
+                        const machine = await ChiTietMay.findOne({ where: { soSerial: item.soSerial }, transaction: t });
+                        if (machine) {
+                            await machine.update({ trangThai: item.ttThucTe }, { transaction: t });
+                        }
                     }
+                }
+
+                // SYNC: Re-calculate soLuongTon for all models involved in the inspection
+                const distinctModels = new Set();
+                for (const item of ctMay) {
+                    const machine = await ChiTietMay.findOne({ where: { soSerial: item.soSerial }, transaction: t });
+                    if (machine) {
+                        distinctModels.add(machine.maModel);
+                    }
+                }
+                for (const maModel of distinctModels) {
+                    const actualCount = await ChiTietMay.count({
+                        where: { maModel: maModel, trangThai: 'Trong kho' },
+                        transaction: t
+                    });
+                    await DongMay.update({ soLuongTon: actualCount }, { where: { maModel: maModel }, transaction: t });
                 }
             }
 
@@ -89,10 +105,22 @@ const inspectionController = {
 
                     // Update stock if discrepancy found
                     if (item.slHeThong !== item.slThucTe) {
+                        const diff = Number(item.slThucTe) - Number(item.slHeThong);
+                        
+                        // Update individual warehouse stock
                         await KhoLinhKien.update(
                             { soLuongTon: item.slThucTe },
                             { where: { maLk: item.maLk, maKho: maKho }, transaction: t }
                         );
+
+                        // SYNC: Update global LinhKien stock quantity
+                        if (diff !== 0) {
+                            if (diff > 0) {
+                                await LinhKien.increment('soLuongTon', { by: diff, where: { maLk: item.maLk }, transaction: t });
+                            } else {
+                                await LinhKien.decrement('soLuongTon', { by: Math.abs(diff), where: { maLk: item.maLk }, transaction: t });
+                            }
+                        }
                     }
                 }
             }

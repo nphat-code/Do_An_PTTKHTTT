@@ -3554,7 +3554,7 @@ window.submitInspection = async () => {
     document.querySelectorAll('#inspectionMachineTableBody tr[data-serial]').forEach(tr => {
         ctMay.push({
             soSerial: tr.getAttribute('data-serial'),
-            ttHeThong: tr.cells[2].innerText,
+            ttHeThong: tr.cells[2].innerText.trim(),
             ttThucTe: tr.querySelector('.m-actual-status').value
         });
     });
