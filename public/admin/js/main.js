@@ -310,7 +310,7 @@ window.openEditModal = async (maModel) => {
         document.getElementById("trongLuong").value = ch.trongLuong || '';
         document.getElementById("giaNhap").value = p.giaNhap || 0;
         document.getElementById("giaBan").value = p.giaBan || 0;
-        document.getElementById("thoiHanBaoHanh").value = p.thoiHanBaoHanh || 12;
+        document.getElementById("thoiHanBaoHanh").value = (p.thoiHanBaoHanh !== null && p.thoiHanBaoHanh !== undefined) ? p.thoiHanBaoHanh : 12;
 
         // Hiển ảnh hiện tại
         const previewImg = document.getElementById('previewImg');
@@ -3022,34 +3022,15 @@ document.addEventListener('DOMContentLoaded', () => {
         updateWForm.onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('displayWId').innerText;
-            const data = {
-                ketLuanKyThuat: document.getElementById('ketLuanKyThuat').value,
-                maNvKyThuat: document.getElementById('maNvKyThuat').value,
-                trangThai: document.getElementById('trangThaiPbh').value,
-                ngayTraMay: document.getElementById('ngayTraMay').value || null,
-                maHttt: document.getElementById('maHtttPbh').value || null,
-                phiDichVu: parseFloat(document.getElementById('phiDichVuPbh').value || 0)
-            };
-
-            try {
-                const res = await fetch(`/api/warranties/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(data)
-                });
-                const result = await res.json();
-                if (result.success) {
-                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã cập nhật tình trạng phiếu', timer: 2000 });
-                    loadWarranties();
-                    // Keep modal open or refresh details?
-                    viewWarrantyDetail(id);
-                } else {
-                    Swal.fire('Lỗi', result.message, 'error');
-                }
-            } catch (err) { console.error(err); }
+            
+            const result = await saveTechnicalProgress(id);
+            if (result.success) {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã cập nhật tình trạng phiếu', timer: 2000 });
+                loadWarranties();
+                viewWarrantyDetail(id);
+            } else {
+                Swal.fire('Lỗi', result.message, 'error');
+            }
         };
     }
 
@@ -3077,6 +3058,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const result = await res.json();
                 if (result.success) {
+                    // Tự động lưu nội dung đang nhập trước khi load lại
+                    await saveTechnicalProgress(maPbh);
                     Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã thêm linh kiện/vật tư', timer: 1500 });
                     closeAddRepairDetail();
                     viewWarrantyDetail(maPbh); // Refresh details
@@ -3275,9 +3258,48 @@ function updateWarrantyStepper(status) {
 }
 
 
+async function saveTechnicalProgress(id) {
+    const data = {
+        ketLuanKyThuat: document.getElementById('ketLuanKyThuat').value,
+        maNvKyThuat: document.getElementById('maNvKyThuat').value,
+        trangThai: document.getElementById('trangThaiPbh').value,
+        ngayTraMay: document.getElementById('ngayTraMay').value || null,
+        maHttt: document.getElementById('maHtttPbh').value || null,
+        phiDichVu: parseFloat(document.getElementById('phiDichVuPbh').value || 0)
+    };
+
+    try {
+        const res = await fetch(`/api/warranties/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify(data)
+        });
+        return await res.json();
+    } catch (err) {
+        console.error("Lỗi khi lưu tiến độ:", err);
+        return { success: false, message: "Không thể kết nối server" };
+    }
+}
+
 async function handleConfirmQuote() {
     const id = document.getElementById('displayWId').innerText;
     if (!id) return;
+
+    // Tự động lưu nội dung đang nhập trước khi đổi trạng thái
+    const saveRes = await saveTechnicalProgress(id);
+    if (!saveRes.success) {
+        const confirm = await Swal.fire({
+            title: 'Lưu thất bại',
+            text: 'Không thể lưu tiến độ kỹ thuật. Bạn vẫn muốn tiếp tục xác nhận báo giá?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Vẫn tiếp tục'
+        });
+        if (!confirm.isConfirmed) return;
+    }
 
     try {
         const res = await fetch(`/api/warranties/${id}/confirm-quote`, {
@@ -3298,6 +3320,19 @@ async function handleConfirmQuote() {
 async function handleVerifyQC() {
     const id = document.getElementById('displayWId').innerText;
     if (!id) return;
+
+    // Tự động lưu nội dung đang nhập trước khi đổi trạng thái
+    const saveRes = await saveTechnicalProgress(id);
+    if (!saveRes.success) {
+        const confirm = await Swal.fire({
+            title: 'Lưu thất bại',
+            text: 'Không thể lưu tiến độ kỹ thuật. Bạn vẫn muốn tiếp tục xác nhận QC?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Vẫn tiếp tục'
+        });
+        if (!confirm.isConfirmed) return;
+    }
 
     try {
         const res = await fetch(`/api/warranties/${id}/verify-qc`, {
@@ -3404,6 +3439,8 @@ async function deleteRepairDetail(id) {
             });
             const result = await res.json();
             if (result.success) {
+                // Tự động lưu nội dung đang nhập trước khi load lại
+                await saveTechnicalProgress(maPbh);
                 Swal.fire({ icon: 'success', title: 'Đã xóa', text: result.message, timer: 1500 });
                 viewWarrantyDetail(maPbh);
             } else {
@@ -3647,6 +3684,24 @@ async function openAddRepairDetail() {
         if (selectLk) {
             selectLk.innerHTML = '<option value="">-- Chọn linh kiện --</option>' +
                 lks.data.map(l => `<option value="${l.maLk}">${l.tenLk}</option>`).join('');
+            
+            // Auto-fill price when selecting spare part
+            selectLk.onchange = () => {
+                const maLk = selectLk.value;
+                const loaiPhieu = document.getElementById('displayWId').dataset.loaiPhieu;
+                const repairPriceInput = document.getElementById('repairPrice');
+                
+                if (loaiPhieu === 'Bảo hành') {
+                    repairPriceInput.value = 0;
+                } else if (maLk) {
+                    const selectedPart = lks.data.find(l => l.maLk === maLk);
+                    if (selectedPart) {
+                        repairPriceInput.value = selectedPart.giaNhap || 0;
+                    }
+                } else {
+                    repairPriceInput.value = 0;
+                }
+            };
         }
         if (selectKho) {
             selectKho.innerHTML = '<option value="">-- Chọn kho --</option>' +
@@ -3674,7 +3729,9 @@ async function openAddRepairDetail() {
                     span.style = 'background:#4338ca; color:white; padding:5px 12px; border-radius:15px; font-size:0.85rem; cursor:pointer; hover:opacity:0.8;';
                     span.innerHTML = `<i class="fas fa-check-circle"></i> ${item.tenLk}`;
                     span.onclick = () => {
-                        document.getElementById('repairLk').value = item.maLk;
+                        const selectLk = document.getElementById('repairLk');
+                        selectLk.value = item.maLk;
+                        selectLk.dispatchEvent(new Event('change'));
                     };
                     suggestionList.appendChild(span);
                 });

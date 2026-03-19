@@ -115,7 +115,7 @@ const createProduct = async (req, res) => {
             tenModel,
             giaNhap: giaNhap ? Number(giaNhap) : null,
             giaBan: giaBan ? Number(giaBan) : null,
-            thoiHanBaoHanh: thoiHanBaoHanh ? Number(thoiHanBaoHanh) : 12,
+            thoiHanBaoHanh: (thoiHanBaoHanh !== null && thoiHanBaoHanh !== undefined && thoiHanBaoHanh !== '') ? Number(thoiHanBaoHanh) : 12,
             soLuongTon: 0,
             hinhAnh,
             maCh: maCh,
@@ -189,7 +189,7 @@ const updateProduct = async (req, res) => {
         if (giaBan !== undefined) updateData.giaBan = Number(giaBan);
         if (maHang !== undefined) updateData.maHang = maHang || null;
         if (maLoai !== undefined) updateData.maLoai = maLoai || null;
-        if (thoiHanBaoHanh !== undefined) updateData.thoiHanBaoHanh = thoiHanBaoHanh ? Number(thoiHanBaoHanh) : 12;
+        if (thoiHanBaoHanh !== undefined) updateData.thoiHanBaoHanh = (thoiHanBaoHanh !== null && thoiHanBaoHanh !== '') ? Number(thoiHanBaoHanh) : 12;
         if (req.file) updateData.hinhAnh = `uploads/products/${req.file.filename}`;
 
         await product.update(updateData, { transaction: t });

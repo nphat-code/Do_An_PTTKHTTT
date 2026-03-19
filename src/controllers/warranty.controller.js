@@ -105,7 +105,7 @@ const createWarranty = async (req, res) => {
         let loaiPhieu = 'Sửa chữa';
         if (machine.HoaDon && machine.HoaDon.ngayLap && machine.DongMay) {
             const ngayMua = new Date(machine.HoaDon.ngayLap);
-            const hanBaoHanhMonths = machine.DongMay.thoiHanBaoHanh || 12;
+            const hanBaoHanhMonths = (machine.DongMay.thoiHanBaoHanh !== null && machine.DongMay.thoiHanBaoHanh !== undefined) ? machine.DongMay.thoiHanBaoHanh : 12;
             const ngayHetHan = new Date(ngayMua);
             ngayHetHan.setMonth(ngayHetHan.getMonth() + hanBaoHanhMonths);
 
@@ -157,18 +157,24 @@ const updateWarranty = async (req, res) => {
         if (warranty.ChiTietSuaChuas) {
             totalPartsCost = warranty.ChiTietSuaChuas.reduce((sum, item) => sum + (parseFloat(item.donGia) * item.soLuong), 0);
         }
-        const newTotal = totalPartsCost + parseFloat(phiDichVu || warranty.phiDichVu || 0);
-
         // 2. Cập nhật phiếu
-        await warranty.update({
-            ketLuanKyThuat,
-            ngayTraMay,
-            phiDichVu: phiDichVu || 0,
-            chiPhiSuaChua: newTotal,
-            trangThai,
-            maNvKyThuat,
-            maHttt
-        }, { transaction: t });
+        // Update only provided fields
+        const updateData = {};
+        if (ketLuanKyThuat !== undefined) updateData.ketLuanKyThuat = ketLuanKyThuat;
+        if (ngayTraMay !== undefined) updateData.ngayTraMay = ngayTraMay;
+        if (trangThai !== undefined) updateData.trangThai = trangThai;
+        if (maNvKyThuat !== undefined) updateData.maNvKyThuat = maNvKyThuat;
+        if (maHttt !== undefined) updateData.maHttt = maHttt;
+        
+        // Fee handling: if not provided, use existing
+        const effectivePhiDichVu = phiDichVu !== undefined ? parseFloat(phiDichVu || 0) : parseFloat(warranty.phiDichVu || 0);
+        updateData.phiDichVu = effectivePhiDichVu;
+        
+        // Recalculate total cost
+        const finalTotal = totalPartsCost + effectivePhiDichVu;
+        updateData.chiPhiSuaChua = finalTotal;
+
+        await warranty.update(updateData, { transaction: t });
 
         // 3. Nếu Đã trả máy -> Cập nhật trạng thái máy về Đã bán
         if (trangThai === 'Đã trả máy') {
